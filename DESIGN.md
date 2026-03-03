@@ -8,7 +8,7 @@ Think TIS-100 meets moral complicity. The mechanics are the hook; the narrative 
 
 ## Technical Architecture
 
-- **Active working file**: `zero-page-v17.html` is the current working version of the game. Other HTML files in the repo (index.html, earlier versions) are outdated snapshots — do NOT edit them.
+- **Active working file**: `zero-page-v18.html` is the current working version of the game. Other HTML files in the repo (index.html, earlier versions) are outdated snapshots — do NOT edit them.
 - **Single-file**: The entire game — HTML, CSS, JavaScript, assembler, simulator, puzzle definitions, narrative, UI — lives in one HTML file (~172 KB, ~4,000 lines).
 - **Zero dependencies**: No build step, no frameworks, no server. Open in any modern browser.
 - **Custom 6502 assembler**: Two-pass assembler with label resolution, supporting 45 instructions and 8 addressing modes.
