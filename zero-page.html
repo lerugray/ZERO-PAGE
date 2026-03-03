@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZERO PAGE — Microprocessor Systems Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+  :root {
+    --bg: #080c08;
+    --bg2: #0c110c;
+    --bg3: #111811;
+    --border: #1e2e1e;
+    --border-bright: #2a4a2a;
+    --green: #4a8a4a;
+    --green-bright: #6ab06a;
+    --green-dim: #2a5a2a;
+    --amber: #b08020;
+    --amber-bright: #d0a030;
+    --amber-dim: #604810;
+    --red: #8a3030;
+    --red-bright: #c05050;
+    --text: #5a9a5a;
+    --text-bright: #8aba8a;
+    --text-dim: #2a5a2a;
+    --pass: #4a9a4a;
+    --fail: #9a4a4a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 17px;
+    line-height: 1.4;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* CRT scanline effect */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border-bright);
+    padding: 6px 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .title {
+    font-family: 'VT323', monospace;
+    font-size: 28px;
+    color: var(--green-bright);
+    letter-spacing: 4px;
+    text-shadow: 0 0 12px var(--green-dim);
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  .blink {
+    animation: blink 1.2s step-end infinite;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: 280px 1fr 260px;
+    gap: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+  }
+
+  .col:last-child { border-right: none; }
+
+  .panel {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px;
+    overflow: hidden;
+  }
+
+  .panel:last-child { border-bottom: none; flex: 1; overflow: auto; }
+
+  .panel-title {
+    color: var(--amber);
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--amber-dim);
+    padding-bottom: 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .panel-title .toggle {
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .panel-title .toggle:hover { color: var(--text); }
+
+  .mission-name {
+    color: var(--green-bright);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  .mission-narrative {
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+
+  .mission-obj {
+    margin-top: 6px;
+  }
+
+  .mission-obj-title {
+    color: var(--amber);
+    font-size: 10px;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  .mission-obj-item {
+    color: var(--text);
+    font-size: 15px;
+    margin-bottom: 3px;
+    padding-left: 8px;
+  }
+
+  .mission-obj-item::before {
+    content: '> ';
+    color: var(--green-dim);
+  }
+
+  .collapsible-content {
+    overflow: hidden;
+    transition: max-height 0.2s ease;
+  }
+
+  .collapsible-content.collapsed {
+    max-height: 0 !important;
+  }
+
+  .tech-ref-item {
+    font-size: 11px;
+    margin-bottom: 5px;
+    color: var(--text-dim);
+  }
+
+  .tech-ref-item code {
+    color: var(--green-bright);
+    background: var(--bg3);
+    padding: 1px 4px;
+    border: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  /* Editor */
+  .editor-wrap {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    background: var(--bg2);
+    position: relative;
+  }
+
+  .line-numbers {
+    background: var(--bg3);
+    border-right: 1px solid var(--border);
+    padding: 8px 6px;
+    min-width: 36px;
+    text-align: right;
+    color: var(--text-dim);
+    font-size: 18px;
+    line-height: 1.6;
+    overflow: hidden;
+    user-select: none;
+    flex-shrink: 0;
+	white-space: pre;
+  }
+
+  .editor-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #codeEditor {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    color: var(--green-bright);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 18px;
+    line-height: 1.8;
+    padding: 8px;
+    caret-color: var(--amber-bright);
+    overflow-y: auto;
+    tab-size: 2;
+  }
+
+  #codeEditor::selection {
+    background: var(--green-dim);
+    color: var(--text-bright);
+  }
+
+  .editor-highlight {
+    position: absolute;
+    left: 36px;
+    right: 0;
+    background: rgba(74, 138, 74, 0.12);
+    border-left: 2px solid var(--green);
+    pointer-events: none;
+    z-index: 1;
+    height: 19.2px; /* line-height */
+  }
+
+  /* Right panel */
+  .reg-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .reg-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 4px 6px;
+    text-align: center;
+  }
+
+  .reg-label {
+    color: var(--text-dim);
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  .reg-value {
+    color: var(--green-bright);
+    font-family: 'VT323', monospace;
+    font-size: 32px;
+    line-height: 1;
+  }
+
+  .flags-row {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+
+  .flag-box {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 3px 2px;
+    text-align: center;
+  }
+
+  .flag-label {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .flag-val {
+    font-family: 'VT323', monospace;
+    font-size: 24px;
+    line-height: 1;
+    color: var(--green-dim);
+  }
+
+  .flag-val.active {
+    color: var(--green-bright);
+    text-shadow: 0 0 8px var(--green);
+  }
+
+  .pc-cycles {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .pc-box {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 3px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .pc-lbl { color: var(--text-dim); font-size: 14px; }
+  .pc-val { color: var(--amber); font-family: 'VT323', monospace; font-size: 24px; }
+
+  /* Memory */
+  .mem-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+  }
+
+  .mem-cell {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 3px 2px;
+    text-align: center;
+    font-size: 10px;
+  }
+
+  .mem-addr { color: var(--text-dim); font-size: 13px; }
+  .mem-val { color: var(--green-bright); font-family: 'VT323', monospace; font-size: 20px; line-height: 1; }
+
+  .mem-cell.output .mem-val { color: var(--amber-bright); }
+  .mem-cell.input .mem-val { color: var(--green-bright); }
+
+  /* LCD */
+  .lcd-panel {
+    background: #0a120a;
+    border: 1px solid var(--border-bright);
+    padding: 8px;
+    font-family: 'VT323', monospace;
+  }
+
+  .lcd-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .lcd-row:last-child { border-bottom: none; }
+
+  .lcd-label {
+    color: var(--text-dim);
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+
+  .lcd-val {
+    font-size: 26px;
+    color: var(--amber-bright);
+    text-shadow: 0 0 8px var(--amber-dim);
+    letter-spacing: 2px;
+  }
+
+  .lcd-val.input { color: var(--green-bright); text-shadow: 0 0 8px var(--green-dim); }
+
+  /* Bottom bar */
+  .bottom-bar {
+    background: var(--bg2);
+    border-top: 1px solid var(--border-bright);
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .btn {
+    background: var(--bg3);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 12px;
+    padding: 5px 14px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.1s;
+  }
+
+  .btn:hover {
+    background: var(--green-dim);
+    border-color: var(--green);
+    color: var(--text-bright);
+  }
+
+  .btn:active {
+    background: var(--green);
+    color: var(--bg);
+  }
+
+  .btn.primary {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  .btn.primary:hover {
+    background: var(--amber-dim);
+    color: var(--amber-bright);
+  }
+
+  .status {
+    flex: 1;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border);
+  }
+
+  .status.pass { color: var(--pass); }
+  .status.fail { color: var(--fail); }
+  .status.info { color: var(--text-dim); }
+  .status.halt { color: var(--amber); }
+  .status.error { color: var(--red-bright); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+  .left-scroll {
+    overflow-y: auto;
+    flex: 1;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="title">ZERO PAGE</span>
+  <span class="subtitle">Microprocessor Systems Lab</span>
+  <div class="header-right">
+    <span id="clockDisplay">CLK: 00000000</span>
+    <span class="blink">█</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- LEFT COL -->
+  <div class="col">
+    <div class="left-scroll">
+      <div class="panel">
+        <div class="panel-title">Mission Brief</div>
+        <div class="mission-name">FIELD BALLISTICS UNIT — PROTO A</div>
+        <div class="mission-narrative">
+          Artillery unit reports systematic deviation in impact coordinates. Field sensors return raw range data, 
+          but atmospheric wind drift introduces consistent offset. Command requires real-time correction computation 
+          for target acquisition. You have been assigned to program the correction module.
+        </div>
+        <div class="mission-obj">
+          <div class="mission-obj-title">Objectives</div>
+          <div class="mission-obj-item">Read RAW RANGE from $00</div>
+          <div class="mission-obj-item">Read WIND DRIFT from $01</div>
+          <div class="mission-obj-item">Store ($00 - $01) & $FF into $02</div>
+          <div class="mission-obj-item">Do not modify $00 or $01</div>
+          <div class="mission-obj-item">Terminate with BRK</div>
+          <div class="mission-obj-item">Complete within 500 cycles</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          Technical Reference
+          <span class="toggle" id="refToggle" onclick="toggleRef()">▼</span>
+        </div>
+        <div class="collapsible-content" id="refContent" style="max-height:600px">
+          <div class="tech-ref-item"><code>LDA #$nn</code> — Load A immediate</div>
+          <div class="tech-ref-item"><code>LDA $nn</code> — Load A zero page</div>
+          <div class="tech-ref-item"><code>STA $nn</code> — Store A zero page</div>
+          <div class="tech-ref-item"><code>ADC #$nn</code> — Add with carry immediate</div>
+          <div class="tech-ref-item"><code>ADC $nn</code> — Add with carry zero page</div>
+          <div class="tech-ref-item"><code>SBC #$nn</code> — Subtract with carry immediate</div>
+          <div class="tech-ref-item"><code>SBC $nn</code> — Subtract with carry zero page</div>
+          <div class="tech-ref-item"><code>SEC</code> — Set carry flag</div>
+          <div class="tech-ref-item"><code>CLC</code> — Clear carry flag</div>
+          <div class="tech-ref-item"><code>BRK</code> — Break / halt</div>
+          <br>
+          <div class="tech-ref-item" style="color:var(--amber-dim);font-size:10px;">
+            SBC requires SEC before use. Result wraps to 8-bit. Comments with ; are ignored.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER COL -->
+  <div class="col">
+    <div class="panel" style="flex-shrink:0">
+      <div class="panel-title" id="editorTitle">Assembly Editor</div>
+    </div>
+    <div class="editor-wrap" style="flex:1;overflow:hidden;position:relative;">
+      <div class="line-numbers" id="lineNums">1</div>
+      <div class="editor-area">
+        <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
+          placeholder="; Write your solution here
+; Example:
+;   SEC
+;   LDA $00
+;   SBC $01
+;   STA $02
+;   BRK"
+        ></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COL -->
+  <div class="col">
+    <div class="panel">
+      <div class="panel-title">Machine State</div>
+      <div class="reg-grid">
+        <div class="reg-box">
+          <div class="reg-label">A</div>
+          <div class="reg-value" id="regA">00</div>
+        </div>
+        <div class="reg-box">
+          <div class="reg-label">X</div>
+          <div class="reg-value" id="regX">00</div>
+        </div>
+        <div class="reg-box">
+          <div class="reg-label">Y</div>
+          <div class="reg-value" id="regY">00</div>
+        </div>
+      </div>
+      <div class="flags-row">
+        <div class="flag-box"><div class="flag-label">N</div><div class="flag-val" id="fN">0</div></div>
+        <div class="flag-box"><div class="flag-label">V</div><div class="flag-val" id="fV">0</div></div>
+        <div class="flag-box"><div class="flag-label">-</div><div class="flag-val" id="fX">-</div></div>
+        <div class="flag-box"><div class="flag-label">B</div><div class="flag-val" id="fB">0</div></div>
+        <div class="flag-box"><div class="flag-label">D</div><div class="flag-val" id="fD">0</div></div>
+        <div class="flag-box"><div class="flag-label">I</div><div class="flag-val" id="fI">0</div></div>
+        <div class="flag-box"><div class="flag-label">Z</div><div class="flag-val" id="fZ">0</div></div>
+        <div class="flag-box"><div class="flag-label">C</div><div class="flag-val" id="fC">0</div></div>
+      </div>
+      <div class="pc-cycles">
+        <div class="pc-box">
+          <span class="pc-lbl">PC</span>
+          <span class="pc-val" id="regPC">0000</span>
+        </div>
+        <div class="pc-box">
+          <span class="pc-lbl">CYCLES</span>
+          <span class="pc-val" id="cycles">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Memory $00–$0F</div>
+      <div class="mem-grid" id="memGrid"></div>
+    </div>
+
+    <div class="panel" style="flex:1">
+      <div class="panel-title">LCD Display</div>
+      <div class="lcd-panel">
+        <div class="lcd-row">
+          <span class="lcd-label">RAW RANGE  $00</span>
+          <span class="lcd-val input" id="lcd00">00</span>
+        </div>
+        <div class="lcd-row">
+          <span class="lcd-label">WIND DRIFT $01</span>
+          <span class="lcd-val input" id="lcd01">00</span>
+        </div>
+        <div class="lcd-row">
+          <span class="lcd-label">CORRECTED  $02</span>
+          <span class="lcd-val" id="lcd02">00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-bar">
+  <button class="btn" onclick="doReset()">RESET</button>
+  <button class="btn" onclick="doStep()">STEP</button>
+  <button class="btn" onclick="doRun()">RUN</button>
+  <button class="btn primary" onclick="doRunTests()">RUN TESTS</button>
+  <button class="btn" onclick="nextMission()">NEXT MISSION</button>
+  <div class="status info" id="statusLine">READY — SYSTEM INITIALIZED</div>
+</div>
+
+<script>
+// ============================================================
+// ASSEMBLER
+// ============================================================
+
+const ALLOWED_MNEMONICS = ['LDA','STA','ADC','SBC','SEC','CLC','BRK','CMP','BCS','BCC'];
+
+// ============================================================
+// MISSION DEFINITIONS
+// ============================================================
+
+const MISSIONS = [
+  {
+    id: 1,
+    name: "FIELD BALLISTICS UNIT — PROTO A",
+    narrative: `Artillery unit reports systematic deviation in impact coordinates.
+Field sensors return raw range data, but atmospheric wind drift introduces consistent offset.
+Program the correction module.`,
+    objectives: [
+      "Read RAW RANGE from $00",
+      "Read WIND DRIFT from $01",
+      "Store ($00 - $01) & $FF into $02",
+      "Do not modify $00 or $01",
+      "Terminate with BRK",
+      "Complete within 500 cycles"
+    ],
+    outputSlot: 2,
+    testLogic: function(r0, r1) {
+      return (r0 - r1) & 0xFF;
+    }
+  },
+  {
+    id: 2,
+    name: "IMPACT CLASSIFIER — PROTO B",
+    narrative: `Field command requires automatic classification of trajectory stability.
+If RAW RANGE ≥ WIND DRIFT, classify as STABLE.
+Otherwise classify as UNSTABLE.`,
+    objectives: [
+      "Read RAW RANGE from $00",
+      "Read WIND DRIFT from $01",
+      "If $00 ≥ $01 store $FF into $03 (STABLE)",
+      "Else store $00 into $03 (UNSTABLE)",
+      "Do not modify $00 or $01",
+      "Terminate with BRK",
+      "Complete within 500 cycles"
+    ],
+    outputSlot: 3,
+    testLogic: function(r0, r1) {
+      return r0 >= r1 ? 0xFF : 0x00;
+    }
+  },
+  {
+  id: 3,
+  name: "ANOMALY SUPPRESSION FILTER — PROTO C",
+  narrative: `System diagnostics indicate that certain computed deltas fall outside acceptable operational bounds.
+
+To maintain data integrity, values below zero must be clamped to zero prior to storage.
+
+Additionally, suppression events must be flagged for audit logging.
+
+Do not alter source registers.`,
+  objectives: [
+    "Read PRIMARY VALUE from $00",
+    "Read OFFSET VALUE from $01",
+    "Compute ($00 - $01)",
+    "If result < 0: store 0 into $02 and 1 into $03",
+    "Else: store result into $02 and 0 into $03",
+    "Do not modify $00 or $01",
+    "Terminate with BRK",
+    "Complete within 500 cycles"
+  ],
+  outputSlots: [2, 3],
+  testLogic: function(r0, r1) {
+    const diff = r0 - r1;
+    if (diff >= 0) {
+      return { out2: diff & 0xFF, out3: 0 };
+    } else {
+      return { out2: 0, out3: 1 };
+    }
+  }
+}
+];
+
+let currentMissionIndex = 0;
+let missionCleared = false;
+
+function hex2(n){ return ('0'+((n)&0xFF).toString(16).toUpperCase()).slice(-2); }
+function hex4(n){ return ('000'+((n)&0xFFFF).toString(16).toUpperCase()).slice(-4); }
+
+function assemble(src) {
+  const lines = src.split('\n');
+  const instructions = []; // {mnem, mode, val, lineNum}
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    // strip comment
+    const ci = line.indexOf(';');
+    if (ci !== -1) line = line.slice(0, ci);
+    line = line.trim();
+    if (!line) continue;
+
+    // strip label
+    if (line.match(/^[A-Za-z_][A-Za-z0-9_]*\s*:/)) {
+      line = line.replace(/^[A-Za-z_][A-Za-z0-9_]*\s*:\s*/, '');
+      line = line.trim();
+      if (!line) continue;
+    }
+
+    const parts = line.split(/\s+/);
+    const mnem = parts[0].toUpperCase();
+
+    if (!ALLOWED_MNEMONICS.includes(mnem)) {
+      return { error: `Line ${i+1}: Unknown or disallowed instruction: ${mnem}` };
+    }
+
+    const operand = parts.slice(1).join('').trim();
+
+    // Implied
+    if (['SEC','CLC','BRK'].includes(mnem)) {
+      if (operand) return { error: `Line ${i+1}: ${mnem} takes no operand` };
+      instructions.push({ mnem, mode: 'imp', val: 0, lineNum: i });
+      continue;
+    }
+
+// Branch with numeric target (BCS 6 / BCC 4)
+if (['BCS','BCC'].includes(mnem)) {
+  if (!operand.match(/^[0-9]+$/)) {
+    return { error: `Line ${i+1}: ${mnem} requires a numeric instruction index (e.g., BCS 6)` };
+  }
+  const target = parseInt(operand, 10);
+  instructions.push({ mnem, mode: 'branch', val: target, lineNum: i });
+  continue;
+}
+
+    // Immediate: #$nn
+    if (operand.match(/^#\$[0-9A-Fa-f]{1,2}$/)) {
+      const val = parseInt(operand.slice(2), 16);
+      instructions.push({ mnem, mode: 'imm', val, lineNum: i });
+      continue;
+    }
+
+    // Zero page: $nn
+    if (operand.match(/^\$[0-9A-Fa-f]{1,2}$/)) {
+      const val = parseInt(operand.slice(1), 16);
+      instructions.push({ mnem, mode: 'zp', val, lineNum: i });
+      continue;
+    }
+
+    return { error: `Line ${i+1}: Invalid operand format: '${operand}'. Use #$nn for immediate, $nn for zero page.` };
+  }
+
+  if (instructions.length === 0) {
+    return { error: 'No instructions found.' };
+  }
+
+  // Check last instruction is BRK
+  const last = instructions[instructions.length - 1];
+  if (last.mnem !== 'BRK') {
+    return { error: 'Program must end with BRK.' };
+  }
+
+  return { instructions };
+}
+
+// ============================================================
+// CPU STATE
+// ============================================================
+
+let cpu = { A: 0, X: 0, Y: 0, PC: 0, N: 0, V: 0, B: 0, D: 0, I: 0, Z: 0, C: 0 };
+let memory = new Uint8Array(256);
+let instructions = [];
+let halted = false;
+let cycles = 0;
+
+function resetCPU() {
+  cpu = { A: 0, X: 0, Y: 0, PC: 0, N: 0, V: 0, B: 0, D: 0, I: 0, Z: 0, C: 0 };
+  cycles = 0;
+  halted = false;
+}
+
+function setNZ(val) {
+  val &= 0xFF;
+  cpu.N = (val >> 7) & 1;
+  cpu.Z = val === 0 ? 1 : 0;
+}
+
+function execOne() {
+  if (halted) return 'halted';
+  if (cpu.PC >= instructions.length) return 'overrun';
+  if (cycles >= 500) return 'cycle_limit';
+
+  const ins = instructions[cpu.PC];
+  cpu.PC++;
+  cycles++;
+
+  const { mnem, mode, val } = ins;
+  let operandVal;
+  if (mode === 'imm') operandVal = val;
+  else if (mode === 'zp') operandVal = memory[val];
+
+  switch (mnem) {
+    case 'LDA':
+      cpu.A = operandVal & 0xFF;
+      setNZ(cpu.A);
+      break;
+    case 'STA':
+      memory[val] = cpu.A & 0xFF;
+      break;
+    case 'ADC': {
+      const result = cpu.A + operandVal + cpu.C;
+      cpu.V = (~(cpu.A ^ operandVal) & (cpu.A ^ result) & 0x80) ? 1 : 0;
+      cpu.C = result > 0xFF ? 1 : 0;
+      cpu.A = result & 0xFF;
+      setNZ(cpu.A);
+      break;
+    }
+    case 'SBC': {
+  const value = operandVal & 0xFF;
+
+  // 6502 subtract: A - value - (1 - C)
+  const result = cpu.A - value - (cpu.C ? 0 : 1);
+  const res8 = result & 0xFF;
+
+  // Carry means "no borrow"
+  cpu.C = result >= 0 ? 1 : 0;
+
+  // Overflow detection (real 6502 rule)
+  cpu.V = ((cpu.A ^ res8) & (cpu.A ^ value) & 0x80) ? 1 : 0;
+
+  cpu.A = res8;
+  setNZ(cpu.A);
+  break;
+}
+    case 'SEC':
+      cpu.C = 1;
+      break;
+    case 'CLC':
+      cpu.C = 0;
+      break;
+	case 'CMP':
+    const cmpResult = cpu.A - operandVal;
+    cpu.C = cpu.A >= operandVal ? 1 : 0;
+    setNZ(cmpResult & 0xFF);
+    break;
+
+case 'BCS':
+    if (cpu.C === 1) {
+        cpu.PC = val;
+    }
+    break;
+
+case 'BCC':
+    if (cpu.C === 0) {
+        cpu.PC = val;
+    }
+    break;
+    case 'BRK':
+      cpu.B = 1;
+      halted = true;
+      return 'brk';
+  }
+
+  return 'ok';
+}
+
+// ============================================================
+// UI UPDATE
+// ============================================================
+
+function updateUI() {
+  document.getElementById('regA').textContent = hex2(cpu.A);
+  document.getElementById('regX').textContent = hex2(cpu.X);
+  document.getElementById('regY').textContent = hex2(cpu.Y);
+  document.getElementById('regPC').textContent = hex4(cpu.PC);
+  document.getElementById('cycles').textContent = cycles;
+
+  const flags = ['N','V','B','D','I','Z','C'];
+  for (const f of flags) {
+    const el = document.getElementById('f'+f);
+    el.textContent = cpu[f];
+    el.className = 'flag-val' + (cpu[f] ? ' active' : '');
+  }
+
+  // memory
+  const grid = document.getElementById('memGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 16; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'mem-cell' + (i === 2 ? ' output' : (i < 2 ? ' input' : ''));
+    cell.innerHTML = `<div class="mem-addr">$${hex2(i)}</div><div class="mem-val">${hex2(memory[i])}</div>`;
+    grid.appendChild(cell);
+  }
+
+  document.getElementById('lcd00').textContent = hex2(memory[0]);
+  document.getElementById('lcd01').textContent = hex2(memory[1]);
+  document.getElementById('lcd02').textContent = hex2(memory[2]);
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('statusLine');
+  el.textContent = msg;
+  el.className = 'status ' + cls;
+}
+
+function highlightLine(lineNum) {
+  // Simple approach: scroll editor but no overlay complexity needed
+}
+
+// ============================================================
+// LINE NUMBERS
+// ============================================================
+
+const editor = document.getElementById('codeEditor');
+const lineNums = document.getElementById('lineNums');
+
+function updateLineNums() {
+  const lines = editor.value.split('\n').length;
+  let html = '';
+  for (let i = 1; i <= lines; i++) html += i + '\n';
+  lineNums.textContent = html;
+}
+
+editor.addEventListener('input', updateLineNums);
+editor.addEventListener('scroll', () => { lineNums.scrollTop = editor.scrollTop; });
+// Auto-indent on Enter
+editor.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+
+    const start = this.selectionStart;
+    const end = this.selectionEnd;
+
+    const value = this.value;
+
+    // Find current line start
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+
+    // Get leading whitespace of current line
+    const line = value.substring(lineStart, start);
+    const indentMatch = line.match(/^\s*/);
+    const indent = indentMatch ? indentMatch[0] : '';
+
+    // Insert newline + indent
+    const newText =
+      value.substring(0, start) +
+      '\n' + indent +
+      value.substring(end);
+
+    this.value = newText;
+    this.selectionStart = this.selectionEnd = start + 1 + indent.length;
+
+    updateLineNums();
+  }
+});
+updateLineNums();
+
+// ============================================================
+// CONTROLS
+// ============================================================
+
+let currentInstructions = null;
+
+function doReset() {
+  // random scenario
+  memory.fill(0);
+  memory[0] = Math.floor(Math.random() * 256);
+  memory[1] = Math.floor(Math.random() * 256);
+  memory[2] = 0;
+  resetCPU();
+  currentInstructions = null;
+  instructions = [];
+  updateUI();
+  setStatus(`RESET — $00=${hex2(memory[0])} $01=${hex2(memory[1])} $02=00`, 'info');
+}
+
+function parseCode() {
+  const src = editor.value;
+  const result = assemble(src);
+  if (result.error) {
+    setStatus('ASSEMBLER ERROR: ' + result.error, 'error');
+    return null;
+  }
+  return result.instructions;
+}
+
+function initRun() {
+  const ins = parseCode();
+  if (!ins) return null;
+  instructions = ins;
+  currentInstructions = ins;
+  resetCPU();
+  return ins;
+}
+
+function doStep() {
+  // If no program loaded or halted, assemble and reset
+  if (!currentInstructions || halted) {
+    const ins = initRun();
+    if (!ins) return;
+  }
+
+  const result = execOne();
+  updateUI();
+
+  if (result === 'brk') {
+    setStatus('HALTED — BRK EXECUTED', 'halt');
+  } else if (result === 'cycle_limit') {
+    halted = true;
+    setStatus('HALTED — CYCLE LIMIT REACHED (500)', 'fail');
+  } else if (result === 'overrun') {
+    halted = true;
+    setStatus('HALTED — PC OVERRUN', 'fail');
+  } else {
+    setStatus(`STEP — PC=${hex4(cpu.PC)} A=${hex2(cpu.A)} CYCLES=${cycles}`, 'info');
+  }
+}
+
+function doRun() {
+  const ins = initRun();
+  if (!ins) return;
+
+  let result = 'ok';
+  while (result === 'ok') {
+    result = execOne();
+  }
+
+  updateUI();
+
+  if (result === 'brk') {
+    setStatus('HALTED — BRK EXECUTED', 'halt');
+  } else if (result === 'cycle_limit') {
+    setStatus('FAILED — CYCLE LIMIT EXCEEDED', 'fail');
+  } else {
+    setStatus('HALTED — ' + result.toUpperCase(), 'fail');
+  }
+}
+
+function doRunTests() {
+  const ins = parseCode();
+  if (!ins) return;
+
+  const NUM_TESTS = 10;
+  for (let t = 0; t < NUM_TESTS; t++) {
+    const r0 = Math.floor(Math.random() * 256);
+    const r1 = Math.floor(Math.random() * 256);
+    const mission = MISSIONS[currentMissionIndex];
+	const expected = mission.testLogic(r0, r1);
+
+    memory.fill(0);
+	memory[0] = r0;
+	memory[1] = r1;
+
+	if (mission.outputSlots) {
+	mission.outputSlots.forEach(slot => memory[slot] = 0);
+	} else {
+	memory[mission.outputSlot] = 0;
+	}
+
+    instructions = ins;
+    resetCPU();
+
+    let result = 'ok';
+    while (result === 'ok') {
+      result = execOne();
+    }
+
+    let actual;
+if (mission.outputSlots) {
+  actual = {
+    out2: memory[2],
+    out3: memory[3]
+  };
+} else {
+  actual = memory[mission.outputSlot];
+}
+    const m0unchanged = memory[0] === r0;
+    const m1unchanged = memory[1] === r1;
+
+    if (result !== 'brk') {
+      currentInstructions = ins;
+	  instructions = ins;
+	  resetCPU()	// Prepare for stepping
+	  
+	  setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — BRK NOT REACHED (${result}) | $00=${hex2(r0)} $01=${hex2(r1)} EXP=${ hex2(expected)}`, 'fail');
+	  currentInstructions
+      updateUI();
+      return;
+    }
+
+    if (!m0unchanged || !m1unchanged) {
+      currentInstructions = ins;
+	  instructions = ins;
+	  resetCPU()	// Prepare for stepping
+	  
+	  setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — INPUT MODIFIED | $00 was ${hex2(r0)} now ${hex2(memory[0])} | $01 was ${hex2(r1)} now ${hex2(memory[1])}`, 'fail');
+      updateUI();
+      return;
+    }
+
+    if (mission.outputSlots) {
+  if (actual.out2 !== expected.out2 || actual.out3 !== expected.out3) {
+    currentInstructions = ins;
+    instructions = ins;
+    resetCPU();
+
+    setStatus(
+      `TEST ${t+1}/${NUM_TESTS} FAILED | $00=${hex2(r0)} $01=${hex2(r1)} EXP out2=${hex2(expected.out2)} out3=${hex2(expected.out3)} GOT out2=${hex2(actual.out2)} out3=${hex2(actual.out3)}`,
+      'fail'
+    );
+    updateUI();
+    return;
+  }
+} else {
+  if (actual !== expected) {
+    currentInstructions = ins;
+    instructions = ins;
+    resetCPU();
+
+    setStatus(
+      `TEST ${t+1}/${NUM_TESTS} FAILED | $00=${hex2(r0)} $01=${hex2(r1)} EXP=${hex2(expected)} GOT=${hex2(actual)}`,
+      'fail'
+    );
+    updateUI();
+    return;
+  }
+}
+}
+
+  missionCleared = true;
+  updateUI();
+  const instrCount = instructions.length;
+  const efficiencyScore = cycles + (instrCount * 5);
+
+  let grade;
+  if (efficiencyScore <= 40) grade = 'A';
+  else if (efficiencyScore <= 80) grade = 'B';
+  else grade = 'C';
+
+  setStatus(
+  `MISSION VERIFIED ▓▓▓▓▓▓▓▓▓▓ | CYCLES: ${cycles} | INSTRUCTIONS: ${instrCount} | GRADE: ${grade}`,
+  'pass'
+);
+}
+
+// ============================================================
+// COLLAPSIBLE
+// ============================================================
+
+function toggleRef() {
+  const content = document.getElementById('refContent');
+  const toggle = document.getElementById('refToggle');
+  content.classList.toggle('collapsed');
+  toggle.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
+}
+
+// ============================================================
+// CLOCK TICKER
+// ============================================================
+
+let clockVal = 0;
+setInterval(() => {
+  clockVal = (clockVal + Math.floor(Math.random()*7+1)) & 0xFFFFFF;
+  document.getElementById('clockDisplay').textContent = 'CLK: ' + ('00000000' + clockVal.toString(16).toUpperCase()).slice(-8);
+}, 200);
+
+function loadMission() {
+  missionCleared =false;
+  const mission = MISSIONS[currentMissionIndex];
+  
+  document.getElementById('editorTitle').textContent =
+    "Assembly Editor - Mission " + mission.id;
+
+  // Update left panel text
+  document.querySelector('.mission-name').textContent = mission.name;
+  document.querySelector('.mission-narrative').textContent = mission.narrative;
+
+  const objContainer = document.querySelector('.mission-obj');
+  objContainer.innerHTML = '<div class="mission-obj-title">Objectives</div>';
+  mission.objectives.forEach(obj => {
+    const div = document.createElement('div');
+    div.className = 'mission-obj-item';
+    div.textContent = obj;
+    objContainer.appendChild(div);
+  });
+
+  // Clear editor
+  editor.value = '';
+  updateLineNums();
+
+  // Reset memory + CPU
+  memory.fill(0);
+  resetCPU();
+  updateUI();
+
+  setStatus(`Loaded Mission ${mission.id}: ${mission.name}`, 'info');
+}
+
+function nextMission() {
+  if (!missionCleared) {
+    setStatus("ACCESS DENIED — VERIFY SOLUTION FIRST", "fail");
+    return;
+  }
+
+  missionCleared = false;
+
+  currentMissionIndex++;
+  if (currentMissionIndex >= MISSIONS.length) {
+    currentMissionIndex = 0;
+  }
+
+  loadMission();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+
+doReset();
+loadMission();
+
+// Load example solution as default
+editor.value = `; FIELD BALLISTICS CORRECTION MODULE
+; Computes: $02 = ($00 - $01) & $FF
+
+  
+  LDA $00      ; Load raw range
+  SBC $01      ; Subtract wind drift
+  STA $02      ; Store corrected range
+  BRK          ; Halt
+`;
+updateLineNums();
+</script>
+</body>
+</html>

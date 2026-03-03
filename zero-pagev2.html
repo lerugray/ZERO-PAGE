@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZERO PAGE — Microprocessor Systems Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+  :root {
+    --bg: #080c08;
+    --bg2: #0c110c;
+    --bg3: #111811;
+    --border: #1e2e1e;
+    --border-bright: #2a4a2a;
+    --green: #4a8a4a;
+    --green-bright: #6ab06a;
+    --green-dim: #2a5a2a;
+    --amber: #b08020;
+    --amber-bright: #d0a030;
+    --amber-dim: #604810;
+    --red: #8a3030;
+    --red-bright: #c05050;
+    --text: #5a9a5a;
+    --text-bright: #8aba8a;
+    --text-dim: #2a5a2a;
+    --pass: #4a9a4a;
+    --fail: #9a4a4a;
+    --sandbox-color: #4a6a9a;
+    --sandbox-bright: #6a8aba;
+    --sandbox-dim: #0e1824;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 17px;
+    line-height: 1.4;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border-bright);
+    padding: 6px 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .title {
+    font-family: 'VT323', monospace;
+    font-size: 28px;
+    color: var(--green-bright);
+    letter-spacing: 4px;
+    text-shadow: 0 0 12px var(--green-dim);
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  .btn-header {
+    background: var(--bg3);
+    border: 1px solid var(--border-bright);
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.1s;
+  }
+
+  .btn-header:hover { border-color: var(--amber); color: var(--amber); }
+
+  .blink { animation: blink 1.2s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  @keyframes memFlash {
+    0%   { box-shadow: none; background: var(--bg3); }
+    30%  { box-shadow: 0 0 10px 2px rgba(208,160,48,0.5); background: rgba(96,72,16,0.35); }
+    100% { box-shadow: none; background: var(--bg3); }
+  }
+
+  @keyframes lcdFlash {
+    0%   { color: var(--amber-bright); text-shadow: 0 0 8px var(--amber-dim); }
+    25%  { color: #fffbe0; text-shadow: 0 0 22px var(--amber-bright), 0 0 40px var(--amber); }
+    100% { color: var(--amber-bright); text-shadow: 0 0 8px var(--amber-dim); }
+  }
+
+  @keyframes clampPulse {
+    0%   { color: var(--amber-bright); }
+    25%  { color: var(--red-bright); text-shadow: 0 0 14px rgba(192,80,80,0.9); }
+    100% { color: var(--amber-bright); }
+  }
+
+  @keyframes suppressionFade {
+    0%   { opacity: 0; transform: translateY(-3px); }
+    15%  { opacity: 1; transform: translateY(0); }
+    75%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.96) translateY(-10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  @keyframes btnFeedback {
+    0%   { filter: brightness(1); }
+    40%  { filter: brightness(1.6); }
+    100% { filter: brightness(1); }
+  }
+
+  .mem-cell.flash-write  { animation: memFlash 0.55s ease-out; }
+  .lcd-val.flash-write   { animation: lcdFlash 0.55s ease-out; }
+  .lcd-val.clamp-pulse   { animation: clampPulse 0.75s ease-out; }
+
+  .sandbox-indicator {
+    display: none;
+    background: var(--sandbox-dim);
+    border-bottom: 1px solid var(--sandbox-color);
+    color: var(--sandbox-bright);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 3px 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  body.sandbox-mode .sandbox-indicator { display: block; }
+
+  .main {
+    display: grid;
+    grid-template-columns: 280px 1fr 260px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+  }
+  .col:last-child { border-right: none; }
+
+  .panel {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px;
+    overflow: hidden;
+  }
+  .panel:last-child { border-bottom: none; flex: 1; overflow: auto; }
+
+  .panel-title {
+    color: var(--amber);
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--amber-dim);
+    padding-bottom: 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .panel-title .toggle {
+    cursor: pointer; color: var(--text-dim); font-size: 14px;
+    line-height: 1; user-select: none;
+  }
+  .panel-title .toggle:hover { color: var(--text); }
+
+  .mission-name {
+    color: var(--green-bright);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .mission-narrative { color: var(--text-dim); font-size: 15px; line-height: 1.6; margin-bottom: 8px; }
+  .mission-obj { margin-top: 6px; }
+  .mission-obj-title { color: var(--amber); font-size: 10px; letter-spacing: 2px; margin-bottom: 4px; }
+  .mission-obj-item { color: var(--text); font-size: 15px; margin-bottom: 3px; padding-left: 8px; }
+  .mission-obj-item::before { content: '> '; color: var(--green-dim); }
+
+  .collapsible-content { overflow: hidden; transition: max-height 0.2s ease; }
+  .collapsible-content.collapsed { max-height: 0 !important; }
+
+  .tech-ref-item { font-size: 11px; margin-bottom: 5px; color: var(--text-dim); }
+  .tech-ref-item code {
+    color: var(--green-bright); background: var(--bg3);
+    padding: 1px 4px; border: 1px solid var(--border); font-size: 11px;
+  }
+
+  .left-scroll { overflow-y: auto; flex: 1; }
+
+  /* Editor */
+  .editor-wrap {
+    flex: 1; overflow: hidden; background: var(--bg2);
+    position: relative; display: flex;
+  }
+
+  .line-numbers {
+    background: var(--bg3); border-right: 1px solid var(--border);
+    padding: 8px 6px; min-width: 36px; text-align: right;
+    color: var(--text-dim); font-size: 18px; line-height: 1.8;
+    overflow: hidden; user-select: none; flex-shrink: 0; white-space: pre;
+  }
+
+  .editor-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+  .highlight-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    padding: 8px;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 18px; line-height: 1.8;
+    pointer-events: none;
+    overflow: hidden; white-space: pre-wrap; word-break: break-all;
+    z-index: 1;
+  }
+
+  #codeEditor {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: transparent; border: none; outline: none; resize: none;
+    color: var(--green-bright);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 18px; line-height: 1.8; padding: 8px;
+    caret-color: var(--amber-bright);
+    overflow-y: auto; tab-size: 2; z-index: 2;
+    -webkit-text-fill-color: transparent;
+  }
+
+  #codeEditor::selection { background: rgba(74,138,74,0.3); }
+
+  /* Syntax token colours */
+  .hl-mnem    { color: #8cd08c; text-shadow: 0 0 5px rgba(106,176,106,0.25); }
+  .hl-imm     { color: #d0a030; }
+  .hl-zp      { color: #7ab0d0; }
+  .hl-comment { color: #3a6a3a; }
+  .hl-label   { color: #c8962a; }
+  .hl-err     { background: rgba(138,48,48,0.22); border-left: 2px solid #c05050; padding-left: 2px; }
+  .hl-exec    { background: rgba(74,138,74,0.12); border-left: 2px solid #4a8a4a; padding-left: 2px; }
+
+  /* Registers */
+  .reg-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-bottom: 8px; }
+  .reg-box { background: var(--bg3); border: 1px solid var(--border); padding: 4px 6px; text-align: center; }
+  .reg-label { color: var(--text-dim); font-size: 14px; letter-spacing: 1px; }
+  .reg-value { color: var(--green-bright); font-family: 'VT323', monospace; font-size: 32px; line-height: 1; }
+
+  .flags-row { display: flex; gap: 2px; margin-bottom: 8px; }
+  .flag-box { flex: 1; background: var(--bg3); border: 1px solid var(--border); padding: 3px 2px; text-align: center; }
+  .flag-label { color: var(--text-dim); font-size: 14px; }
+  .flag-val { font-family: 'VT323', monospace; font-size: 24px; line-height: 1; color: var(--green-dim); }
+  .flag-val.active { color: var(--green-bright); text-shadow: 0 0 8px var(--green); }
+
+  .pc-cycles { display: flex; gap: 8px; margin-bottom: 6px; }
+  .pc-box {
+    flex: 1; background: var(--bg3); border: 1px solid var(--border);
+    padding: 3px 6px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .pc-lbl { color: var(--text-dim); font-size: 14px; }
+  .pc-val { color: var(--amber); font-family: 'VT323', monospace; font-size: 24px; }
+
+  /* Memory */
+  .mem-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; }
+  .sandbox-mem-grid { display: grid; grid-template-columns: repeat(8,1fr); gap: 2px; }
+
+  .mem-cell {
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 3px 2px; text-align: center; font-size: 10px;
+  }
+  .sandbox-mem-grid .mem-cell { cursor: pointer; transition: border-color 0.1s; }
+  .sandbox-mem-grid .mem-cell:hover { border-color: var(--sandbox-bright); }
+  .sandbox-mem-grid .mem-cell.editing { border-color: var(--amber-bright); background: rgba(176,128,32,0.15); }
+
+  .mem-addr { color: var(--text-dim); font-size: 13px; }
+  .mem-val  { color: var(--green-bright); font-family: 'VT323', monospace; font-size: 20px; line-height: 1; }
+  .mem-cell.output .mem-val { color: var(--amber-bright); }
+  .mem-cell.input  .mem-val { color: var(--green-bright); }
+
+  /* LCD */
+  .lcd-panel {
+    background: #0a120a; border: 1px solid var(--border-bright);
+    padding: 8px; font-family: 'VT323', monospace; position: relative;
+  }
+  .lcd-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 3px 0; border-bottom: 1px solid var(--border);
+  }
+  .lcd-row:last-child { border-bottom: none; }
+  .lcd-label { color: var(--text-dim); font-size: 16px; letter-spacing: 1px; }
+  .lcd-val {
+    font-size: 26px; color: var(--amber-bright);
+    text-shadow: 0 0 8px var(--amber-dim); letter-spacing: 2px;
+  }
+  .lcd-val.input { color: var(--green-bright); text-shadow: 0 0 8px var(--green-dim); }
+
+  .suppression-msg {
+    position: absolute; left: 0; right: 0; bottom: -28px;
+    text-align: center; color: var(--red-bright);
+    font-size: 13px; letter-spacing: 2px;
+    animation: suppressionFade 2.6s ease-out forwards;
+    pointer-events: none;
+  }
+
+  /* Sandbox panel */
+  .sandbox-mem-panel {
+    display: none; padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    overflow-y: auto; max-height: 260px;
+  }
+  body.sandbox-mode .sandbox-mem-panel { display: block; }
+
+  /* Sandbox inline input */
+  .inline-edit {
+    background: var(--bg); border: 1px solid var(--amber);
+    color: var(--amber-bright); font-family: 'Share Tech Mono', monospace;
+    font-size: 14px; width: 3em; padding: 1px 2px;
+    text-align: center; outline: none; display: block;
+  }
+
+  .sandbox-badge {
+    display: inline-block; background: var(--sandbox-dim);
+    border: 1px solid var(--sandbox-color); color: var(--sandbox-bright);
+    font-size: 10px; letter-spacing: 2px; padding: 1px 6px; margin-left: 8px;
+  }
+
+  /* Bottom bar */
+  .bottom-bar {
+    background: var(--bg2); border-top: 1px solid var(--border-bright);
+    padding: 6px 12px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+
+  .btn {
+    background: var(--bg3); border: 1px solid var(--border-bright);
+    color: var(--text); font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 12px; padding: 5px 14px; cursor: pointer;
+    letter-spacing: 1px; text-transform: uppercase; transition: all 0.1s;
+  }
+  .btn:hover  { background: var(--green-dim); border-color: var(--green); color: var(--text-bright); }
+  .btn:active { background: var(--green); color: var(--bg); animation: btnFeedback 0.25s ease; }
+
+  .btn.primary { border-color: var(--amber); color: var(--amber); }
+  .btn.primary:hover { background: var(--amber-dim); color: var(--amber-bright); }
+
+  .btn.sandbox-btn { border-color: var(--sandbox-color); color: var(--sandbox-color); }
+  .btn.sandbox-btn:hover { background: var(--sandbox-dim); border-color: var(--sandbox-bright); color: var(--sandbox-bright); }
+  .btn.sandbox-btn.active {
+    background: var(--sandbox-dim); border-color: var(--sandbox-bright);
+    color: var(--sandbox-bright); box-shadow: 0 0 8px rgba(74,106,154,0.4);
+  }
+
+  body.sandbox-mode .btn#btnTests,
+  body.sandbox-mode .btn#btnNext { opacity: 0.4; pointer-events: none; }
+
+  .status { flex: 1; font-size: 12px; letter-spacing: 1px; padding-left: 12px; border-left: 1px solid var(--border); }
+  .status.pass    { color: var(--pass); }
+  .status.fail    { color: var(--fail); }
+  .status.info    { color: var(--text-dim); }
+  .status.halt    { color: var(--amber); }
+  .status.error   { color: var(--red-bright); }
+  .status.sandbox { color: var(--sandbox-bright); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+  /* ===== MODALS ===== */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85); z-index: 10000;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+
+  .modal-box {
+    background: var(--bg2); border: 1px solid var(--border-bright);
+    border-top: 2px solid var(--amber); padding: 28px 32px;
+    max-width: 520px; width: 90%; position: relative;
+    animation: modalIn 0.2s ease-out; max-height: 82vh; overflow-y: auto;
+  }
+  .modal-box.wide { max-width: 640px; }
+
+  .modal-title {
+    font-family: 'VT323', monospace; font-size: 26px;
+    color: var(--green-bright); letter-spacing: 4px;
+    margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  .modal-subtitle { color: var(--amber); font-size: 10px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+
+  .modal-body { color: var(--text-dim); font-size: 14px; line-height: 1.8; }
+  .modal-body p { margin-bottom: 10px; }
+
+  .modal-footer { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+
+  .modal-btn {
+    background: var(--bg3); border: 1px solid var(--border-bright);
+    color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; padding: 6px 18px; cursor: pointer;
+    letter-spacing: 1px; text-transform: uppercase; transition: all 0.1s;
+  }
+  .modal-btn:hover { border-color: var(--green); color: var(--text); }
+  .modal-btn.amber { border-color: var(--amber); color: var(--amber); }
+  .modal-btn.amber:hover { background: var(--amber-dim); color: var(--amber-bright); }
+
+  /* Manual sections */
+  .manual-sec { margin-bottom: 18px; }
+  .manual-sec-title {
+    color: var(--amber); font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    border-bottom: 1px solid var(--amber-dim); padding-bottom: 3px; margin-bottom: 8px;
+  }
+  .manual-sec p { color: var(--text-dim); font-size: 13px; line-height: 1.7; margin-bottom: 6px; }
+  .manual-sec code {
+    color: var(--green-bright); background: var(--bg3);
+    padding: 1px 4px; border: 1px solid var(--border); font-size: 12px;
+  }
+  .manual-entry { padding-left: 10px; border-left: 2px solid var(--border); margin-bottom: 8px; }
+  .manual-entry strong { color: var(--green-bright); display: block; font-size: 13px; margin-bottom: 2px; }
+
+  .completion-email { color: var(--green-bright); font-size: 16px; letter-spacing: 1px; margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<!-- DEBRIEF MODAL -->
+<div class="modal-overlay" id="debriefModal">
+  <div class="modal-box">
+    <div class="modal-title" id="debriefTitle">MISSION COMPLETE</div>
+    <div class="modal-subtitle" id="debriefSubtitle">POST-OPERATION ASSESSMENT</div>
+    <div class="modal-body" id="debriefBody"></div>
+    <div class="modal-footer">
+      <button class="modal-btn amber" onclick="closeDebrief()">ACKNOWLEDGE</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETION MODAL -->
+<div class="modal-overlay" id="completionModal">
+  <div class="modal-box">
+    <div class="modal-title">PROGRAM CONCLUDED</div>
+    <div class="modal-subtitle">SESSION TERMINATION — ALL UNITS LOGGED</div>
+    <div class="modal-body">
+      <p>All assigned modules have been verified. Your contributions to the ZERO PAGE initiative have been recorded and filed under operational archives.</p>
+      <p>The systems team acknowledges your work on the anomaly suppression filter. Whether the data logged during suppression events will be reviewed by command is, as always, a matter of protocol.</p>
+      <p>This simulation was developed for educational and demonstrational purposes. If you encountered issues, discovered edge cases, or have feedback:</p>
+      <div class="completion-email">rweiss@consimsltd.com</div>
+      <p style="font-size:12px;color:var(--text-dim);">Bug reports, suggestions, and observations welcome. All correspondence reviewed.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn amber" onclick="document.getElementById('completionModal').classList.remove('visible')">CLOSE TERMINAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL MODAL -->
+<div class="modal-overlay" id="manualModal">
+  <div class="modal-box wide">
+    <div class="modal-title">FIELD MANUAL</div>
+    <div class="modal-subtitle">ZERO PAGE OPERATIONS — QUICK REFERENCE</div>
+    <div class="modal-body">
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Registers</div>
+        <div class="manual-entry"><strong>A — Accumulator</strong>The primary work register. Most operations load into, modify, or read from A. Holds one byte (0–255).</div>
+        <div class="manual-entry"><strong>X, Y — Index Registers</strong>Auxiliary registers. Available for advanced programs.</div>
+        <div class="manual-entry"><strong>PC — Program Counter</strong>Points to the current instruction index. Advances automatically after each instruction.</div>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Zero Page</div>
+        <p>Zero page is memory addresses $00–$FF. All accessible memory in this system is zero page. Inputs are pre-loaded at $00 and $01. Results go to $02 and/or $03.</p>
+        <p>Syntax: <code>LDA $00</code> reads from address $00. <code>STA $02</code> writes to $02. <code>LDA #$05</code> loads the literal value 5.</p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Carry Flag</div>
+        <p>Used by addition and subtraction. Before <code>SBC</code>, always <code>SEC</code> (set carry). Before <code>ADC</code> without carry-in, use <code>CLC</code>.</p>
+        <p>After subtraction: C=1 means no borrow (result ≥ 0). C=0 means borrow occurred (result went negative / wrapped).</p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">How SBC Works</div>
+        <p>Computes: <code>A = A - value - (1 - C)</code>. Results wrap at 8 bits (0–255). Always <code>SEC</code> first.</p>
+        <p><code>SEC</code> / <code>LDA $00</code> / <code>SBC $01</code> / <code>STA $02</code> / <code>BRK</code></p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Branching</div>
+        <p><code>CMP $nn</code> compares A to a zero-page value and sets flags. <code>BCS n</code> branches to instruction index n if C=1 (A ≥ value). <code>BCC n</code> branches if C=0 (A &lt; value).</p>
+        <p>Branches use instruction indices (count only executable instructions, not blank lines or comments).</p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Cycle Limit</div>
+        <p>Programs allow a maximum of 500 cycles. Each instruction costs 1 cycle. Infinite loops or excessive branching will cause a CYCLE LIMIT HALT. Grade is partly based on efficiency.</p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Mission Mode vs Sandbox Mode</div>
+        <p><strong style="color:var(--green-bright)">Mission Mode:</strong> Default. Programs are assembled and tested against randomised inputs. Grading is active. Pass all tests to advance.</p>
+        <p><strong style="color:var(--sandbox-bright)">Sandbox Mode:</strong> No grading. Write arbitrary programs and manually edit any memory cell ($00–$FF) by clicking on it. Press SANDBOX to toggle.</p>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="generateManualPDF()">EXPORT PDF</button>
+      <button class="modal-btn amber" onclick="document.getElementById('manualModal').classList.remove('visible')">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <span class="title">ZERO PAGE</span>
+  <span class="subtitle">Microprocessor Systems Lab</span>
+  <div class="header-right">
+    <button class="btn-header" onclick="document.getElementById('manualModal').classList.add('visible')">MANUAL</button>
+    <span id="clockDisplay">CLK: 00000000</span>
+    <span class="blink">█</span>
+  </div>
+</div>
+
+<div class="sandbox-indicator" id="sandboxIndicator">[ SANDBOX MODE — GRADING DISABLED — DIRECT MEMORY ACCESS ENABLED ]</div>
+
+<div class="main">
+
+  <!-- LEFT COL -->
+  <div class="col">
+    <div class="left-scroll">
+      <div class="panel">
+        <div class="panel-title">Mission Brief</div>
+        <div class="mission-name">FIELD BALLISTICS UNIT — PROTO A</div>
+        <div class="mission-narrative">
+          Artillery unit reports systematic deviation in impact coordinates. Field sensors return raw range data,
+          but atmospheric wind drift introduces consistent offset. Command requires real-time correction computation
+          for target acquisition. You have been assigned to program the correction module.
+        </div>
+        <div class="mission-obj">
+          <div class="mission-obj-title">Objectives</div>
+          <div class="mission-obj-item">Read RAW RANGE from $00</div>
+          <div class="mission-obj-item">Read WIND DRIFT from $01</div>
+          <div class="mission-obj-item">Store ($00 - $01) &amp; $FF into $02</div>
+          <div class="mission-obj-item">Do not modify $00 or $01</div>
+          <div class="mission-obj-item">Terminate with BRK</div>
+          <div class="mission-obj-item">Complete within 500 cycles</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          Technical Reference
+          <span class="toggle" id="refToggle" onclick="toggleRef()">▼</span>
+        </div>
+        <div class="collapsible-content" id="refContent" style="max-height:600px">
+          <div class="tech-ref-item"><code>LDA #$nn</code> — Load A immediate</div>
+          <div class="tech-ref-item"><code>LDA $nn</code> — Load A zero page</div>
+          <div class="tech-ref-item"><code>STA $nn</code> — Store A zero page</div>
+          <div class="tech-ref-item"><code>ADC #$nn</code> — Add with carry immediate</div>
+          <div class="tech-ref-item"><code>ADC $nn</code> — Add with carry zero page</div>
+          <div class="tech-ref-item"><code>SBC #$nn</code> — Subtract with carry immediate</div>
+          <div class="tech-ref-item"><code>SBC $nn</code> — Subtract with carry zero page</div>
+          <div class="tech-ref-item"><code>CMP $nn</code> — Compare A to zero page</div>
+          <div class="tech-ref-item"><code>BCS n</code> — Branch if carry set (A ≥ val)</div>
+          <div class="tech-ref-item"><code>BCC n</code> — Branch if carry clear (A &lt; val)</div>
+          <div class="tech-ref-item"><code>SEC</code> — Set carry flag</div>
+          <div class="tech-ref-item"><code>CLC</code> — Clear carry flag</div>
+          <div class="tech-ref-item"><code>BRK</code> — Break / halt</div>
+          <br>
+          <div class="tech-ref-item" style="color:var(--amber-dim);font-size:10px;">
+            SBC requires SEC before use. Result wraps to 8-bit. Comments with ; are ignored.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER COL -->
+  <div class="col">
+    <div class="panel" style="flex-shrink:0">
+      <div class="panel-title" id="editorTitle">Assembly Editor — Mission 1</div>
+    </div>
+    <div class="editor-wrap">
+      <div class="line-numbers" id="lineNums">1</div>
+      <div class="editor-area">
+        <div class="highlight-overlay" id="highlightOverlay" aria-hidden="true"></div>
+        <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
+          placeholder="; Write your solution here
+; Example:
+;   SEC
+;   LDA $00
+;   SBC $01
+;   STA $02
+;   BRK"
+        ></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COL -->
+  <div class="col">
+    <div class="panel">
+      <div class="panel-title">Machine State</div>
+      <div class="reg-grid">
+        <div class="reg-box"><div class="reg-label">A</div><div class="reg-value" id="regA">00</div></div>
+        <div class="reg-box"><div class="reg-label">X</div><div class="reg-value" id="regX">00</div></div>
+        <div class="reg-box"><div class="reg-label">Y</div><div class="reg-value" id="regY">00</div></div>
+      </div>
+      <div class="flags-row">
+        <div class="flag-box"><div class="flag-label">N</div><div class="flag-val" id="fN">0</div></div>
+        <div class="flag-box"><div class="flag-label">V</div><div class="flag-val" id="fV">0</div></div>
+        <div class="flag-box"><div class="flag-label">-</div><div class="flag-val" id="fX">-</div></div>
+        <div class="flag-box"><div class="flag-label">B</div><div class="flag-val" id="fB">0</div></div>
+        <div class="flag-box"><div class="flag-label">D</div><div class="flag-val" id="fD">0</div></div>
+        <div class="flag-box"><div class="flag-label">I</div><div class="flag-val" id="fI">0</div></div>
+        <div class="flag-box"><div class="flag-label">Z</div><div class="flag-val" id="fZ">0</div></div>
+        <div class="flag-box"><div class="flag-label">C</div><div class="flag-val" id="fC">0</div></div>
+      </div>
+      <div class="pc-cycles">
+        <div class="pc-box"><span class="pc-lbl">PC</span><span class="pc-val" id="regPC">0000</span></div>
+        <div class="pc-box"><span class="pc-lbl">CYCLES</span><span class="pc-val" id="cycles">0</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Memory $00–$0F</div>
+      <div class="mem-grid" id="memGrid"></div>
+    </div>
+
+    <!-- Sandbox full memory panel -->
+    <div class="sandbox-mem-panel" id="sandboxMemPanel">
+      <div class="panel-title" style="margin-bottom:6px">
+        Full Memory $00–$FF
+        <span style="color:var(--sandbox-color);font-size:10px;letter-spacing:1px;">CLICK TO EDIT</span>
+      </div>
+      <div class="sandbox-mem-grid" id="sandboxMemGrid"></div>
+    </div>
+
+    <div class="panel" style="flex:1">
+      <div class="panel-title">LCD Display</div>
+      <div class="lcd-panel" id="lcdPanel">
+        <div class="lcd-row">
+          <span class="lcd-label" id="lcdLabel00">RAW RANGE  $00</span>
+          <span class="lcd-val input" id="lcd00">00</span>
+        </div>
+        <div class="lcd-row">
+          <span class="lcd-label" id="lcdLabel01">WIND DRIFT $01</span>
+          <span class="lcd-val input" id="lcd01">00</span>
+        </div>
+        <div class="lcd-row">
+          <span class="lcd-label" id="lcdLabel02">CORRECTED  $02</span>
+          <span class="lcd-val" id="lcd02">00</span>
+        </div>
+        <div class="lcd-row" id="lcdRow03" style="display:none">
+          <span class="lcd-label" id="lcdLabel03">FLAG       $03</span>
+          <span class="lcd-val" id="lcd03">00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-bar">
+  <button class="btn" id="btnReset" onclick="doReset()">RESET</button>
+  <button class="btn" id="btnStep"  onclick="doStep()">STEP</button>
+  <button class="btn" id="btnRun"   onclick="doRun()">RUN</button>
+  <button class="btn primary" id="btnTests" onclick="doRunTests()">RUN TESTS</button>
+  <button class="btn" id="btnNext"  onclick="nextMission()">NEXT MISSION</button>
+  <button class="btn sandbox-btn" id="btnSandbox" onclick="toggleSandbox()">SANDBOX</button>
+  <div class="status info" id="statusLine">READY — SYSTEM INITIALIZED</div>
+</div>
+
+<script>
+// ============================================================
+// MODE
+// ============================================================
+let mode = 'mission'; // 'mission' | 'sandbox'
+
+function toggleSandbox() {
+  const btn = document.getElementById('btnSandbox');
+  if (mode === 'sandbox') {
+    mode = 'mission';
+    btn.classList.remove('active');
+    document.body.classList.remove('sandbox-mode');
+    loadMission();
+    setStatus('SANDBOX MODE DEACTIVATED — MISSION MODE RESTORED', 'info');
+  } else {
+    mode = 'sandbox';
+    btn.classList.add('active');
+    document.body.classList.add('sandbox-mode');
+    document.getElementById('editorTitle').innerHTML = 'Assembly Editor <span class="sandbox-badge">SANDBOX</span>';
+    updateLCDForMission(-1);
+    updateSandboxMemGrid();
+    setStatus('SANDBOX MODE ACTIVE — GRADING DISABLED — DIRECT MEMORY ACCESS ENABLED', 'sandbox');
+  }
+}
+
+// ============================================================
+// ASSEMBLER
+// ============================================================
+const ALLOWED_MNEMONICS = ['LDA','STA','ADC','SBC','SEC','CLC','BRK','CMP','BCS','BCC'];
+
+// ============================================================
+// MISSIONS
+// ============================================================
+const MISSIONS = [
+  {
+    id: 1,
+    name: "FIELD BALLISTICS UNIT — PROTO A",
+    narrative: `Artillery unit reports systematic deviation in impact coordinates.
+Field sensors return raw range data, but atmospheric wind drift introduces consistent offset.
+Program the correction module.`,
+    objectives: [
+      "Read RAW RANGE from $00",
+      "Read WIND DRIFT from $01",
+      "Store ($00 - $01) & $FF into $02",
+      "Do not modify $00 or $01",
+      "Terminate with BRK",
+      "Complete within 500 cycles"
+    ],
+    outputSlot: 2,
+    testLogic: (r0, r1) => (r0 - r1) & 0xFF,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: ROUTINE',
+      body: `<p>Correction module validated against field data. Trajectory adjustments are within acceptable deviation margins.</p>
+<p>Command has noted the implementation. No anomalies flagged at this time. The module has been forwarded to integration for deployment review.</p>
+<p>Proceed to next assignment when ready. Delay at your own discretion.</p>`
+    }
+  },
+  {
+    id: 2,
+    name: "IMPACT CLASSIFIER — PROTO B",
+    narrative: `Field command requires automatic classification of trajectory stability.
+If RAW RANGE ≥ WIND DRIFT, classify as STABLE.
+Otherwise classify as UNSTABLE.`,
+    objectives: [
+      "Read RAW RANGE from $00",
+      "Read WIND DRIFT from $01",
+      "If $00 ≥ $01 store $FF into $03 (STABLE)",
+      "Else store $00 into $03 (UNSTABLE)",
+      "Do not modify $00 or $01",
+      "Terminate with BRK",
+      "Complete within 500 cycles"
+    ],
+    outputSlot: 3,
+    testLogic: (r0, r1) => r0 >= r1 ? 0xFF : 0x00,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: REVIEWED',
+      body: `<p>Classification module verified. Stable and unstable trajectory signatures are being categorised as specified.</p>
+<p>Field command has not commented on the specific threshold logic. The definition of "stable" in operational contexts remains at command discretion.</p>
+<p>Your work has been logged. A third module awaits calibration.</p>`
+    }
+  },
+  {
+    id: 3,
+    name: "ANOMALY SUPPRESSION FILTER — PROTO C",
+    narrative: `System diagnostics indicate that certain computed deltas fall outside acceptable operational bounds.
+
+To maintain data integrity, values below zero must be clamped to zero prior to storage.
+
+Additionally, suppression events must be flagged for audit logging.
+
+Do not alter source registers.`,
+    objectives: [
+      "Read PRIMARY VALUE from $00",
+      "Read OFFSET VALUE from $01",
+      "Compute ($00 - $01)",
+      "If result < 0: store 0 into $02 and 1 into $03",
+      "Else: store result into $02 and 0 into $03",
+      "Do not modify $00 or $01",
+      "Terminate with BRK",
+      "Complete within 500 cycles"
+    ],
+    outputSlots: [2, 3],
+    testLogic: (r0, r1) => {
+      const diff = r0 - r1;
+      return diff >= 0 ? { out2: diff & 0xFF, out3: 0 } : { out2: 0, out3: 1 };
+    },
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: ARCHIVED',
+      body: `<p>Anomaly suppression filter has passed verification. Suppression events are being logged as required.</p>
+<p>Audit records indicate a non-trivial number of values were clamped during testing. Whether these anomalies represent genuine data integrity issues or normal operational variance is not within the scope of this report.</p>
+<p>The audit log is routed to a system you do not have access to. This is standard. All three modules are now operational.</p>
+<p style="color:var(--amber);font-size:13px;margin-top:8px;">ZERO PAGE OPERATIONS CONCLUDED. TERMINAL CLOSING.</p>`
+    }
+  }
+];
+
+let currentMissionIndex = 0;
+let missionCleared = false;
+let completionShown = false;
+
+function hex2(n){ return ('0'+((n)&0xFF).toString(16).toUpperCase()).slice(-2); }
+function hex4(n){ return ('000'+((n)&0xFFFF).toString(16).toUpperCase()).slice(-4); }
+
+function assemble(src) {
+  const lines = src.split('\n');
+  const instructions = [];
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    const ci = line.indexOf(';');
+    if (ci !== -1) line = line.slice(0, ci);
+    line = line.trim();
+    if (!line) continue;
+
+    if (line.match(/^[A-Za-z_][A-Za-z0-9_]*\s*:/)) {
+      line = line.replace(/^[A-Za-z_][A-Za-z0-9_]*\s*:\s*/, '').trim();
+      if (!line) continue;
+    }
+
+    const parts = line.split(/\s+/);
+    const mnem = parts[0].toUpperCase();
+    if (!ALLOWED_MNEMONICS.includes(mnem))
+      return { error: `Line ${i+1}: Unknown or disallowed instruction: ${mnem}` };
+
+    const operand = parts.slice(1).join('').trim();
+
+    if (['SEC','CLC','BRK'].includes(mnem)) {
+      if (operand) return { error: `Line ${i+1}: ${mnem} takes no operand` };
+      instructions.push({ mnem, mode:'imp', val:0, lineNum:i });
+      continue;
+    }
+    if (['BCS','BCC'].includes(mnem)) {
+      if (!operand.match(/^[0-9]+$/))
+        return { error: `Line ${i+1}: ${mnem} requires a numeric instruction index` };
+      instructions.push({ mnem, mode:'branch', val:parseInt(operand,10), lineNum:i });
+      continue;
+    }
+    if (operand.match(/^#\$[0-9A-Fa-f]{1,2}$/)) {
+      instructions.push({ mnem, mode:'imm', val:parseInt(operand.slice(2),16), lineNum:i });
+      continue;
+    }
+    if (operand.match(/^\$[0-9A-Fa-f]{1,2}$/)) {
+      instructions.push({ mnem, mode:'zp', val:parseInt(operand.slice(1),16), lineNum:i });
+      continue;
+    }
+    return { error: `Line ${i+1}: Invalid operand: '${operand}'. Use #$nn or $nn.` };
+  }
+  if (!instructions.length) return { error: 'No instructions found.' };
+  if (instructions[instructions.length-1].mnem !== 'BRK')
+    return { error: 'Program must end with BRK.' };
+  return { instructions };
+}
+
+// ============================================================
+// CPU
+// ============================================================
+let cpu = { A:0, X:0, Y:0, PC:0, N:0, V:0, B:0, D:0, I:0, Z:0, C:0 };
+let memory = new Uint8Array(256);
+let instructions = [];
+let halted = false;
+let cycles = 0;
+let currentExecLineNum = -1;
+let lastWrittenSlots = [];
+
+function resetCPU() {
+  cpu = { A:0, X:0, Y:0, PC:0, N:0, V:0, B:0, D:0, I:0, Z:0, C:0 };
+  cycles = 0; halted = false;
+  currentExecLineNum = -1; lastWrittenSlots = [];
+  updateSyntaxHighlight();
+}
+
+function setNZ(val) {
+  val &= 0xFF; cpu.N = (val>>7)&1; cpu.Z = val===0?1:0;
+}
+
+function execOne() {
+  if (halted) return 'halted';
+  if (cpu.PC >= instructions.length) return 'overrun';
+  if (cycles >= 500) return 'cycle_limit';
+
+  const ins = instructions[cpu.PC];
+  currentExecLineNum = ins.lineNum;
+  cpu.PC++; cycles++;
+  lastWrittenSlots = [];
+
+  const { mnem, mode, val } = ins;
+  let operandVal = (mode==='imm') ? val : (mode==='zp') ? memory[val] : 0;
+
+  switch(mnem) {
+    case 'LDA': cpu.A = operandVal&0xFF; setNZ(cpu.A); break;
+    case 'STA': memory[val] = cpu.A&0xFF; lastWrittenSlots.push(val); break;
+    case 'ADC': {
+      const r = cpu.A + operandVal + cpu.C;
+      cpu.V = (~(cpu.A^operandVal)&(cpu.A^r)&0x80)?1:0;
+      cpu.C = r>0xFF?1:0; cpu.A = r&0xFF; setNZ(cpu.A); break;
+    }
+    case 'SBC': {
+      const v2 = operandVal&0xFF;
+      const r2 = cpu.A - v2 - (cpu.C?0:1);
+      const res8 = r2&0xFF;
+      cpu.C = r2>=0?1:0;
+      cpu.V = ((cpu.A^res8)&(cpu.A^v2)&0x80)?1:0;
+      cpu.A = res8; setNZ(cpu.A); break;
+    }
+    case 'SEC': cpu.C = 1; break;
+    case 'CLC': cpu.C = 0; break;
+    case 'CMP': {
+      const cr = cpu.A - operandVal;
+      cpu.C = cpu.A>=operandVal?1:0; setNZ(cr&0xFF); break;
+    }
+    case 'BCS': if(cpu.C===1) cpu.PC=val; break;
+    case 'BCC': if(cpu.C===0) cpu.PC=val; break;
+    case 'BRK': cpu.B=1; halted=true; currentExecLineNum=-1; return 'brk';
+  }
+  return 'ok';
+}
+
+// ============================================================
+// LCD ANIMATION
+// ============================================================
+function flashLCDSlot(slot, isClamp) {
+  const el = document.getElementById('lcd0'+slot);
+  if (!el) return;
+  el.classList.remove('flash-write','clamp-pulse');
+  void el.offsetWidth;
+  el.classList.add(isClamp ? 'clamp-pulse' : 'flash-write');
+  setTimeout(() => el.classList.remove('flash-write','clamp-pulse'), 750);
+
+  if (slot===3 && memory[3]===1 && currentMissionIndex===2) showSuppressionMsg();
+}
+
+function showSuppressionMsg() {
+  const panel = document.getElementById('lcdPanel');
+  const old = panel.querySelector('.suppression-msg');
+  if (old) old.remove();
+  const msg = document.createElement('div');
+  msg.className = 'suppression-msg';
+  msg.textContent = 'SUPPRESSION EVENT LOGGED';
+  panel.appendChild(msg);
+  setTimeout(() => { if(msg.parentNode) msg.remove(); }, 2700);
+}
+
+// ============================================================
+// UI UPDATE
+// ============================================================
+function updateUI() {
+  document.getElementById('regA').textContent = hex2(cpu.A);
+  document.getElementById('regX').textContent = hex2(cpu.X);
+  document.getElementById('regY').textContent = hex2(cpu.Y);
+  document.getElementById('regPC').textContent = hex4(cpu.PC);
+  document.getElementById('cycles').textContent = cycles;
+
+  for (const f of ['N','V','B','D','I','Z','C']) {
+    const el = document.getElementById('f'+f);
+    el.textContent = cpu[f];
+    el.className = 'flag-val' + (cpu[f] ? ' active' : '');
+  }
+
+  // Memory grid $00-$0F
+  const grid = document.getElementById('memGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 16; i++) {
+    const mission = MISSIONS[currentMissionIndex];
+    let isOut = false;
+    if (mode === 'mission') {
+      isOut = mission.outputSlots ? mission.outputSlots.includes(i) : (i === mission.outputSlot);
+    }
+    const cell = document.createElement('div');
+    cell.className = 'mem-cell' + (isOut ? ' output' : (i<2 ? ' input' : ''));
+    cell.id = 'memcell'+i;
+    cell.innerHTML = `<div class="mem-addr">$${hex2(i)}</div><div class="mem-val">${hex2(memory[i])}</div>`;
+    grid.appendChild(cell);
+  }
+
+  // Flash written memory cells
+  for (const slot of lastWrittenSlots) {
+    if (slot <= 15) {
+      const cell = document.getElementById('memcell'+slot);
+      if (cell) {
+        cell.classList.remove('flash-write');
+        void cell.offsetWidth;
+        cell.classList.add('flash-write');
+        setTimeout(() => cell.classList.remove('flash-write'), 600);
+      }
+    }
+    if (slot===2 || slot===3) {
+      const isClamp = (currentMissionIndex===2 && slot===2 && memory[2]===0 && memory[3]===1);
+      flashLCDSlot(slot, isClamp);
+    }
+  }
+
+  document.getElementById('lcd00').textContent = hex2(memory[0]);
+  document.getElementById('lcd01').textContent = hex2(memory[1]);
+  document.getElementById('lcd02').textContent = hex2(memory[2]);
+  document.getElementById('lcd03').textContent = hex2(memory[3]);
+
+  if (mode==='sandbox') updateSandboxMemGrid();
+  updateSyntaxHighlight();
+}
+
+function updateLCDForMission(idx) {
+  const row03 = document.getElementById('lcdRow03');
+  const l00 = document.getElementById('lcdLabel00');
+  const l01 = document.getElementById('lcdLabel01');
+  const l02 = document.getElementById('lcdLabel02');
+  const l03 = document.getElementById('lcdLabel03');
+  if (idx===0) {
+    l00.textContent='RAW RANGE  $00'; l01.textContent='WIND DRIFT $01';
+    l02.textContent='CORRECTED  $02'; row03.style.display='none';
+  } else if (idx===1) {
+    l00.textContent='RAW RANGE  $00'; l01.textContent='WIND DRIFT $01';
+    l02.textContent='OUTPUT     $02'; row03.style.display='flex'; l03.textContent='CLASSIFY   $03';
+  } else if (idx===2) {
+    l00.textContent='PRIMARY    $00'; l01.textContent='OFFSET     $01';
+    l02.textContent='RESULT     $02'; row03.style.display='flex'; l03.textContent='SUPPRESS   $03';
+  } else {
+    l00.textContent='$00'; l01.textContent='$01';
+    l02.textContent='$02'; row03.style.display='flex'; l03.textContent='$03';
+  }
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('statusLine');
+  el.textContent = msg; el.className = 'status '+cls;
+}
+
+// ============================================================
+// SYNTAX HIGHLIGHTING
+// ============================================================
+let errorLineNum = -1;
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateSyntaxHighlight() {
+  const overlay = document.getElementById('highlightOverlay');
+  const lines = document.getElementById('codeEditor').value.split('\n');
+  let html = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    let lineHtml = '';
+    const isErr  = (i === errorLineNum);
+    const isExec = (i === currentExecLineNum);
+
+    let rest = raw;
+    const ci = rest.indexOf(';');
+    let commentPart = '';
+    if (ci !== -1) { commentPart = rest.slice(ci); rest = rest.slice(0, ci); }
+
+    // Label
+    const lm = rest.match(/^(\s*)([A-Za-z_][A-Za-z0-9_]*\s*:)(.*)/);
+    if (lm) {
+      lineHtml += esc(lm[1]) + `<span class="hl-label">${esc(lm[2])}</span>`;
+      rest = lm[3];
+    }
+
+    // Tokens
+    const toks = rest.split(/(\s+)/);
+    let first = true;
+    for (const tok of toks) {
+      if (!tok) continue;
+      if (/^\s+$/.test(tok)) { lineHtml += esc(tok); continue; }
+      if (first && ALLOWED_MNEMONICS.includes(tok.toUpperCase())) {
+        lineHtml += `<span class="hl-mnem">${esc(tok)}</span>`; first=false;
+      } else if (tok.match(/^#\$[0-9A-Fa-f]{1,2}$/)) {
+        lineHtml += `<span class="hl-imm">${esc(tok)}</span>`; first=false;
+      } else if (tok.match(/^\$[0-9A-Fa-f]{1,2}$/)) {
+        lineHtml += `<span class="hl-zp">${esc(tok)}</span>`; first=false;
+      } else {
+        lineHtml += esc(tok); first=false;
+      }
+    }
+    if (commentPart) lineHtml += `<span class="hl-comment">${esc(commentPart)}</span>`;
+
+    let cls = '';
+    if (isErr) cls = ' class="hl-err"';
+    else if (isExec) cls = ' class="hl-exec"';
+    html += `<div${cls}>${lineHtml}&nbsp;</div>`;
+  }
+  overlay.innerHTML = html;
+}
+
+// ============================================================
+// LINE NUMBERS & EDITOR SYNC
+// ============================================================
+const editor = document.getElementById('codeEditor');
+const lineNums = document.getElementById('lineNums');
+
+function updateLineNums() {
+  const n = editor.value.split('\n').length;
+  let s = '';
+  for (let i=1;i<=n;i++) s+=i+'\n';
+  lineNums.textContent = s;
+  updateSyntaxHighlight();
+}
+
+editor.addEventListener('input', () => { errorLineNum=-1; updateLineNums(); });
+editor.addEventListener('scroll', () => {
+  lineNums.scrollTop = editor.scrollTop;
+  document.getElementById('highlightOverlay').scrollTop = editor.scrollTop;
+});
+editor.addEventListener('keydown', function(e) {
+  if (e.key==='Enter') {
+    e.preventDefault();
+    const start=this.selectionStart, end=this.selectionEnd, val=this.value;
+    const ls=val.lastIndexOf('\n',start-1)+1;
+    const indent=(val.substring(ls,start).match(/^\s*/)||[''])[0];
+    this.value=val.substring(0,start)+'\n'+indent+val.substring(end);
+    this.selectionStart=this.selectionEnd=start+1+indent.length;
+    updateLineNums();
+  }
+});
+updateLineNums();
+
+// ============================================================
+// CONTROLS
+// ============================================================
+let currentInstructions = null;
+
+function doReset() {
+  memory.fill(0);
+  memory[0]=Math.floor(Math.random()*256);
+  memory[1]=Math.floor(Math.random()*256);
+  resetCPU(); currentInstructions=null; instructions=[]; lastWrittenSlots=[];
+  updateUI();
+  setStatus(`RESET — $00=${hex2(memory[0])} $01=${hex2(memory[1])} $02=00`,'info');
+}
+
+function parseCode() {
+  errorLineNum=-1;
+  const result=assemble(editor.value);
+  if (result.error) {
+    const m=result.error.match(/Line (\d+):/);
+    if(m) errorLineNum=parseInt(m[1])-1;
+    updateSyntaxHighlight();
+    setStatus('ASSEMBLER ERROR: '+result.error,'error');
+    return null;
+  }
+  return result.instructions;
+}
+
+function initRun() {
+  const ins=parseCode(); if(!ins) return null;
+  instructions=ins; currentInstructions=ins; resetCPU(); return ins;
+}
+
+function doStep() {
+  if (!currentInstructions||halted) { if(!initRun()) return; }
+  const result=execOne(); updateUI();
+  if(result==='brk') setStatus('HALTED — BRK EXECUTED','halt');
+  else if(result==='cycle_limit'){halted=true;setStatus('HALTED — CYCLE LIMIT REACHED (500)','fail');}
+  else if(result==='overrun'){halted=true;setStatus('HALTED — PC OVERRUN','fail');}
+  else setStatus(`STEP — PC=${hex4(cpu.PC)} A=${hex2(cpu.A)} CYCLES=${cycles}`,'info');
+}
+
+function doRun() {
+  if(!initRun()) return;
+  let result='ok';
+  while(result==='ok') result=execOne();
+  updateUI();
+  if(result==='brk') setStatus('HALTED — BRK EXECUTED','halt');
+  else if(result==='cycle_limit') setStatus('FAILED — CYCLE LIMIT EXCEEDED','fail');
+  else setStatus('HALTED — '+result.toUpperCase(),'fail');
+}
+
+function doRunTests() {
+  if (mode!=='mission') { setStatus('SANDBOX MODE — TESTS DISABLED','sandbox'); return; }
+  const ins=parseCode(); if(!ins) return;
+
+  const NUM_TESTS=10;
+  for (let t=0;t<NUM_TESTS;t++) {
+    const r0=Math.floor(Math.random()*256), r1=Math.floor(Math.random()*256);
+    const mission=MISSIONS[currentMissionIndex];
+    const expected=mission.testLogic(r0,r1);
+
+    memory.fill(0); memory[0]=r0; memory[1]=r1;
+    if(mission.outputSlots) mission.outputSlots.forEach(s=>memory[s]=0);
+    else memory[mission.outputSlot]=0;
+
+    instructions=ins; resetCPU();
+    let result='ok';
+    while(result==='ok') result=execOne();
+
+    let actual = mission.outputSlots ? {out2:memory[2],out3:memory[3]} : memory[mission.outputSlot];
+    const m0ok=memory[0]===r0, m1ok=memory[1]===r1;
+
+    if(result!=='brk'){
+      currentInstructions=ins; instructions=ins; resetCPU();
+      setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — BRK NOT REACHED (${result})`, 'fail');
+      updateUI(); return;
+    }
+    if(!m0ok||!m1ok){
+      currentInstructions=ins; instructions=ins; resetCPU();
+      setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — INPUT MODIFIED | $00 ${hex2(r0)}→${hex2(memory[0])} $01 ${hex2(r1)}→${hex2(memory[1])}`,'fail');
+      updateUI(); return;
+    }
+    if(mission.outputSlots) {
+      if(actual.out2!==expected.out2||actual.out3!==expected.out3){
+        currentInstructions=ins; instructions=ins; resetCPU();
+        setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED | $00=${hex2(r0)} $01=${hex2(r1)} EXP $02=${hex2(expected.out2)} $03=${hex2(expected.out3)} GOT $02=${hex2(actual.out2)} $03=${hex2(actual.out3)}`,'fail');
+        updateUI(); return;
+      }
+    } else {
+      if(actual!==expected){
+        currentInstructions=ins; instructions=ins; resetCPU();
+        setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED | $00=${hex2(r0)} $01=${hex2(r1)} EXP=${hex2(expected)} GOT=${hex2(actual)}`,'fail');
+        updateUI(); return;
+      }
+    }
+  }
+
+  missionCleared=true; updateUI();
+  const instrCount=instructions.length, effScore=cycles+(instrCount*5);
+  const grade=effScore<=40?'A':effScore<=80?'B':'C';
+  setStatus(`MISSION VERIFIED ▓▓▓▓▓▓▓▓▓▓ | CYCLES: ${cycles} | INSTRUCTIONS: ${instrCount} | GRADE: ${grade}`,'pass');
+  setTimeout(()=>showDebrief(currentMissionIndex), 400);
+}
+
+// ============================================================
+// COLLAPSIBLE
+// ============================================================
+function toggleRef() {
+  const c=document.getElementById('refContent'), t=document.getElementById('refToggle');
+  c.classList.toggle('collapsed');
+  t.textContent=c.classList.contains('collapsed')?'▶':'▼';
+}
+
+// ============================================================
+// CLOCK
+// ============================================================
+let clockVal=0;
+setInterval(()=>{
+  clockVal=(clockVal+Math.floor(Math.random()*7+1))&0xFFFFFF;
+  document.getElementById('clockDisplay').textContent='CLK: '+('00000000'+clockVal.toString(16).toUpperCase()).slice(-8);
+},200);
+
+// ============================================================
+// MISSION LOADING
+// ============================================================
+function loadMission() {
+  missionCleared=false;
+  const mission=MISSIONS[currentMissionIndex];
+  document.getElementById('editorTitle').textContent='Assembly Editor — Mission '+mission.id;
+  document.querySelector('.mission-name').textContent=mission.name;
+  document.querySelector('.mission-narrative').textContent=mission.narrative;
+
+  const obj=document.querySelector('.mission-obj');
+  obj.innerHTML='<div class="mission-obj-title">Objectives</div>';
+  mission.objectives.forEach(o=>{
+    const d=document.createElement('div');
+    d.className='mission-obj-item'; d.textContent=o; obj.appendChild(d);
+  });
+
+  editor.value=''; errorLineNum=-1; updateLineNums();
+  memory.fill(0); resetCPU();
+  updateLCDForMission(currentMissionIndex);
+  updateUI();
+  setStatus(`Loaded Mission ${mission.id}: ${mission.name}`,'info');
+}
+
+function nextMission() {
+  if(mode==='sandbox'){setStatus('SANDBOX MODE — MISSION PROGRESSION DISABLED','sandbox');return;}
+  if(!missionCleared){setStatus('ACCESS DENIED — VERIFY SOLUTION FIRST','fail');return;}
+  missionCleared=false;
+  currentMissionIndex++;
+  if(currentMissionIndex>=MISSIONS.length){
+    currentMissionIndex=0;
+    if(!completionShown){
+      completionShown=true;
+      setTimeout(()=>document.getElementById('completionModal').classList.add('visible'),300);
+    }
+  }
+  loadMission();
+}
+
+// ============================================================
+// DEBRIEF MODAL
+// ============================================================
+function showDebrief(idx) {
+  const m=MISSIONS[idx]; if(!m||!m.debrief) return;
+  document.getElementById('debriefTitle').textContent=`MISSION ${m.id} — ASSESSMENT`;
+  document.getElementById('debriefSubtitle').textContent=m.debrief.subtitle;
+  document.getElementById('debriefBody').innerHTML=m.debrief.body;
+  document.getElementById('debriefModal').classList.add('visible');
+}
+function closeDebrief() { document.getElementById('debriefModal').classList.remove('visible'); }
+
+// Close modals on overlay click
+['debriefModal','completionModal','manualModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target===this) this.classList.remove('visible');
+  });
+});
+
+// ============================================================
+// MANUAL PDF
+// ============================================================
+function generateManualPDF() {
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>ZERO PAGE — Field Manual</title>
+<style>
+  body{font-family:'Courier New',monospace;background:#fff;color:#111;margin:40px;font-size:13px;line-height:1.7;}
+  h1{font-size:22px;letter-spacing:4px;border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:4px;}
+  .sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:24px;}
+  h2{font-size:13px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #aaa;padding-bottom:4px;margin:20px 0 8px;color:#333;}
+  p{margin-bottom:8px;color:#222;}
+  code{background:#f0f0f0;padding:1px 4px;border:1px solid #ccc;font-size:12px;}
+  .entry{margin-bottom:10px;padding-left:12px;border-left:2px solid #ccc;}
+  .entry strong{display:block;color:#111;margin-bottom:2px;}
+  @media print{body{margin:20px;}}
+</style></head><body>
+<h1>ZERO PAGE</h1>
+<div class="sub">Microprocessor Systems Lab — Field Manual</div>
+<h2>Registers</h2>
+<div class="entry"><strong>A — Accumulator</strong>The primary work register. Holds one byte (0–255). Most operations use A.</div>
+<div class="entry"><strong>X, Y — Index Registers</strong>Auxiliary registers for advanced programs.</div>
+<div class="entry"><strong>PC — Program Counter</strong>Points to the current instruction index.</div>
+<h2>Zero Page</h2>
+<p>All memory in this system is zero page ($00–$FF). Inputs load at $00 and $01. Store results at $02 and/or $03.</p>
+<p><code>LDA $00</code> reads address $00. <code>STA $02</code> writes to $02. <code>LDA #$05</code> loads literal 5.</p>
+<h2>Carry Flag</h2>
+<p>Before <code>SBC</code>, always <code>SEC</code>. Before <code>ADC</code> without carry-in, use <code>CLC</code>. After SBC: C=1 means no borrow; C=0 means borrow.</p>
+<h2>How SBC Works</h2>
+<p>Computes: A = A - value - (1 - C). Results wrap at 8 bits. Example: <code>SEC / LDA $00 / SBC $01 / STA $02 / BRK</code></p>
+<h2>Branching</h2>
+<p><code>CMP $nn</code> compares A to a memory value and sets flags. <code>BCS n</code> branches to instruction index n if C=1. <code>BCC n</code> branches if C=0. Count only executable instructions (not blanks or comments) for index.</p>
+<h2>Cycle Limit</h2>
+<p>Max 500 cycles. Each instruction costs 1 cycle. Loops that do not terminate will trigger CYCLE LIMIT HALT. Grade is partly based on efficiency.</p>
+<h2>Mission Mode vs Sandbox Mode</h2>
+<p><strong>Mission Mode:</strong> Default mode. Programs are tested against randomised inputs. Grading active. Pass all tests to advance.</p>
+<p><strong>Sandbox Mode:</strong> No grading. Write any program and edit any memory cell ($00–$FF) directly. Press SANDBOX button to toggle.</p>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`);
+  w.document.close();
+}
+
+// ============================================================
+// SANDBOX MEMORY GRID
+// ============================================================
+function updateSandboxMemGrid() {
+  const grid=document.getElementById('sandboxMemGrid');
+  // If editing cell active, don't clobber it
+  if (grid.querySelector('.editing')) return;
+  grid.innerHTML='';
+  for(let i=0;i<256;i++){
+    const cell=document.createElement('div');
+    cell.className='mem-cell'; cell.id='sbcell'+i;
+    cell.innerHTML=`<div class="mem-addr">$${hex2(i)}</div><div class="mem-val">${hex2(memory[i])}</div>`;
+    cell.onclick=()=>editSandboxCell(i,cell);
+    grid.appendChild(cell);
+  }
+}
+
+function editSandboxCell(addr,cell){
+  if(mode!=='sandbox') return;
+  cell.classList.add('editing');
+  const valDiv=cell.querySelector('.mem-val');
+  const input=document.createElement('input');
+  input.type='text'; input.className='inline-edit';
+  input.value=hex2(memory[addr]); input.maxLength=2;
+  valDiv.replaceWith(input); input.focus(); input.select();
+
+  function commit(){
+    const p=parseInt(input.value,16);
+    if(!isNaN(p)) memory[addr]=p&0xFF;
+    cell.classList.remove('editing');
+    const nd=document.createElement('div');
+    nd.className='mem-val'; nd.textContent=hex2(memory[addr]);
+    input.replaceWith(nd);
+    updateUI();
+  }
+  input.addEventListener('blur',commit);
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Enter') commit();
+    if(e.key==='Escape'){memory[addr]=memory[addr];commit();}
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+doReset();
+loadMission();
+
+editor.value = `; FIELD BALLISTICS CORRECTION MODULE
+; Computes: $02 = ($00 - $01) & $FF
+
+  
+  LDA $00      ; Load raw range
+  SBC $01      ; Subtract wind drift
+  STA $02      ; Store corrected range
+  BRK          ; Halt
+`;
+updateLineNums();
+</script>
+</body>
+</html>
