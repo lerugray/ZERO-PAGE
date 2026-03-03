@@ -1191,7 +1191,7 @@ Otherwise classify as UNSTABLE.`,
       "Read RAW RANGE from $00",
       "Read WIND DRIFT from $01",
       "If $00 ≥ $01 store $FF into $03 (STABLE)",
-      "Else store $00 into $03 (UNSTABLE)",
+      "Else store 0 into $03 (UNSTABLE)",
       "Do not modify $00 or $01",
       "Terminate with BRK",
       "Complete within 500 cycles"
@@ -2607,8 +2607,22 @@ function initRun() {
 }
 
 function doStep() {
-  if (!currentInstructions||halted) { if(!initRun()) return; }
-  const result=execOne(); updateUI();
+  if (!currentInstructions||halted) {
+    if(!initRun()) return;
+    // First STEP: highlight the first line that WILL execute, but don't run it yet
+    if (instructions.length > 0 && instructions[cpu.PC]) {
+      currentExecLineNum = instructions[cpu.PC].lineNum;
+    }
+    updateUI();
+    setStatus(`STEP — PC=${hex4(cpu.PC)} A=${hex2(cpu.A)} CYCLES=${cycles}`,'info');
+    return;
+  }
+  const result=execOne();
+  // After execution, highlight the NEXT line about to run
+  if (!halted && result === 'ok' && instructions[cpu.PC]) {
+    currentExecLineNum = instructions[cpu.PC].lineNum;
+  }
+  updateUI();
   if(result==='brk') setStatus(mode==='mission' ? 'HALTED — BRK EXECUTED | Hit RUN TESTS to verify your solution' : 'HALTED — BRK EXECUTED','halt');
   else if(result==='cycle_limit'){halted=true;setStatus(`HALTED — CYCLE LIMIT REACHED (${currentHiddenMissionIndex>=0?HIDDEN_MISSIONS[currentHiddenMissionIndex].cycleLimit:(MISSIONS[currentMissionIndex]&&MISSIONS[currentMissionIndex].cycleLimit)||500})`,'fail');}
   else if(result==='overrun'){halted=true;setStatus('HALTED — PC OVERRUN','fail');}

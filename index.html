@@ -226,8 +226,6 @@
   }
 
   .left-scroll { overflow-y: auto; flex: 1; }
-  .left-scroll .panel { overflow: visible; }
-  .left-scroll .panel:last-child { overflow: visible; flex: initial; }
 
   /* Editor */
   .editor-wrap {
@@ -644,15 +642,6 @@
   .msr-score { color: var(--green-dim); font-size: 11px; min-width: 140px; text-align: right; }
   .msr-name.locked-name { color: var(--text-dim); font-style: italic; }
   .msr-name.classified { color: #3a3a2a; letter-spacing: 1px; }
-  @keyframes classifiedPulse {
-    0%, 100% { opacity: 0.35; }
-    50%      { opacity: 0.65; text-shadow: 0 0 4px var(--amber-dim); }
-  }
-  .mission-select-row.pulse-hint { opacity: 0.7; }
-  .mission-select-row.pulse-hint .msr-name.classified {
-    animation: classifiedPulse 3s ease-in-out infinite;
-    color: var(--amber-dim);
-  }
   .modal-btn.replay { border-color: var(--green-dim); color: var(--green-dim); padding: 3px 10px; font-size: 10px; }
   .modal-btn.replay:hover { border-color: var(--green-bright); color: var(--green-bright); }
   .msr-divider {
@@ -898,7 +887,7 @@
           Technical Reference
           <span class="toggle" id="refToggle" onclick="toggleRef()">▼</span>
         </div>
-        <div class="collapsible-content" id="refContent" style="max-height:2000px">
+        <div class="collapsible-content" id="refContent" style="max-height:600px;overflow-y:auto">
           <!-- CORE ISA — always visible -->
           <div class="tech-ref-item"><code>LDA #$nn</code> — Load literal value $nn into A</div>
           <div class="tech-ref-item"><code>LDA $nn</code> — Load value at memory address $nn into A</div>
@@ -1202,7 +1191,7 @@ Otherwise classify as UNSTABLE.`,
       "Read RAW RANGE from $00",
       "Read WIND DRIFT from $01",
       "If $00 ≥ $01 store $FF into $03 (STABLE)",
-      "Else store $00 into $03 (UNSTABLE)",
+      "Else store 0 into $03 (UNSTABLE)",
       "Do not modify $00 or $01",
       "Terminate with BRK",
       "Complete within 500 cycles"
@@ -1295,9 +1284,7 @@ Use a counted loop. Do not unroll.`,
     narrative: `An 8-byte data buffer has been loaded at $00–$07.
 The buffer length is fixed at $08 and stored at $20.
 Scan the buffer using indexed addressing. Count how many values exceed $80.
-Store the count in $30.
-
-The system does not verify intent, only output.`,
+Store the count in $30.`,
     objectives: [
       "Read buffer length from $20 (will be $08)",
       "Scan $00–$07 using LDA $00,X indexed addressing",
@@ -1509,9 +1496,6 @@ The stack is not invisible scaffolding. It is a data structure.`,
 A table of two 2-byte pointers occupies $E0–$E3. The first pointer ($E0/$E1) references block A. The second ($E2/$E3) references block B.
 Use ($E0,X) with X=0 to read the first byte of block A, and X=2 to read the first byte of block B — demonstrating pointer table selection.
 Then use ($E0),Y with Y=0–3 to copy all four bytes of block A into $10–$13, and ($E2),Y with Y=0–3 to copy block B into $14–$17.
-
-Access restrictions exist for procedural reasons. The system logs constraint violations but does not enforce them.
-
 Do not modify the pointer table or the source blocks.`,
     objectives: [
       "Pointer table at $E0–$E3: two little-endian 2-byte pointers",
@@ -1697,9 +1681,7 @@ Use CPX and CPY for index comparisons.`,
 Values greater than $80 are interpreted as negative in two's complement and must be decremented by 1. When a value is decremented, set the corresponding bit in $10.
 Values equal to $00 must be incremented by 1 to eliminate zero entries.
 All other values remain unchanged.
-Modify the buffer in place.
-
-Addresses outside the specified range are not monitored by this module.`,
+Modify the buffer in place.`,
     objectives: [
       "Process each byte at $00–$07 in place",
       "Value > $80: DEC it, set bit N in $10 (bit 0 = $00, bit 7 = $07)",
@@ -2625,8 +2607,22 @@ function initRun() {
 }
 
 function doStep() {
-  if (!currentInstructions||halted) { if(!initRun()) return; }
-  const result=execOne(); updateUI();
+  if (!currentInstructions||halted) {
+    if(!initRun()) return;
+    // First STEP: highlight the first line that WILL execute, but don't run it yet
+    if (instructions.length > 0 && instructions[cpu.PC]) {
+      currentExecLineNum = instructions[cpu.PC].lineNum;
+    }
+    updateUI();
+    setStatus(`STEP — PC=${hex4(cpu.PC)} A=${hex2(cpu.A)} CYCLES=${cycles}`,'info');
+    return;
+  }
+  const result=execOne();
+  // After execution, highlight the NEXT line about to run
+  if (!halted && result === 'ok' && instructions[cpu.PC]) {
+    currentExecLineNum = instructions[cpu.PC].lineNum;
+  }
+  updateUI();
   if(result==='brk') setStatus(mode==='mission' ? 'HALTED — BRK EXECUTED | Hit RUN TESTS to verify your solution' : 'HALTED — BRK EXECUTED','halt');
   else if(result==='cycle_limit'){halted=true;setStatus(`HALTED — CYCLE LIMIT REACHED (${currentHiddenMissionIndex>=0?HIDDEN_MISSIONS[currentHiddenMissionIndex].cycleLimit:(MISSIONS[currentMissionIndex]&&MISSIONS[currentMissionIndex].cycleLimit)||500})`,'fail');}
   else if(result==='overrun'){halted=true;setStatus('HALTED — PC OVERRUN','fail');}
@@ -2641,19 +2637,6 @@ function doRun() {
   if(result==='brk') setStatus(mode==='mission' ? 'HALTED — BRK EXECUTED | Hit RUN TESTS to verify your solution' : 'HALTED — BRK EXECUTED','halt');
   else if(result==='cycle_limit') setStatus('FAILED — CYCLE LIMIT EXCEEDED','fail');
   else setStatus('HALTED — '+result.toUpperCase(),'fail');
-}
-
-const TRIGGER_MISSION_INDICES = new Set([4, 9, 13]);
-function getGlitchFailureMessage(mIdx, normalMsg) {
-  if (TRIGGER_MISSION_INDICES.has(mIdx) && clearedMissions.has(mIdx)) {
-    const msgs = [
-      '\u2593\u2593 DEVIATION LOGGED \u2593\u2593',
-      'ANOMALY \u2014 NON-STANDARD OUTPUT DETECTED',
-      '\u2593\u2593 OUTPUT VARIANCE FLAGGED \u2593\u2593'
-    ];
-    return msgs[Math.floor(Math.random() * msgs.length)];
-  }
-  return normalMsg;
 }
 
 function doRunTests() {
@@ -2685,12 +2668,12 @@ function doRunTests() {
 
     if(result!=='brk'){
       currentInstructions=ins; instructions=ins; resetCPU();
-      setStatus(getGlitchFailureMessage(currentMissionIndex, `TEST ${t+1}/${NUM_TESTS} FAILED — BRK NOT REACHED (${result})`), 'fail');
+      setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — BRK NOT REACHED (${result})`, 'fail');
       updateUI(); return;
     }
     if(!mission.allowInputModify && (!m0ok||!m1ok)){
       currentInstructions=ins; instructions=ins; resetCPU();
-      setStatus(getGlitchFailureMessage(currentMissionIndex, `TEST ${t+1}/${NUM_TESTS} FAILED — INPUT MODIFIED | $00 ${hex2(r0)}→${hex2(memory[0])} $01 ${hex2(r1)}→${hex2(memory[1])}`), 'fail');
+      setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — INPUT MODIFIED | $00 ${hex2(r0)}→${hex2(memory[0])} $01 ${hex2(r1)}→${hex2(memory[1])}`,'fail');
       updateUI(); return;
     }
     if(mission.testFull) {
@@ -2699,19 +2682,19 @@ function doRunTests() {
         // Check corruption triggers even on failed tests
         checkCorruptionTriggers(currentMissionIndex, memory, r0, r1);
         currentInstructions=ins; instructions=ins; resetCPU();
-        setStatus(getGlitchFailureMessage(currentMissionIndex, `TEST ${t+1}/${NUM_TESTS} FAILED — ${ferr}`), 'fail');
+        setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — ${ferr}`, 'fail');
         updateUI(); return;
       }
     } else if(mission.outputSlots) {
       if(actual.out2!==expected.out2||actual.out3!==expected.out3){
         currentInstructions=ins; instructions=ins; resetCPU();
-        setStatus(getGlitchFailureMessage(currentMissionIndex, `TEST ${t+1}/${NUM_TESTS} FAILED | $00=${hex2(r0)} $01=${hex2(r1)} EXP $02=${hex2(expected.out2)} $03=${hex2(expected.out3)} GOT $02=${hex2(actual.out2)} $03=${hex2(actual.out3)}`), 'fail');
+        setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED | $00=${hex2(r0)} $01=${hex2(r1)} EXP $02=${hex2(expected.out2)} $03=${hex2(expected.out3)} GOT $02=${hex2(actual.out2)} $03=${hex2(actual.out3)}`,'fail');
         updateUI(); return;
       }
     } else {
       if(actual!==expected){
         currentInstructions=ins; instructions=ins; resetCPU();
-        setStatus(getGlitchFailureMessage(currentMissionIndex, `TEST ${t+1}/${NUM_TESTS} FAILED | $00=${hex2(r0)} $01=${hex2(r1)} EXP=${hex2(expected)} GOT=${hex2(actual)}`), 'fail');
+        setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED | $00=${hex2(r0)} $01=${hex2(r1)} EXP=${hex2(expected)} GOT=${hex2(actual)}`,'fail');
         updateUI(); return;
       }
     }
@@ -3546,7 +3529,6 @@ const clearedMissions = new Set(); // set of MISSIONS array indices that have be
 // ============================================================
 // HIDDEN PUZZLES
 // ============================================================
-const HIDDEN_TRIGGER_MAP = [4, 9, 13]; // HIDDEN_MISSIONS[i] unlocked by MISSIONS[HIDDEN_TRIGGER_MAP[i]]
 const HIDDEN_MISSIONS = [
   // ── HIDDEN 0 ─────────────────────────────────────────────
   // Unlock: In Mission 5 (index 4, THRESHOLD DENSITY SCANNER),
@@ -3606,7 +3588,7 @@ The vector is at $E8/$E9. The subroutine expects its argument in A.`,
 <p>The null return was accepted. No alarm was raised. The downstream system that consumes density counts uses them to determine resource allocation for Category-3 processing events.</p>
 <p>A null count means zero resources allocated. A zero-allocation processing event is indistinguishable from a non-event in the audit log.</p>
 <p>The cluster designated SV-0047 received no processing resource allocation for cycle 19. No record of SV-0047 exists after cycle 19.</p>
-<p style="color:#5a3a3a;font-size:11px;letter-spacing:1px;">// CROSS-REFERENCE: the routing layer was accessed through a pointer table violation in M10. The normalisation pipeline in M14 has an unmonitored address range.</p>`
+<p style="color:#5a3a3a;font-size:11px;letter-spacing:1px;">// CONTINUE: clue embedded in system log 2 — routing table, row 3</p>`
     }
   },
 
@@ -3675,9 +3657,7 @@ Store all 12 results at $20–$2B. Order: all 6 of block A first, then block B.`
 <p>The suppression queue does not retain records. It processes them and emits a single-byte confirmation: $00.</p>
 <p>Between cycles 19 and 24, 1,847 records were routed through the vector you overwrote. The suppression queue emitted $00 on each receipt. The confirmation log shows 1,847 successful operations.</p>
 <p>The records were population cluster entries. Each entry: designation, location hash, Category classification, and a residency count.</p>
-<p style="color:#5a3a3a;font-size:11px;letter-spacing:1px;">// CROSS-REFERENCE: two additional access paths have been flagged in audit records.</p>
-<p style="color:#5a3a3a;font-size:11px;letter-spacing:1px;">// PATH 1: Density count module (M5) — a null return ($00) for a non-zero cluster suppresses downstream allocation.</p>
-<p style="color:#5a3a3a;font-size:11px;letter-spacing:1px;">// PATH 2: Normalisation pass (M14) — the buffer range is monitored. What lies outside it is not.</p>`
+<p style="color:#5a3a3a;font-size:11px;letter-spacing:1px;">// CONTINUE: system log 4, line 6 — hex sequence encodes final destination address</p>`
     }
   },
 
@@ -3970,8 +3950,7 @@ function openMissionSelect() {
     const h = HIDDEN_MISSIONS[i];
     const row = document.createElement('div');
     const cleared = bestScoresHidden[i] !== undefined;
-    const triggerCleared = !h.unlocked && clearedMissions.has(HIDDEN_TRIGGER_MAP[i]);
-    row.className = 'mission-select-row ' + (h.unlocked ? (cleared ? 'cleared' : '') : (triggerCleared ? 'locked pulse-hint' : 'locked'));
+    row.className = 'mission-select-row ' + (h.unlocked ? (cleared ? 'cleared' : '') : 'locked');
 
     let nameStr, scoreStr;
     if (!h.unlocked) {

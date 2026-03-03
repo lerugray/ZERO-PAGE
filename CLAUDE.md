@@ -6,7 +6,7 @@ A 6502 assembly language puzzle game played in the browser. The player takes on 
 Think TIS-100 meets moral complicity. The mechanics are the hook; the narrative is the point.
 
 ## How to Run
-Open `index.html` in a web browser. Everything is contained in a single HTML file — no build step, no dependencies, no server needed.
+Open `zero-page-v17.html` in a web browser. This is the **active working file** — all edits should go here. Other HTML files (index.html, earlier versions) are outdated snapshots and should NOT be edited.
 
 ## Project Structure
 - **Single-file architecture**: The entire game (HTML, CSS, JavaScript, puzzle definitions, assembler, simulator, UI) lives in one HTML file.
@@ -38,9 +38,8 @@ Each puzzle introduces exactly one new concept, uses it meaningfully, and advanc
 - **Sandbox as contrast**: Sandbox mode is the player's own space — no framing, no unease, just freedom to code.
 
 ## Known Improvement Areas
-1. **Debugger step highlighting**: When stepping through code, the line *about to be executed* should be highlighted, not the line that already ran.
-2. **Updated roadmap**: The roadmap document needs updating to reflect the current full puzzle set including all 18 puzzles.
-3. **Instruction gating**: The tech reference panel should ideally hide/grey out instructions that haven't been introduced yet.
+1. **Updated roadmap**: The roadmap document needs updating to reflect the current full puzzle set including all 18 puzzles.
+2. **Instruction gating**: The tech reference panel should ideally hide/grey out instructions that haven't been introduced yet.
 
 ## Future Plans
 - **Itch.io release** first (pay-what-you-want or free) to gather feedback

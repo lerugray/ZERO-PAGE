@@ -8,7 +8,8 @@ Think TIS-100 meets moral complicity. The mechanics are the hook; the narrative 
 
 ## Technical Architecture
 
-- **Single-file**: The entire game — HTML, CSS, JavaScript, assembler, simulator, puzzle definitions, narrative, UI — lives in one `index.html` file (~172 KB, ~4,000 lines).
+- **Active working file**: `zero-page-v17.html` is the current working version of the game. Other HTML files in the repo (index.html, earlier versions) are outdated snapshots — do NOT edit them.
+- **Single-file**: The entire game — HTML, CSS, JavaScript, assembler, simulator, puzzle definitions, narrative, UI — lives in one HTML file (~172 KB, ~4,000 lines).
 - **Zero dependencies**: No build step, no frameworks, no server. Open in any modern browser.
 - **Custom 6502 assembler**: Two-pass assembler with label resolution, supporting 45 instructions and 8 addressing modes.
 - **Custom 6502 simulator**: Cycle-accurate execution with full CPU state (A, X, Y, SP, PC, flags), 256-byte zero-page memory, 256-byte stack ($100–$1FF), and memory-mapped I/O.
@@ -228,15 +229,7 @@ Three-column layout:
 
 ## Known Issues and Improvement Areas
 
-### 1. Debugger Step Highlighting (Bug)
-
-**Reported by**: Player feedback online
-**Issue**: "When I'm stepping in a debugger I normally expect that the highlighted line is about to run when I click step, not that it has already run."
-**Current behavior**: The `.hl-exec` highlight class is applied to the line that just executed, not the line about to execute next.
-**Expected behavior**: Highlight should show the line that WILL execute on the next step click. The `currentExecLineNum` variable and the step function (`doStep()`) need adjustment to show the upcoming instruction rather than the completed one.
-**Location**: CSS at line ~305 (`.hl-exec` class), execution logic around `doStep()` at line ~2609, `currentExecLineNum` tracking throughout execution.
-
-### 2. Hidden Puzzle Discoverability (Partially Addressed)
+### 1. Hidden Puzzle Discoverability (Partially Addressed)
 
 Multiple layers of in-game hints now guide attentive players toward the hidden content:
 
@@ -290,7 +283,7 @@ No persistence currently exists. All progress (cleared missions, best scores, hi
 
 ## Future Work
 
-- [ ] Fix debugger step highlighting to show line about to execute
+- [x] ~~Fix debugger step highlighting to show line about to execute~~ — `doStep()` now highlights the upcoming line
 - [x] ~~Evaluate hidden puzzle discoverability~~ — narrative hints, glitch messages, Mission Select pulse, and reward cross-references added
 - [x] ~~Create puzzle cheat sheet for testing~~ — `CHEATSHEET.md` created (gitignored, local only)
 - [x] ~~Fix nested scroll in left panel~~ — unified scroll in left column, no more scroll traps
