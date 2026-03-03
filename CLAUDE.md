@@ -11,7 +11,9 @@ Open `index.html` in a web browser. Everything is contained in a single HTML fil
 ## Project Structure
 - **Single-file architecture**: The entire game (HTML, CSS, JavaScript, puzzle definitions, assembler, simulator, UI) lives in one HTML file.
 - **Puzzle definitions**: Located in a `MISSIONS` array in the JS. Each entry has: `id`, `name`, `narrative`, `objectives` array, `outputSlot`/`outputSlots`, `testLogic` function, and `debrief` object.
-- **Puzzle roadmap**: See `zero-page-puzzle-roadmap.docx` for the full design document covering all puzzle clusters, design principles, narrative guidelines, and implementation notes.
+- **Design document**: See `DESIGN.md` for the full design document covering architecture, all puzzles, sandbox mode, narrative design, known issues, and distribution plans.
+- **Puzzle roadmap**: See `zero-page-puzzle-roadmap.docx` for the original puzzle design roadmap (may be outdated — `DESIGN.md` is the current reference).
+- **Cheat sheet**: `CHEATSHEET.md` (gitignored, local only) contains puzzle solutions and testing instructions. Not committed to the repo to protect hidden content.
 
 ## Current Status
 - **Stable** — the game is fully playable
@@ -38,8 +40,7 @@ Each puzzle introduces exactly one new concept, uses it meaningfully, and advanc
 ## Known Improvement Areas
 1. **Debugger step highlighting**: When stepping through code, the line *about to be executed* should be highlighted, not the line that already ran.
 2. **Updated roadmap**: The roadmap document needs updating to reflect the current full puzzle set including all 18 puzzles.
-3. **Solutions document**: A separate text file with solutions for each puzzle and instructions for accessing all content.
-4. **Evaluating discoverability**: Some in-game hints exist via corrupted debrief text, but it's worth evaluating whether these are too cryptic for players to find.
+3. **Instruction gating**: The tech reference panel should ideally hide/grey out instructions that haven't been introduced yet.
 
 ## Future Plans
 - **Itch.io release** first (pay-what-you-want or free) to gather feedback
@@ -49,10 +50,10 @@ Each puzzle introduces exactly one new concept, uses it meaningfully, and advanc
 - **Target**: 500 copies is achievable with good trailer, community outreach (r/programming, r/gamedev, Hacker News, Zachtronics communities)
 
 ## For Claude Sessions
-- The puzzle roadmap document has full implementation details including instruction lists, objectives, debrief text, and narrative guidelines for every puzzle.
+- Read `DESIGN.md` first for the full architectural and design overview.
 - When adding new puzzles, follow the exact pattern of existing MISSIONS array entries.
 - For puzzles testing multiple outputs, use `outputSlots` as an array.
 - The simulator's memory array is accessible at test time — e.g., check `memory[0x10]` through `memory[0x17]`.
 - Preserve the debrief voice — read existing debriefs carefully before writing new ones.
-- The BIT instruction ($nn) is worth adding to the simulator for Puzzle 15 if not already present.
 - Cycle limits should be calibrated by solving the puzzle first, then setting limit at 2–2.5x optimal.
+- Hidden puzzle unlock conditions and solutions are in the source code (`HIDDEN_MISSIONS` array, `checkCorruptionTriggers` function) and `CHEATSHEET.md`. Do not expose these details in any committed documentation.
