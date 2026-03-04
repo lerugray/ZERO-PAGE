@@ -180,9 +180,8 @@
   .panel {
     border-bottom: 1px solid var(--border);
     padding: 8px 10px;
-    overflow: hidden;
   }
-  .panel:last-child { border-bottom: none; flex: 1; overflow: auto; }
+  .panel:last-child { border-bottom: none; }
 
   .panel-title {
     color: var(--amber);
@@ -210,19 +209,19 @@
     letter-spacing: 2px;
     margin-bottom: 4px;
   }
-  .mission-narrative { color: var(--text-dim); font-size: 15px; line-height: 1.6; margin-bottom: 8px; }
+  .mission-narrative { color: var(--text-dim); font-size: 16px; line-height: 1.6; margin-bottom: 8px; }
   .mission-obj { margin-top: 6px; }
-  .mission-obj-title { color: var(--amber); font-size: 10px; letter-spacing: 2px; margin-bottom: 4px; }
-  .mission-obj-item { color: var(--text); font-size: 15px; margin-bottom: 3px; padding-left: 8px; }
+  .mission-obj-title { color: var(--amber); font-size: 11px; letter-spacing: 2px; margin-bottom: 4px; }
+  .mission-obj-item { color: var(--text); font-size: 16px; margin-bottom: 3px; padding-left: 8px; }
   .mission-obj-item::before { content: '> '; color: var(--green-dim); }
 
   .collapsible-content { overflow: hidden; transition: max-height 0.2s ease; }
   .collapsible-content.collapsed { max-height: 0 !important; }
 
-  .tech-ref-item { font-size: 11px; margin-bottom: 5px; color: var(--text-dim); }
+  .tech-ref-item { font-size: 13px; margin-bottom: 5px; color: var(--text-dim); }
   .tech-ref-item code {
     color: var(--green-bright); background: var(--bg3);
-    padding: 1px 4px; border: 1px solid var(--border); font-size: 11px;
+    padding: 1px 4px; border: 1px solid var(--border); font-size: 13px;
   }
 
   .left-scroll { overflow-y: auto; flex: 1; }
@@ -887,7 +886,7 @@
           Technical Reference
           <span class="toggle" id="refToggle" onclick="toggleRef()">▼</span>
         </div>
-        <div class="collapsible-content" id="refContent" style="max-height:600px;overflow-y:auto">
+        <div class="collapsible-content" id="refContent" style="max-height:9999px">
           <!-- CORE ISA — always visible -->
           <div class="tech-ref-item"><code>LDA #$nn</code> — Load literal value $nn into A</div>
           <div class="tech-ref-item"><code>LDA $nn</code> — Load value at memory address $nn into A</div>
