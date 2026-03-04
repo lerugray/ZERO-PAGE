@@ -1,5 +1,22 @@
 # ZERO PAGE — Changelog
 
+## 2026-03-03 (d)
+
+### Sandbox Mode — UI Overhaul
+
+- **Full memory grid relocated**: Moved the full memory map ($00–$FF) from the right column into the center column beneath the framebuffer display. Both are sandbox-only panels that now scroll together naturally, eliminating the right column scroll trap.
+
+- **Resizable editor/framebuffer split**: Added a draggable horizontal resize handle between the code editor and the framebuffer+memory section. Players can adjust the balance to their preference — wider memory grid or wider editor.
+
+- **LCD watch slots**: In sandbox mode, the LCD panel now shows 4 rows instead of the redundant $00–$03 mission rows:
+  - RANDOM $FE — RNG register with flash animation
+  - KEY INPUT $FF — keyboard register with flash animation
+  - Two user-configurable WATCH rows — click the label to type any hex address ($00–$FF) to monitor
+
+- **Right column cleanup**: Right column no longer overflows in sandbox mode. Machine State, Memory $00–$0F, and LCD Display fit cleanly without scrolling.
+
+---
+
 ## 2026-03-03 (c)
 
 ### Bug Fixes

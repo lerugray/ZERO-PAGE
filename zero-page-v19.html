@@ -390,8 +390,8 @@
   /* Sandbox panel */
   .sandbox-mem-panel {
     display: none; padding: 8px 10px;
-    border-bottom: 1px solid var(--border);
-    overflow-y: auto; max-height: 260px;
+    border-top: 1px solid var(--border);
+    width: 100%;
   }
   body.sandbox-mode .sandbox-mem-panel { display: block; }
 
@@ -424,14 +424,28 @@
   .framebuffer-section {
     display: none;
     flex-direction: column;
-    border-left: 1px solid var(--border);
     background: var(--bg2);
     padding: 8px;
-    min-width: 0;
+    width: 340px;
+    flex-shrink: 0;
     align-items: center;
     justify-content: flex-start;
+    overflow-y: auto;
   }
   body.sandbox-mode .framebuffer-section { display: flex; }
+
+  .center-resize-handle {
+    display: none;
+    width: 5px;
+    cursor: ew-resize;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  body.sandbox-mode .center-resize-handle { display: block; }
+  .center-resize-handle:hover,
+  .center-resize-handle.dragging {
+    background: var(--amber-dim);
+  }
   .framebuffer-title {
     color: var(--sandbox-bright);
     font-size: 11px;
@@ -570,9 +584,19 @@
     text-shadow: 0 0 8px rgba(74,106,154,0.5);
   }
 
-  /* Sandbox-only rows hidden in mission mode */
+  /* Sandbox-only rows hidden in mission mode; mission rows hidden in sandbox */
   .lcd-row-sandbox { display: none; }
   body.sandbox-mode .lcd-row-sandbox { display: flex; }
+  body.sandbox-mode .lcd-row-mission { display: none !important; }
+
+  /* Clickable watch address labels */
+  .lcd-watch-label {
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .lcd-watch-label:hover {
+    color: var(--sandbox-bright);
+  }
 
   /* ===== SYSTEM LOG MODAL ===== */
   @keyframes syslogFlicker {
@@ -1027,6 +1051,7 @@
           </div>
         </div>
       </div>
+      <div class="center-resize-handle" id="centerResizeHandle"></div>
       <!-- FRAMEBUFFER PANEL — sandbox only -->
       <div class="framebuffer-section" id="fbSection">
         <div class="framebuffer-title">FRAMEBUFFER $80–$FF</div>
@@ -1034,6 +1059,14 @@
         <div class="framebuffer-info">
           16×8 px &nbsp;|&nbsp; addr = $80 + (y×16) + x<br>
           00 = off &nbsp;|&nbsp; nonzero = on
+        </div>
+        <!-- Sandbox full memory panel -->
+        <div class="sandbox-mem-panel" id="sandboxMemPanel">
+          <div class="panel-title" style="margin-bottom:6px">
+            Full Memory $00–$FF
+            <span style="color:var(--sandbox-color);font-size:10px;letter-spacing:1px;">CLICK TO EDIT</span>
+          </div>
+          <div class="sandbox-mem-grid" id="sandboxMemGrid"></div>
         </div>
       </div>
     </div>
@@ -1070,42 +1103,42 @@
       <div class="mem-grid" id="memGrid"></div>
     </div>
 
-    <!-- Sandbox full memory panel -->
-    <div class="sandbox-mem-panel" id="sandboxMemPanel">
-      <div class="panel-title" style="margin-bottom:6px">
-        Full Memory $00–$FF
-        <span style="color:var(--sandbox-color);font-size:10px;letter-spacing:1px;">CLICK TO EDIT</span>
-      </div>
-      <div class="sandbox-mem-grid" id="sandboxMemGrid"></div>
-    </div>
-
     <div class="panel" style="flex:1">
       <div class="panel-title">LCD Display</div>
       <div class="lcd-panel" id="lcdPanel">
-        <div class="lcd-row">
+        <!-- Mission-mode rows (hidden in sandbox) -->
+        <div class="lcd-row lcd-row-mission">
           <span class="lcd-label" id="lcdLabel00">RAW RANGE  $00</span>
           <span class="lcd-val input" id="lcd00">00</span>
         </div>
-        <div class="lcd-row">
+        <div class="lcd-row lcd-row-mission">
           <span class="lcd-label" id="lcdLabel01">WIND DRIFT $01</span>
           <span class="lcd-val input" id="lcd01">00</span>
         </div>
-        <div class="lcd-row">
+        <div class="lcd-row lcd-row-mission">
           <span class="lcd-label" id="lcdLabel02">CORRECTED  $02</span>
           <span class="lcd-val" id="lcd02">00</span>
         </div>
-        <div class="lcd-row" id="lcdRow03" style="display:none">
+        <div class="lcd-row lcd-row-mission" id="lcdRow03" style="display:none">
           <span class="lcd-label" id="lcdLabel03">FLAG       $03</span>
           <span class="lcd-val" id="lcd03">00</span>
         </div>
-        <!-- Sandbox-only memory-mapped I/O rows -->
+        <!-- Sandbox-only rows -->
         <div class="lcd-row lcd-row-sandbox">
           <span class="lcd-label">RANDOM      $FE</span>
           <span class="lcd-val" id="lcdFE">00</span>
         </div>
-        <div class="lcd-row lcd-row-sandbox" style="border-bottom:none">
+        <div class="lcd-row lcd-row-sandbox">
           <span class="lcd-label">KEY INPUT   $FF</span>
           <span class="lcd-val key-io" id="lcdFF">00</span>
+        </div>
+        <div class="lcd-row lcd-row-sandbox lcd-watch-row" data-watch="0">
+          <span class="lcd-label lcd-watch-label" title="Click to change address">WATCH       $00</span>
+          <span class="lcd-val" id="lcdWatch0">00</span>
+        </div>
+        <div class="lcd-row lcd-row-sandbox lcd-watch-row" data-watch="1" style="border-bottom:none">
+          <span class="lcd-label lcd-watch-label" title="Click to change address">WATCH       $01</span>
+          <span class="lcd-val" id="lcdWatch1">00</span>
         </div>
       </div>
     </div>
@@ -2448,6 +2481,7 @@ function updateUI() {
   const lcdFF = document.getElementById('lcdFF');
   if (lcdFE) lcdFE.textContent = hex2(lastRngByte);
   if (lcdFF) lcdFF.textContent = hex2(memory[0xFF]);
+  if (mode==='sandbox') updateWatchSlots();
 
   if (mode==='sandbox') updateSandboxMemGrid();
   updateSyntaxHighlight();
@@ -2780,6 +2814,37 @@ function toggleRef() {
 })();
 
 // ============================================================
+// CENTER COLUMN RESIZE (editor ↔ framebuffer)
+// ============================================================
+(function() {
+  const handle = document.getElementById('centerResizeHandle');
+  const fb = document.getElementById('fbSection');
+  if (!handle || !fb) return;
+  let dragging = false, startX = 0, startW = 0;
+  handle.addEventListener('mousedown', function(e) {
+    dragging = true; startX = e.clientX; startW = fb.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    const container = fb.parentElement;
+    const maxW = container.offsetWidth - 200 - handle.offsetWidth;
+    const newW = Math.max(200, Math.min(maxW, startW - (e.clientX - startX)));
+    fb.style.width = newW + 'px';
+  });
+  document.addEventListener('mouseup', function() {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+// ============================================================
 // CLOCK
 // ============================================================
 let clockVal=0;
@@ -3023,6 +3088,53 @@ function editSandboxCell(addr,cell){
   });
 }
 
+// ============================================================
+// SANDBOX LCD WATCH SLOTS
+// Two user-configurable address watches on the LCD panel.
+// Click the label to type a new hex address ($00–$FF).
+// ============================================================
+const _watchAddrs = [0x00, 0x01];
+
+function initWatchLabels() {
+  document.querySelectorAll('.lcd-watch-row').forEach(row => {
+    const idx = parseInt(row.dataset.watch);
+    const label = row.querySelector('.lcd-watch-label');
+    label.addEventListener('click', () => editWatchAddr(idx, label));
+  });
+}
+
+function editWatchAddr(idx, label) {
+  if (label.querySelector('input')) return;
+  const input = document.createElement('input');
+  input.type = 'text'; input.className = 'inline-edit';
+  input.style.width = '3.5em'; input.style.display = 'inline';
+  input.value = hex2(_watchAddrs[idx]); input.maxLength = 2;
+  label.textContent = '';
+  label.appendChild(document.createTextNode('WATCH       $'));
+  label.appendChild(input);
+  input.focus(); input.select();
+
+  function commit() {
+    const p = parseInt(input.value, 16);
+    if (!isNaN(p) && p >= 0 && p <= 0xFF) _watchAddrs[idx] = p;
+    label.textContent = 'WATCH       $' + hex2(_watchAddrs[idx]);
+    updateWatchSlots();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') commit();
+  });
+}
+
+function updateWatchSlots() {
+  for (let i = 0; i < 2; i++) {
+    const el = document.getElementById('lcdWatch' + i);
+    if (el) el.textContent = hex2(memory[_watchAddrs[i]]);
+  }
+}
+
+initWatchLabels();
 
 // ============================================================
 // SANDBOX LIVE EXECUTION
@@ -3093,6 +3205,7 @@ function _liveUpdateUI() {
   const lcdFF = document.getElementById('lcdFF');
   if (lcdFE) lcdFE.textContent = hex2(lastRngByte);
   if (lcdFF) lcdFF.textContent = hex2(memory[0xFF]);
+  updateWatchSlots();
 
   document.getElementById('lcd00').textContent = hex2(memory[0]);
   document.getElementById('lcd01').textContent = hex2(memory[1]);
