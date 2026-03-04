@@ -13,3 +13,7 @@
 - **Left panel scroll trap fix**: Removed nested scroll areas in the left column that were trapping the scroll wheel. The entire left column now scrolls as one unified area.
 
 - **Left panel font sizes**: Bumped up text sizes in the left column for readability — narrative and objectives from 15px to 16px, tech reference from 11px to 13px.
+
+### Source Protection
+
+- **Hidden content obfuscation**: Hidden puzzle definitions (HIDDEN_MISSIONS), system logs (SYSTEM_LOGS), and corruption trigger logic (checkCorruptionTriggers) are now base64-encoded in the source. Casual source viewers will see an opaque blob instead of readable puzzle names, narratives, unlock conditions, and reward text. The game functions identically — the content is decoded at runtime.

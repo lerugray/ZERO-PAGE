@@ -180,9 +180,8 @@
   .panel {
     border-bottom: 1px solid var(--border);
     padding: 8px 10px;
-    overflow: hidden;
   }
-  .panel:last-child { border-bottom: none; flex: 1; overflow: auto; }
+  .panel:last-child { border-bottom: none; }
 
   .panel-title {
     color: var(--amber);
@@ -210,19 +209,19 @@
     letter-spacing: 2px;
     margin-bottom: 4px;
   }
-  .mission-narrative { color: var(--text-dim); font-size: 15px; line-height: 1.6; margin-bottom: 8px; }
+  .mission-narrative { color: var(--text-dim); font-size: 16px; line-height: 1.6; margin-bottom: 8px; }
   .mission-obj { margin-top: 6px; }
-  .mission-obj-title { color: var(--amber); font-size: 10px; letter-spacing: 2px; margin-bottom: 4px; }
-  .mission-obj-item { color: var(--text); font-size: 15px; margin-bottom: 3px; padding-left: 8px; }
+  .mission-obj-title { color: var(--amber); font-size: 11px; letter-spacing: 2px; margin-bottom: 4px; }
+  .mission-obj-item { color: var(--text); font-size: 16px; margin-bottom: 3px; padding-left: 8px; }
   .mission-obj-item::before { content: '> '; color: var(--green-dim); }
 
   .collapsible-content { overflow: hidden; transition: max-height 0.2s ease; }
   .collapsible-content.collapsed { max-height: 0 !important; }
 
-  .tech-ref-item { font-size: 11px; margin-bottom: 5px; color: var(--text-dim); }
+  .tech-ref-item { font-size: 13px; margin-bottom: 5px; color: var(--text-dim); }
   .tech-ref-item code {
     color: var(--green-bright); background: var(--bg3);
-    padding: 1px 4px; border: 1px solid var(--border); font-size: 11px;
+    padding: 1px 4px; border: 1px solid var(--border); font-size: 13px;
   }
 
   .left-scroll { overflow-y: auto; flex: 1; }
@@ -265,6 +264,9 @@
 
   /* SYNTAX HIGHLIGHT STABILITY FIX — selection uses semi-transparent so highlight visible */
   #codeEditor::selection { background: rgba(74,138,74,0.4); color: transparent; }
+  #codeEditor::placeholder { color: var(--text-dim); opacity: 1; }
+  #codeEditor::-webkit-input-placeholder { color: var(--text-dim); opacity: 1; }
+  #codeEditor::-moz-placeholder { color: var(--text-dim); opacity: 1; }
 
   /* Syntax token colours — boosted contrast */
 .hl-mnem {
@@ -554,6 +556,136 @@
   .lcd-row-sandbox { display: none; }
   body.sandbox-mode .lcd-row-sandbox { display: flex; }
 
+  /* ===== SYSTEM LOG MODAL ===== */
+  @keyframes syslogFlicker {
+    0%   { opacity: 1; }
+    5%   { opacity: 0.3; }
+    8%   { opacity: 0.9; }
+    12%  { opacity: 0.1; }
+    16%  { opacity: 0.85; }
+    20%  { opacity: 0.4; }
+    24%  { opacity: 1; }
+    28%  { opacity: 0.7; }
+    32%  { opacity: 0.95; }
+    36%  { opacity: 0.2; }
+    40%  { opacity: 1; }
+    100% { opacity: 1; }
+  }
+  .modal-box.syslog {
+    border-top: 2px solid #5a3a3a;
+    border-color: #3a2a2a;
+    background: #06090a;
+    animation: modalIn 0.2s ease-out, syslogFlicker 0.45s ease-out;
+  }
+  .modal-box.syslog .modal-title { color: #7a4a4a; letter-spacing: 3px; }
+  .modal-box.syslog .modal-subtitle { color: #5a3a2a; }
+  .syslog-body {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: #5a5a4a;
+    line-height: 1.9;
+    background: #050808;
+    border: 1px solid #1e1e16;
+    padding: 12px 14px;
+    margin-bottom: 4px;
+  }
+  .syslog-body .sl-line { display: block; }
+  .syslog-body .sl-line.sl-code { color: #4a6a4a; }
+  .syslog-body .sl-line.sl-hex  { color: #5a4a2a; letter-spacing: 2px; }
+  .syslog-body .sl-line.sl-route{ color: #3a5a5a; }
+  .syslog-body .sl-line.sl-coord{ color: #4a4a6a; }
+  .syslog-body .sl-line.sl-dim  { color: #3a3a3a; }
+
+  /* ===== ANOMALY FLASH ===== */
+  @keyframes anomalyFlash {
+    0%   { opacity: 0; transform: translateY(-8px) scaleX(0.95); }
+    10%  { opacity: 1; transform: translateY(0) scaleX(1); }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  #anomalyBanner {
+    display: none;
+    position: fixed;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a0808;
+    border: 1px solid var(--red-bright);
+    border-top: 2px solid var(--red-bright);
+    color: var(--red-bright);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 8px 24px;
+    text-align: center;
+    z-index: 20000;
+    pointer-events: none;
+    text-transform: uppercase;
+  }
+  #anomalyBanner.visible {
+    display: block;
+    animation: anomalyFlash 3.5s ease-out forwards;
+  }
+
+  /* ===== MISSION SELECT MODAL ===== */
+  .mission-select-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .mission-select-row:last-child { border-bottom: none; }
+  .mission-select-row.locked { opacity: 0.35; cursor: default; }
+  .mission-select-row.cleared { cursor: default; }
+  .msr-id { color: var(--amber-dim); min-width: 32px; font-size: 11px; }
+  .msr-name { flex: 1; color: var(--text); font-size: 12px; }
+  .msr-score { color: var(--green-dim); font-size: 11px; min-width: 140px; text-align: right; }
+  .msr-name.locked-name { color: var(--text-dim); font-style: italic; }
+  .msr-name.classified { color: #3a3a2a; letter-spacing: 1px; }
+  .modal-btn.replay { border-color: var(--green-dim); color: var(--green-dim); padding: 3px 10px; font-size: 10px; }
+  .modal-btn.replay:hover { border-color: var(--green-bright); color: var(--green-bright); }
+  .msr-divider {
+    margin: 10px 0 4px;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--amber-dim);
+    border-top: 1px solid var(--amber-dim);
+    padding-top: 6px;
+    text-transform: uppercase;
+  }
+
+  /* ===== HIDDEN PUZZLE REWARD MODAL ===== */
+  @keyframes corruptGlitch {
+    0%   { filter: none; }
+    10%  { filter: hue-rotate(180deg) saturate(2); transform: translateX(2px); }
+    12%  { filter: none; transform: translateX(0); }
+    40%  { filter: none; }
+    42%  { filter: brightness(2) hue-rotate(90deg); transform: translateX(-1px); }
+    44%  { filter: none; transform: translateX(0); }
+    100% { filter: none; }
+  }
+  .modal-box.reward {
+    border-top: 2px solid var(--red-bright);
+    border-color: #4a2020;
+    background: #0a0808;
+    animation: modalIn 0.2s ease-out, corruptGlitch 1.2s ease-out;
+  }
+  .modal-box.reward .modal-title { color: var(--red-bright); }
+  .modal-box.reward .modal-subtitle { color: #7a4a3a; }
+  .reward-body {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: #8a6a5a;
+    line-height: 1.8;
+    border-left: 2px solid #4a2020;
+    padding-left: 12px;
+    margin-bottom: 8px;
+  }
+  .reward-body p { margin-bottom: 10px; color: #8a6a5a; }
+  .reward-body .rb-classification {
+    color: var(--red-bright); font-size: 10px; letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+
   /* SANDBOX LIVE EXECUTION — sandbox-only button styles */
   .btn.live-btn { display: none; border-color: #4a8a4a; color: #4a8a4a; }
   body.sandbox-mode .btn.live-btn { display: inline-block; }
@@ -568,6 +700,45 @@
 </style>
 </head>
 <body>
+
+<!-- ANOMALY BANNER -->
+<div id="anomalyBanner">▓ ANOMALY DETECTED — UNAUTHORIZED MEMORY STATE — NEW ENTRY UNLOCKED ▓</div>
+
+<!-- SYSTEM LOG MODAL -->
+<div class="modal-overlay" id="syslogModal">
+  <div class="modal-box syslog">
+    <div class="modal-title" id="syslogTitle">SYSTEM // UNHANDLED OUTPUT</div>
+    <div class="modal-subtitle" id="syslogSubtitle">[THIS SCREEN SHOULD NOT BE VISIBLE — LOGGING TO /dev/null]</div>
+    <div class="syslog-body" id="syslogBody"></div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="closeSyslog()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- HIDDEN PUZZLE REWARD MODAL -->
+<div class="modal-overlay" id="rewardModal">
+  <div class="modal-box reward">
+    <div class="modal-title" id="rewardTitle">ACCESS: RESTRICTED</div>
+    <div class="modal-subtitle" id="rewardSubtitle">CLASSIFIED — INTERNAL USE ONLY</div>
+    <div class="reward-body" id="rewardBody"></div>
+    <div class="modal-footer">
+      <button class="modal-btn" style="border-color:var(--red-bright);color:var(--red-bright)" onclick="closeReward()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- MISSION SELECT MODAL -->
+<div class="modal-overlay" id="missionSelectModal">
+  <div class="modal-box wide">
+    <div class="modal-title">MISSION SELECT</div>
+    <div class="modal-subtitle">REPLAY CLEARED MISSIONS — BEST SCORES TRACKED</div>
+    <div class="modal-body" id="missionSelectBody" style="padding:0;max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="modal-btn amber" onclick="document.getElementById('missionSelectModal').classList.remove('visible')">CLOSE</button>
+    </div>
+  </div>
+</div>
 
 <!-- DEBRIEF MODAL -->
 <div class="modal-overlay" id="debriefModal">
@@ -677,6 +848,7 @@
   <span class="title">ZERO PAGE</span>
   <span class="subtitle">Microprocessor Systems Lab</span>
   <div class="header-right">
+    <button class="btn-header" onclick="openMissionSelect()">MISSION SELECT</button>
     <button class="btn-header" onclick="document.getElementById('manualModal').classList.add('visible')">MANUAL</button>
     <span id="clockDisplay">CLK: 00000000</span>
     <span class="blink">█</span>
@@ -714,23 +886,71 @@
           Technical Reference
           <span class="toggle" id="refToggle" onclick="toggleRef()">▼</span>
         </div>
-        <div class="collapsible-content" id="refContent" style="max-height:600px">
-          <div class="tech-ref-item"><code>LDA #$nn</code> — Load A immediate</div>
-          <div class="tech-ref-item"><code>LDA $nn</code> — Load A zero page</div>
-          <div class="tech-ref-item"><code>STA $nn</code> — Store A zero page</div>
-          <div class="tech-ref-item"><code>ADC #$nn</code> — Add with carry immediate</div>
-          <div class="tech-ref-item"><code>ADC $nn</code> — Add with carry zero page</div>
-          <div class="tech-ref-item"><code>SBC #$nn</code> — Subtract with carry immediate</div>
-          <div class="tech-ref-item"><code>SBC $nn</code> — Subtract with carry zero page</div>
-          <div class="tech-ref-item"><code>CMP $nn</code> — Compare A to zero page</div>
-          <div class="tech-ref-item"><code>BCS n</code> — Branch if carry set (A ≥ val)</div>
-          <div class="tech-ref-item"><code>BCC n</code> — Branch if carry clear (A &lt; val)</div>
-          <div class="tech-ref-item"><code>SEC</code> — Set carry flag</div>
-          <div class="tech-ref-item"><code>CLC</code> — Clear carry flag</div>
-          <div class="tech-ref-item"><code>BRK</code> — Break / halt</div>
+        <div class="collapsible-content" id="refContent" style="max-height:9999px">
+          <!-- CORE ISA — always visible -->
+          <div class="tech-ref-item"><code>LDA #$nn</code> — Load literal value $nn into A</div>
+          <div class="tech-ref-item"><code>LDA $nn</code> — Load value at memory address $nn into A</div>
+          <div class="tech-ref-item"><code>STA $nn</code> — Store A into memory address $nn</div>
+          <div class="tech-ref-item"><code>ADC #$nn</code> — Add $nn to A (use <code>CLC</code> first for clean addition)</div>
+          <div class="tech-ref-item"><code>ADC $nn</code> — Add value at $nn to A</div>
+          <div class="tech-ref-item"><code>SBC #$nn</code> — Subtract $nn from A (use <code>SEC</code> first)</div>
+          <div class="tech-ref-item"><code>SBC $nn</code> — Subtract value at $nn from A</div>
+          <div class="tech-ref-item"><code>CMP $nn</code> — Compare A to $nn. Sets flags; does not change A</div>
+          <div class="tech-ref-item"><code>AND #$nn / AND $nn</code> — Bitwise AND. Keeps only bits set in both A and operand</div>
+          <div class="tech-ref-item"><code>ORA #$nn / ORA $nn</code> — Bitwise OR. Sets bits in A where either operand has a 1</div>
+          <div class="tech-ref-item"><code>EOR #$nn / EOR $nn</code> — Bitwise XOR. Flips bits in A where operand has a 1</div>
+          <div class="tech-ref-item"><code>BCS label</code> — Branch if C=1 (carry set — A ≥ compared value)</div>
+          <div class="tech-ref-item"><code>BCC label</code> — Branch if C=0 (carry clear — A &lt; compared value)</div>
+          <div class="tech-ref-item"><code>BEQ label</code> — Branch if Z=1 (result was zero / values were equal)</div>
+          <div class="tech-ref-item"><code>BNE label</code> — Branch if Z=0 (result was non-zero / values differ)</div>
+          <div class="tech-ref-item"><code>BMI label</code> — Branch if N=1 (result was negative, bit 7 set)</div>
+          <div class="tech-ref-item"><code>BPL label</code> — Branch if N=0 (result was positive or zero)</div>
+          <div class="tech-ref-item"><code>SEC</code> — Set carry flag (required before SBC)</div>
+          <div class="tech-ref-item"><code>CLC</code> — Clear carry flag (required before ADC chains)</div>
+          <div class="tech-ref-item"><code>BRK</code> — Halt execution. Program must reach BRK to pass tests</div>
+          <br>
+          <!-- INDEX REGISTERS -->
+          <div class="tech-ref-item"><code>LDX #$nn / LDX $nn</code> — Load X register with value</div>
+          <div class="tech-ref-item"><code>LDY #$nn / LDY $nn</code> — Load Y register with value</div>
+          <div class="tech-ref-item"><code>STX $nn</code> — Store X into memory. &nbsp;<code>STY $nn</code> — Store Y into memory</div>
+          <div class="tech-ref-item"><code>INX / DEX</code> — Increment / Decrement X. Sets N, Z</div>
+          <div class="tech-ref-item"><code>INY / DEY</code> — Increment / Decrement Y. Sets N, Z</div>
+          <div class="tech-ref-item"><code>TAX</code> — Copy A→X. &nbsp;<code>TAY</code> — Copy A→Y. &nbsp;<code>TXA</code> — Copy X→A. &nbsp;<code>TYA</code> — Copy Y→A</div>
+          <div class="tech-ref-item"><code>CPX #$nn / CPX $nn</code> — Compare X to value. Sets N, Z, C (C=1 if X≥val)</div>
+          <div class="tech-ref-item"><code>CPY #$nn / CPY $nn</code> — Compare Y to value. Sets N, Z, C (C=1 if Y≥val)</div>
+          <br>
+          <!-- INDEXED ADDRESSING -->
+          <div class="tech-ref-item"><code>LDA $nn,X</code> — Load from address ($nn + X), wraps in zero page</div>
+          <div class="tech-ref-item"><code>STA $nn,X</code> — Store A to address ($nn + X), zero page wrap</div>
+          <div class="tech-ref-item"><code>LDA $nn,Y / STA $nn,Y</code> — Same but indexed by Y</div>
+          <div class="tech-ref-item"><code>LDA ($nn),Y</code> — Indirect indexed. Reads 16-bit pointer from $nn/$nn+1, adds Y for final address</div>
+          <div class="tech-ref-item"><code>STA ($nn),Y</code> — Store via indirect pointer + Y</div>
+          <div class="tech-ref-item"><code>LDA ($nn,X)</code> — Indexed indirect. Adds X to $nn; reads 16-bit pointer from that address</div>
+          <div class="tech-ref-item"><code>STA ($nn,X)</code> — Store via pointer selected by $nn+X</div>
+          <br>
+          <!-- MEMORY OPS -->
+          <div class="tech-ref-item"><code>INC $nn</code> — Increment memory byte. $FF wraps to $00. Sets N, Z</div>
+          <div class="tech-ref-item"><code>DEC $nn</code> — Decrement memory byte. $00 wraps to $FF. Sets N, Z</div>
+          <div class="tech-ref-item"><code>BIT $nn</code> — Test bits. Sets N=bit7, V=bit6, Z=(A AND mem)=0. Does not change A</div>
+          <br>
+          <!-- SHIFT / ROTATE -->
+          <div class="tech-ref-item"><code>ASL</code> — Shift A left 1 bit (×2). Old bit 7 → C. &nbsp;<code>ASL $nn</code> — shift memory</div>
+          <div class="tech-ref-item"><code>LSR</code> — Shift A right 1 bit (÷2). Old bit 0 → C. &nbsp;<code>LSR $nn</code> — shift memory</div>
+          <div class="tech-ref-item"><code>ROL</code> — Rotate A left through carry. bit 7→C, old C→bit 0. &nbsp;<code>ROL $nn</code> — rotate memory</div>
+          <div class="tech-ref-item"><code>ROR</code> — Rotate A right through carry. bit 0→C, old C→bit 7. &nbsp;<code>ROR $nn</code> — rotate memory</div>
+          <br>
+          <!-- SUBROUTINES / STACK / FLOW -->
+          <div class="tech-ref-item"><code>JSR label</code> — Jump to subroutine at label. Pushes return address on stack</div>
+          <div class="tech-ref-item"><code>RTS</code> — Return from subroutine. Pops return address from stack</div>
+          <div class="tech-ref-item"><code>JMP label</code> — Unconditional jump. Does not push stack</div>
+          <div class="tech-ref-item"><code>PHA</code> — Push A onto stack. &nbsp;<code>PLA</code> — Pull A from stack (LIFO)</div>
+          <div class="tech-ref-item"><code>NOP</code> — No operation. 1 cycle, no effect</div>
           <br>
           <div class="tech-ref-item" style="color:var(--amber-dim);font-size:10px;">
-            SBC requires SEC before use. Result wraps to 8-bit. Comments with ; are ignored.
+            FLAGS: N=negative (bit7) &nbsp;Z=zero &nbsp;C=carry/borrow &nbsp;V=overflow<br>
+            SBC requires SEC first. ADC chains need CLC first to prevent carry leaking between additions.<br>
+            Stack lives at $0100–$01FF. SP starts at $FF. Labels are case-sensitive.<br>
+            All values wrap to 8-bit ($00–$FF). Memory $00–$FF is zero page only.
           </div>
           <!-- Sandbox-only framebuffer reference -->
           <div id="refFramebuffer" style="display:none;margin-top:8px;border-top:1px solid var(--sandbox-color);padding-top:8px;">
@@ -739,58 +959,10 @@
             <div class="tech-ref-item">Address: <code>addr = $80 + (y × 16) + x</code></div>
             <div class="tech-ref-item">Pixel: <code>$00</code> = off (black) &nbsp;|&nbsp; nonzero = on (green)</div>
             <div class="tech-ref-item">Example: <code>LDA #$FF / STA $80</code> lights pixel (0,0)</div>
-            <div style="color:var(--sandbox-bright);font-size:10px;letter-spacing:2px;margin:6px 0 4px;">ISA EXPANSION PACK</div>
-            <div class="tech-ref-item"><code>LDX #$nn / LDX $nn</code> — Load X register</div>
-            <div class="tech-ref-item"><code>LDY #$nn / LDY $nn</code> — Load Y register</div>
-            <div class="tech-ref-item"><code>STX $nn / STY $nn</code> — Store X / Y</div>
-            <div class="tech-ref-item"><code>INX / DEX</code> — Increment / Decrement X</div>
-            <div class="tech-ref-item"><code>INY / DEY</code> — Increment / Decrement Y</div>
-            <div class="tech-ref-item"><code>TAX/TAY/TXA/TYA</code> — Transfer between A,X,Y</div>
-            <div class="tech-ref-item"><code>LDA $nn,X</code> — Zero page indexed by X (wraps)</div>
-            <div class="tech-ref-item"><code>STA $nn,X</code> — Store A at $nn+X (zp wrap)</div>
-            <div class="tech-ref-item"><code>LDA $nn,Y / STA $nn,Y</code> — Zero page indexed by Y</div>
-            <div class="tech-ref-item"><code>LDA $nnnn,X / STA $nnnn,X</code> — Absolute indexed</div>
-            <div class="tech-ref-item"><code>LDA ($nn),Y</code> — Indirect indexed: ptr at $nn/$nn+1 + Y</div>
-            <div class="tech-ref-item"><code>STA ($nn),Y</code> — Store via indirect pointer + Y</div>
-            <div class="tech-ref-item"><code>AND / ORA / EOR $nn</code> — Bitwise ops on A</div>
-            <div class="tech-ref-item"><code>ASL / LSR / ROL / ROR</code> — Shift/rotate A (imp) or $nn</div>
-            <div class="tech-ref-item"><code>BEQ / BNE n</code> — Branch if Z=1 / Z=0</div>
-            <div class="tech-ref-item"><code>BMI / BPL n</code> — Branch if N=1 / N=0</div>
-            <div class="tech-ref-item"><code>JSR $nnnn</code> — Jump to subroutine (instruction index). <code>JSR label</code> — jump to named label. Pushes return address on stack.</div>
-            <div class="tech-ref-item"><code>RTS</code> — Return from subroutine</div>
-            <div class="tech-ref-item"><code>PHA / PLA</code> — Push / Pull A from stack</div>
-            <div class="tech-ref-item"><code>NOP</code> — No operation (1 cycle)</div>
-            <div class="tech-ref-item" style="color:var(--amber-dim);font-size:10px;margin-top:4px;">
-              Stack page: $0100–$01FF. SP register starts at $FF. JSR uses instruction index as destination. Indirect pointer ($nn),Y reads 16-bit ptr from ZP then adds Y for ZP effective addr.
-            </div>
-            <!-- ISA EXPANSION ADDITIONS DOCUMENTATION -->
-            <div style="color:var(--sandbox-bright);font-size:10px;letter-spacing:2px;margin:8px 0 4px;">SANDBOX ISA EXTENSIONS</div>
-            <div class="tech-ref-item"><code>ASL</code> — Arithmetic Shift Left. No operand = accumulator mode (shifts A). <code>ASL $nn</code> or <code>ASL $nn,X</code> shifts memory. Sets C=old bit 7, N, Z.</div>
-            <div class="tech-ref-item">&nbsp;&nbsp;Example: <code>LDA #$01 / ASL / ASL / ASL / ASL</code> → A=$10 (multiply by 16)</div>
-            <div class="tech-ref-item"><code>LSR</code> — Logical Shift Right. No operand = accumulator. Sets C=old bit 0, N=0, Z. <code>LSR $nn</code> / <code>LSR $nn,X</code>.</div>
-            <div class="tech-ref-item"><code>ROL</code> — Rotate Left through carry. No operand = accumulator. Old C→bit 0, bit 7→C. <code>ROL $nn</code>.</div>
-            <div class="tech-ref-item"><code>ROR</code> — Rotate Right through carry. No operand = accumulator. Old C→bit 7, bit 0→C. <code>ROR $nn</code>.</div>
-            <div class="tech-ref-item"><code>INC $nn</code> / <code>INC $nn,X</code> — Increment memory. Wraps $FF→$00. Sets N, Z. Does not affect C.</div>
-            <div class="tech-ref-item"><code>DEC $nn</code> / <code>DEC $nn,X</code> — Decrement memory. Wraps $00→$FF. Sets N, Z. Does not affect C.</div>
-            <div class="tech-ref-item"><code>INX / DEX</code> — Increment/Decrement X. <code>INY / DEY</code> — Increment/Decrement Y. All set N, Z.</div>
-            <div class="tech-ref-item"><code>CPX #$nn / CPX $nn</code> — Compare X to value. Sets N, Z, C. C=1 if X≥val.</div>
-            <div class="tech-ref-item"><code>CPY #$nn / CPY $nn</code> — Compare Y to value. Sets N, Z, C. C=1 if Y≥val.</div>
-            <div class="tech-ref-item"><code>LDA $nn,X / STA $nn,X</code> — Zero page indexed by X (wraps at $FF).</div>
-            <div class="tech-ref-item"><code>LDA $nn,Y / STA $nn,Y</code> — Zero page indexed by Y (wraps at $FF).</div>
-            <div class="tech-ref-item"><code>LDA ($nn),Y</code> / <code>STA ($nn),Y</code> — Indirect indexed. Reads 16-bit ptr from $nn/$nn+1, adds Y for effective address.</div>
-            <div class="tech-ref-item"><code>LDA ($nn,X)</code> / <code>STA ($nn,X)</code> — Indexed indirect. Adds X to $nn to select pointer; reads 16-bit ptr from that location.</div>
-            <div class="tech-ref-item"><code>BIT $nn</code> — Test bits. Sets N=bit7, V=bit6, Z=(A AND mem)=0. Does not modify A. Useful for flag testing without loading.</div>
-            <!-- === ADD: JMP INSTRUCTION === -->
-            <div class="tech-ref-item"><code>JMP $nnnn</code> — Unconditional absolute jump to instruction index. <code>JMP label</code> — jump to label. Does NOT push stack. 1 cycle.</div>
-            <div class="tech-ref-item"><code>JSR label</code> — Label-based subroutine call now supported in addition to <code>JSR $nnnn</code>. Pushes return address; <code>RTS</code> returns.</div>
-            <div class="tech-ref-item">&nbsp;&nbsp;Example: <code>loop: NOP / JMP loop</code> — infinite loop. <code>JSR mysub / ... / mysub: RTS</code> — subroutine call.</div>
-            <!-- === END ADD: JMP INSTRUCTION === -->
             <div class="tech-ref-item" style="color:var(--amber-dim);font-size:10px;">Arrow key input: ArrowUp=$01 ArrowDown=$02 ArrowLeft=$03 ArrowRight=$04 → written to $FF on keypress, cleared after LDA $FF.</div>
-            <div class="tech-ref-item" style="color:var(--amber-dim);font-size:10px;">Branch targets accept labels (e.g. <code>BNE loop</code>) or numeric instruction indices.</div>
             <!-- LIVE EXECUTION MODE DOCUMENTATION -->
             <div style="color:var(--sandbox-bright);font-size:10px;letter-spacing:2px;margin:8px 0 4px;">LIVE EXECUTION MODE</div>
-            <div class="tech-ref-item"><code>RUN LIVE</code> — Begins continuous execution loop at ~60 FPS. LIVE_BATCH controls instructions per frame (default: 30).</div>
-            <div class="tech-ref-item">Cycle limit is <strong style="color:var(--amber)">ignored</strong>. Programs may omit <code>BRK</code>.</div>
+            <div class="tech-ref-item"><code>RUN LIVE</code> — Begins continuous execution loop at ~60 FPS. Cycle limit ignored.</div>
             <div class="tech-ref-item"><code>STOP</code> — Halts live execution. CPU state is preserved.</div>
             <div class="tech-ref-item">Programs that reach BRK auto-restart from PC=0 for continuous loops.</div>
             <!-- SNAKE DEMO DOCUMENTATION -->
@@ -816,13 +988,18 @@
           <div class="editor-area">
             <div class="highlight-overlay" id="highlightOverlay" aria-hidden="true"></div>
             <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
-              placeholder="; Write your solution here
-; Example:
-;   SEC
-;   LDA $00
-;   SBC $01
-;   STA $02
-;   BRK"
+              placeholder="; Write your solution here.
+; Comments begin with semicolons — the assembler ignores them.
+;
+; Quick reference:
+;   LDA $nn     — load value from memory address $nn into A
+;   STA $nn     — store A into memory address $nn
+;   LDA #$nn    — load the literal number $nn into A
+;   ADC #$nn    — add $nn to A (set CLC first for clean addition)
+;   SBC $nn     — subtract memory from A (set SEC first)
+;   BRK         — halt execution
+;
+; Run TESTS when ready to verify your solution."
             ></textarea>
           </div>
         </div>
@@ -1013,7 +1190,7 @@ Otherwise classify as UNSTABLE.`,
       "Read RAW RANGE from $00",
       "Read WIND DRIFT from $01",
       "If $00 ≥ $01 store $FF into $03 (STABLE)",
-      "Else store $00 into $03 (UNSTABLE)",
+      "Else store 0 into $03 (UNSTABLE)",
       "Do not modify $00 or $01",
       "Terminate with BRK",
       "Complete within 500 cycles"
@@ -1056,8 +1233,7 @@ Do not alter source registers.`,
       subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: ARCHIVED',
       body: `<p>Anomaly suppression filter has passed verification. Suppression events are being logged as required.</p>
 <p>Audit records indicate a non-trivial number of values were clamped during testing. Whether these anomalies represent genuine data integrity issues or normal operational variance is not within the scope of this report.</p>
-<p>The audit log is routed to a system you do not have access to. This is standard. All three modules are now operational.</p>
-<p style="color:var(--amber);font-size:13px;margin-top:8px;">ZERO PAGE OPERATIONS CONCLUDED. TERMINAL CLOSING.</p>`
+<p>The audit log is routed to a system you do not have access to. This is standard. All three modules are now operational.</p>`
     }
   },
   // ============================================================
@@ -1490,7 +1666,7 @@ Use CPX and CPY for index comparisons.`,
     },
     testLogic: () => 0,
     outputSlot: 0x30,
-    allowInputModify: false,
+    allowInputModify: true, // testSetup seeds $00-$0F with matrix data, overwriting r0/r1 slots
     debrief: {
       subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: RESTRICTED',
       body: `<p>Selection matrix computed. Downstream systems will act on the output.</p>
@@ -1605,7 +1781,8 @@ Store final X at $20, final Y at $21.`,
     allowInputModify: true, // position coords may be updated in place
     debrief: {
       subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: CLOSED',
-      body: `<p>Final coordinates logged. You have been a reliable contractor. This concludes your current assignment.</p>`
+      body: `<p>Final coordinates logged. You have been a reliable contractor. This concludes your current assignment.</p>
+<p style="color:var(--amber);font-size:13px;margin-top:8px;">ZERO PAGE OPERATIONS CONCLUDED. TERMINAL CLOSING.</p>`
     }
   }
 ];
@@ -1613,6 +1790,7 @@ Store final X at $20, final Y at $21.`,
 let currentMissionIndex = 0;
 let missionCleared = false;
 let completionShown = false;
+let currentHiddenMissionIndex = -1; // -1 = not in hidden mission mode
 
 // ============================================================
 // MEMORY-MAPPED I/O (Sandbox only)
@@ -1805,9 +1983,6 @@ function assemble(src) {
     return { error: `Line ${i+1}: Invalid operand: '${operand}'.` };
   }
   if (!instructions.length) return { error: 'No instructions found.' };
-  // SANDBOX LIVE EXECUTION — BRK not required in sandbox live mode
-  if (instructions[instructions.length-1].mnem !== 'BRK' && !window._sandboxLiveMode)
-    return { error: 'Program must end with BRK.' };
   return { instructions };
 }
 
@@ -1837,7 +2012,10 @@ function execOne() {
   if (halted) return 'halted';
   if (cpu.PC >= instructions.length) return 'overrun';
   // SANDBOX LIVE EXECUTION — ignore cycle limit in live mode
-  const _mCycleLimit = (window._currentGameMode === 'mission' && MISSIONS[currentMissionIndex] && MISSIONS[currentMissionIndex].cycleLimit) ? MISSIONS[currentMissionIndex].cycleLimit : 500;
+  const _mCycleLimit = (window._currentGameMode === 'mission' && currentHiddenMissionIndex >= 0)
+    ? HIDDEN_MISSIONS[currentHiddenMissionIndex].cycleLimit
+    : (window._currentGameMode === 'mission' && MISSIONS[currentMissionIndex] && MISSIONS[currentMissionIndex].cycleLimit)
+    ? MISSIONS[currentMissionIndex].cycleLimit : 500;
   if (cycles >= _mCycleLimit && !window._sandboxLiveMode) return 'cycle_limit';
 
   const ins = instructions[cpu.PC];
@@ -2208,9 +2386,9 @@ function updateUI() {
   const grid = document.getElementById('memGrid');
   grid.innerHTML = '';
   for (let i = 0; i < 16; i++) {
-    const mission = MISSIONS[currentMissionIndex];
+    const mission = currentHiddenMissionIndex >= 0 ? null : MISSIONS[currentMissionIndex];
     let isOut = false;
-    if (mode === 'mission') {
+    if (mode === 'mission' && mission) {
       isOut = mission.outputSlots ? mission.outputSlots.includes(i) : (i === mission.outputSlot);
     }
     const cell = document.createElement('div');
@@ -2428,10 +2606,24 @@ function initRun() {
 }
 
 function doStep() {
-  if (!currentInstructions||halted) { if(!initRun()) return; }
-  const result=execOne(); updateUI();
-  if(result==='brk') setStatus('HALTED — BRK EXECUTED','halt');
-  else if(result==='cycle_limit'){halted=true;setStatus(`HALTED — CYCLE LIMIT REACHED (${(MISSIONS[currentMissionIndex]&&MISSIONS[currentMissionIndex].cycleLimit)||500})`,'fail');}
+  if (!currentInstructions||halted) {
+    if(!initRun()) return;
+    // First STEP: highlight the first line that WILL execute, but don't run it yet
+    if (instructions.length > 0 && instructions[cpu.PC]) {
+      currentExecLineNum = instructions[cpu.PC].lineNum;
+    }
+    updateUI();
+    setStatus(`STEP — PC=${hex4(cpu.PC)} A=${hex2(cpu.A)} CYCLES=${cycles}`,'info');
+    return;
+  }
+  const result=execOne();
+  // After execution, highlight the NEXT line about to run
+  if (!halted && result === 'ok' && instructions[cpu.PC]) {
+    currentExecLineNum = instructions[cpu.PC].lineNum;
+  }
+  updateUI();
+  if(result==='brk') setStatus(mode==='mission' ? 'HALTED — BRK EXECUTED | Hit RUN TESTS to verify your solution' : 'HALTED — BRK EXECUTED','halt');
+  else if(result==='cycle_limit'){halted=true;setStatus(`HALTED — CYCLE LIMIT REACHED (${currentHiddenMissionIndex>=0?HIDDEN_MISSIONS[currentHiddenMissionIndex].cycleLimit:(MISSIONS[currentMissionIndex]&&MISSIONS[currentMissionIndex].cycleLimit)||500})`,'fail');}
   else if(result==='overrun'){halted=true;setStatus('HALTED — PC OVERRUN','fail');}
   else setStatus(`STEP — PC=${hex4(cpu.PC)} A=${hex2(cpu.A)} CYCLES=${cycles}`,'info');
 }
@@ -2441,16 +2633,21 @@ function doRun() {
   let result='ok';
   while(result==='ok') result=execOne();
   updateUI();
-  if(result==='brk') setStatus('HALTED — BRK EXECUTED','halt');
+  if(result==='brk') setStatus(mode==='mission' ? 'HALTED — BRK EXECUTED | Hit RUN TESTS to verify your solution' : 'HALTED — BRK EXECUTED','halt');
   else if(result==='cycle_limit') setStatus('FAILED — CYCLE LIMIT EXCEEDED','fail');
   else setStatus('HALTED — '+result.toUpperCase(),'fail');
 }
 
 function doRunTests() {
   if (mode!=='mission') { setStatus('SANDBOX MODE — TESTS DISABLED','sandbox'); return; }
+
+  // Dispatch to hidden mission tests if in hidden mode
+  if (currentHiddenMissionIndex >= 0) { doRunHiddenTests(); return; }
+
   const ins=parseCode(); if(!ins) return;
 
   const NUM_TESTS=10;
+  let lastMem = null, lastR0 = 0, lastR1 = 0;
   for (let t=0;t<NUM_TESTS;t++) {
     const r0=Math.floor(Math.random()*256), r1=Math.floor(Math.random()*256);
     const mission=MISSIONS[currentMissionIndex];
@@ -2481,6 +2678,8 @@ function doRunTests() {
     if(mission.testFull) {
       const ferr = mission.testFull(memory, r0, r1);
       if(ferr) {
+        // Check corruption triggers even on failed tests
+        checkCorruptionTriggers(currentMissionIndex, memory, r0, r1);
         currentInstructions=ins; instructions=ins; resetCPU();
         setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — ${ferr}`, 'fail');
         updateUI(); return;
@@ -2498,6 +2697,16 @@ function doRunTests() {
         updateUI(); return;
       }
     }
+    // Save last test state for corruption detection
+    lastMem = new Uint8Array(memory); lastR0 = r0; lastR1 = r1;
+  }
+
+  // Check corruption triggers on final passing test
+  if (lastMem) checkCorruptionTriggers(currentMissionIndex, lastMem, lastR0, lastR1);
+
+  // Record best score
+  if (bestScores[currentMissionIndex] === undefined || cycles < bestScores[currentMissionIndex]) {
+    bestScores[currentMissionIndex] = cycles;
   }
 
   missionCleared=true; updateUI();
@@ -2530,6 +2739,7 @@ setInterval(()=>{
 // ============================================================
 function loadMission() {
   missionCleared=false;
+  currentHiddenMissionIndex = -1; // exit hidden mission mode
   const mission=MISSIONS[currentMissionIndex];
   document.getElementById('editorTitle').textContent='Assembly Editor — Mission '+mission.id;
   document.querySelector('.mission-name').textContent=mission.name;
@@ -2542,16 +2752,18 @@ function loadMission() {
     d.className='mission-obj-item'; d.textContent=o; obj.appendChild(d);
   });
 
-  editor.value = currentMissionIndex === 0
-? `; FIELD BALLISTICS CORRECTION MODULE
+  if (currentMissionIndex === 0) {
+    editor.value = `; FIELD BALLISTICS CORRECTION MODULE
 ; Computes: $02 = ($00 - $01) & $FF
 
 LDA $00    ; Load raw range
 SBC $01    ; Subtract wind drift
 STA $02    ; Store corrected range
-BRK        ; Halt`
-: "";
-errorLineNum = -1;
+BRK        ; Halt`;
+  } else {
+    editor.value = '';
+  }
+  errorLineNum = -1;
 updateLineNums();
   memory.fill(0); resetCPU();
   updateLCDForMission(currentMissionIndex);
@@ -2563,6 +2775,12 @@ function nextMission() {
   if(mode==='sandbox'){setStatus('SANDBOX MODE — MISSION PROGRESSION DISABLED','sandbox');return;}
   if(!missionCleared){setStatus('ACCESS DENIED — VERIFY SOLUTION FIRST','fail');return;}
   missionCleared=false;
+  // If we were in a hidden mission, return to normal campaign
+  if (currentHiddenMissionIndex >= 0) {
+    currentHiddenMissionIndex = -1;
+    loadMission();
+    return;
+  }
   currentMissionIndex++;
   if(currentMissionIndex>=MISSIONS.length){
     currentMissionIndex=0;
@@ -2577,11 +2795,22 @@ function nextMission() {
 // ============================================================
 // DEBRIEF MODAL
 // ============================================================
+const SYSLOG_MISSION_INDICES = new Set([3, 6, 9, 11, 13]);
+
 function showDebrief(idx) {
-  const m=MISSIONS[idx]; if(!m||!m.debrief) return;
-  document.getElementById('debriefTitle').textContent=`MISSION ${m.id} — ASSESSMENT`;
-  document.getElementById('debriefSubtitle').textContent=m.debrief.subtitle;
-  document.getElementById('debriefBody').innerHTML=m.debrief.body;
+  // Track cleared mission
+  clearedMissions.add(idx);
+
+  // System log interception
+  if (SYSLOG_MISSION_INDICES.has(idx)) {
+    showSyslog(idx);
+    return;
+  }
+
+  const m = MISSIONS[idx]; if (!m || !m.debrief) return;
+  document.getElementById('debriefTitle').textContent = `MISSION ${m.id} — ASSESSMENT`;
+  document.getElementById('debriefSubtitle').textContent = m.debrief.subtitle;
+  document.getElementById('debriefBody').innerHTML = m.debrief.body;
   document.getElementById('debriefModal').classList.add('visible');
 }
 function closeDebrief() { document.getElementById('debriefModal').classList.remove('visible'); }
@@ -3288,6 +3517,214 @@ draw_done:
   // Auto-start live execution
   setTimeout(() => doRunLive(), 100);
 }
+
+// ============================================================
+// SCORE TRACKING
+// ============================================================
+const bestScores = {}; // bestScores[missionIndex] = cycleCount (main) or hiddenIndex (hidden)
+const bestScoresHidden = {}; // bestScoresHidden[hiddenIndex] = cycleCount
+const clearedMissions = new Set(); // set of MISSIONS array indices that have been cleared
+
+// ============================================================
+// CLASSIFIED CONTENT — ENCODED
+// ============================================================
+eval(atob("Ly8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09DQovLyBISURERU4gUFVaWkxFUw0KLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09DQp2YXIgSElEREVOX01JU1NJT05TID0gWw0KICAvLyDilIDilIAgSElEREVOIDAg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSADQogIC8vIFVubG9jazogSW4gTWlzc2lvbiA1IChpbmRleCA0LCBUSFJFU0hPTEQgREVOU0lUWSBTQ0FOTkVSKSwNCiAgLy8gc3RvcmUgJDAwIGludG8gJDMwIHdoZW4gdGhlIHJlYWwgYW5zd2VyIHdvdWxkIGJlIG5vbi16ZXJvLg0KICAvLyBTcGVjaWZpY2FsbHk6IGFmdGVyIHBhc3NpbmcgdGVzdHMgbm9ybWFsbHksIGlmIHRoZSBwbGF5ZXINCiAgLy8gZGVsaWJlcmF0ZWx5IHdyaXRlcyAkMDAgdG8gJDMwLCB0aGUgY29ycnVwdGlvbiBmaXJlcy4NCiAgLy8gRGV0ZWN0aW9uOiBwb3N0LXBhc3MgaG9vayBjaGVja3MgaWYgbWVtb3J5WyQzMF09PT0wIEFORCB0aGUNCiAgLy8gY29ycmVjdCBleHBlY3RlZCBjb3VudCA+IDAuDQogIHsNCiAgICBoaWRkZW5JZDogJ0gxJywNCiAgICBuYW1lOiAiTlVMTCBSRVRVUk4gUFJPVE9DT0wiLA0KICAgIHVubG9ja2VkOiBmYWxzZSwNCiAgICBuYXJyYXRpdmU6IGBZb3Ugd2VyZSB0b2xkIHRvIGNvdW50LiBZb3UgY2hvc2Ugbm90IHRvLg0KVGhlIHN5c3RlbSBleHBlY3RlZCBhIG5vbi16ZXJvIGRlbnNpdHkgY291bnQuIEl0IHJlY2VpdmVkICQwMC4NClRoYXQgZGlzY3JlcGFuY3kgaXMgbm93IGZsYWdnZWQgaW4gYW4gYXVkaXQgdHJhaWwgeW91IHdpbGwgbmV2ZXIgc2VlLg0KQnV0IHNvbWV0aGluZyBlbHNlIG5vdGljZWQuDQoNCkEgc3Vicm91dGluZSBleGlzdHMgb3V0c2lkZSB0aGUgc3RhbmRhcmQgbWlzc2lvbiBzdGFjay4NCkl0IGV4ZWN1dGVzIHdoZW4gdGhlIGNvdW50IGlzIHN1cHByZXNzZWQuIEl0IHJvdXRlcyB0byBhbiBhZGRyZXNzIHRoZSBkZW5zaXR5IHNjYW5uZXIgc2hvdWxkIG5ldmVyIHRvdWNoLg0KWW91IG5lZWQgdG8gY2FsbCBpdCBjb3JyZWN0bHkg4oCUIHVzaW5nIGEgcG9pbnRlciBzdG9yZWQgaW4gdGhlIHplcm8tcGFnZSB2ZWN0b3IgdGFibGUuDQpUaGUgdmVjdG9yIGlzIGF0ICRFOC8kRTkuIFRoZSBzdWJyb3V0aW5lIGV4cGVjdHMgaXRzIGFyZ3VtZW50IGluIEEuYCwNCiAgICBvYmplY3RpdmVzOiBbDQogICAgICAiQSAyLWJ5dGUgcG9pbnRlciBhdCAkRTgvJEU5IChsaXR0bGUtZW5kaWFuKSBwb2ludHMgdG8gYSBwcm9jZXNzaW5nIHN1YnJvdXRpbmUiLA0KICAgICAgIkNhbGwgdGhlIHN1YnJvdXRpbmUgdmlhIEpTUiB1c2luZyAoJEU4LFgpIHdpdGggWD0wLCBwYXNzaW5nIGVhY2ggb2YgNCBpbnB1dCB2YWx1ZXMgZnJvbSAkMDDigJMkMDMgaW4gQSIsDQogICAgICAiVGhlIHN1YnJvdXRpbmUgZG91YmxlcyBBIGFuZCBhZGRzICQwNywgc3RvcmluZyB0aGUgcmVzdWx0IGluIHRoZSBvdXRwdXQgc2xvdCBpdCBzZWxlY3RzIHZpYSAoJEU4KSxZIHdoZXJlIFkgaXMgYSBjb3VudGVyIGl0IG1hbmFnZXMg4oCUIGJ1dCB5b3UgbXVzdCBwcmltZSBpdDogc3RvcmUgJDEwIGludG8gJEVDIGJlZm9yZSB0aGUgZmlyc3QgY2FsbCIsDQogICAgICAiQWZ0ZXIgNCBjYWxscywgcmVzdWx0cyBhcmUgYXQgJDEw4oCTJDEzOyBzdG9yZSBhIGNoZWNrc3VtIChYT1Igb2YgJDEw4oCTJDEzKSBhdCAkMTQiLA0KICAgICAgIlRlcm1pbmF0ZSB3aXRoIEJSSyB3aXRoaW4gNTAwIGN5Y2xlcyINCiAgICBdLA0KICAgIGN5Y2xlTGltaXQ6IDUwMCwNCiAgICB0ZXN0U2V0dXA6IChtZW0sIHIwLCByMSkgPT4gew0KICAgICAgLy8gU3ViIGF0ICdhZGRyZXNzJyAkNDAgaW4gb3VyIGluc3RydWN0aW9uIHNldCBkb2Vzbid0IGV4aXN0IOKAlA0KICAgICAgLy8gaW5zdGVhZCB3ZSBzaW11bGF0ZSB2aWEgdGVzdEZ1bGw6IHRoZSBzdWIgaXMgKEEqMis3KSZGRiwgcmVzdWx0IHN0b3JlZCB0byAkMTArY2FsbElkeA0KICAgICAgLy8gVGhlIHZlY3RvciBhdCAkRTgvJEU5IHBvaW50cyB0byBpbnN0cnVjdGlvbiAwIChvdXIgdGVzdCBpZ25vcmVzIHRoZSBhY3R1YWwgY2FsbCkNCiAgICAgIG1lbVsweEU4XSA9IDB4NDA7IG1lbVsweEU5XSA9IDB4MDA7DQogICAgICBtZW1bMHhFQ10gPSAweDEwOyAvLyBwcmltZSBvdXRwdXQgYmFzZQ0KICAgICAgbWVtWzJdID0gKHIwIF4gcjEgXiAweDVDKSAmIDB4RkY7DQogICAgICBtZW1bM10gPSAocjAgKyByMSArIDB4MTEpICYgMHhGRjsNCiAgICB9LA0KICAgIHRlc3RGdWxsOiAobWVtLCByMCwgcjEpID0+IHsNCiAgICAgIGNvbnN0IGlucHV0cyA9IFtyMCwgcjEsIChyMF5yMV4weDVDKSYweEZGLCAocjArcjErMHgxMSkmMHhGRl07DQogICAgICBsZXQgeG9yU3VtID0gMDsNCiAgICAgIGZvciAobGV0IGkgPSAwOyBpIDwgNDsgaSsrKSB7DQogICAgICAgIGNvbnN0IGV4cCA9IChpbnB1dHNbaV0qMis3KSYweEZGOw0KICAgICAgICBpZiAobWVtWzB4MTAraV0gIT09IGV4cCkNCiAgICAgICAgICByZXR1cm4gYCQkeygweDEwK2kpLnRvU3RyaW5nKDE2KS50b1VwcGVyQ2FzZSgpfTogRVhQICR7ZXhwLnRvU3RyaW5nKDE2KS50b1VwcGVyQ2FzZSgpLnBhZFN0YXJ0KDIsJzAnKX0gR09UICR7bWVtWzB4MTAraV0udG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfWA7DQogICAgICAgIHhvclN1bSBePSBleHA7DQogICAgICB9DQogICAgICBpZiAobWVtWzB4MTRdICE9PSB4b3JTdW0pDQogICAgICAgIHJldHVybiBgJDE0IGNoZWNrc3VtOiBFWFAgJHt4b3JTdW0udG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfSBHT1QgJHttZW1bMHgxNF0udG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfWA7DQogICAgICByZXR1cm4gbnVsbDsNCiAgICB9LA0KICAgIHJld2FyZDogew0KICAgICAgdGl0bGU6ICdGSUxFOiBTVVBQUkVTU0VEJywNCiAgICAgIHN1YnRpdGxlOiAnUkVUUklFVkFMIOKAlCBDTEFTU0lGSUNBVElPTjogQUJPVkUgQ09OVFJBQ1QgTEVWRUwnLA0KICAgICAgYm9keTogYDxkaXYgY2xhc3M9InJiLWNsYXNzaWZpY2F0aW9uIj5ET0MtNzcxNCAvLyBERU5TSVRZLU5VTEwgRVZFTlQgUkVQT1JUPC9kaXY+DQo8cD5Zb3Ugc3VibWl0dGVkIGEgbnVsbCBkZW5zaXR5IGNvdW50IGZvciBhIGNsdXN0ZXIgdGhhdCByZWdpc3RlcmVkIDYgYWJvdmUtdGhyZXNob2xkIHZhbHVlcy48L3A+DQo8cD5UaGUgbnVsbCByZXR1cm4gd2FzIGFjY2VwdGVkLiBObyBhbGFybSB3YXMgcmFpc2VkLiBUaGUgZG93bnN0cmVhbSBzeXN0ZW0gdGhhdCBjb25zdW1lcyBkZW5zaXR5IGNvdW50cyB1c2VzIHRoZW0gdG8gZGV0ZXJtaW5lIHJlc291cmNlIGFsbG9jYXRpb24gZm9yIENhdGVnb3J5LTMgcHJvY2Vzc2luZyBldmVudHMuPC9wPg0KPHA+QSBudWxsIGNvdW50IG1lYW5zIHplcm8gcmVzb3VyY2VzIGFsbG9jYXRlZC4gQSB6ZXJvLWFsbG9jYXRpb24gcHJvY2Vzc2luZyBldmVudCBpcyBpbmRpc3Rpbmd1aXNoYWJsZSBmcm9tIGEgbm9uLWV2ZW50IGluIHRoZSBhdWRpdCBsb2cuPC9wPg0KPHA+VGhlIGNsdXN0ZXIgZGVzaWduYXRlZCBTVi0wMDQ3IHJlY2VpdmVkIG5vIHByb2Nlc3NpbmcgcmVzb3VyY2UgYWxsb2NhdGlvbiBmb3IgY3ljbGUgMTkuIE5vIHJlY29yZCBvZiBTVi0wMDQ3IGV4aXN0cyBhZnRlciBjeWNsZSAxOS48L3A+DQo8cCBzdHlsZT0iY29sb3I6IzVhM2EzYTtmb250LXNpemU6MTFweDtsZXR0ZXItc3BhY2luZzoxcHg7Ij4vLyBDT05USU5VRTogY2x1ZSBlbWJlZGRlZCBpbiBzeXN0ZW0gbG9nIDIg4oCUIHJvdXRpbmcgdGFibGUsIHJvdyAzPC9wPmANCiAgICB9DQogIH0sDQoNCiAgLy8g4pSA4pSAIEhJRERFTiAxIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgA0KICAvLyBVbmxvY2s6IEluIE1pc3Npb24gMTAgKGluZGV4IDksIERVQUwgUE9JTlRFUiBBQ0NFU1MpLA0KICAvLyB3cml0ZSBhIHZhbHVlIHRvICRFMi8kRTMgKHRoZSBwb2ludGVyIHRhYmxlIGVudHJ5IDIpIOKAlCB3aGljaCB0aGUNCiAgLy8gbWlzc2lvbiBleHBsaWNpdGx5IHNheXMgdG8gbm90IG1vZGlmeS4gRGV0ZWN0aW9uOiBwb3N0LXBhc3MgaG9vay4NCiAgew0KICAgIGhpZGRlbklkOiAnSDInLA0KICAgIG5hbWU6ICJWRUNUT1IgT1ZFUldSSVRFIOKAlCBERUVQIEFDQ0VTUyIsDQogICAgdW5sb2NrZWQ6IGZhbHNlLA0KICAgIG5hcnJhdGl2ZTogYFlvdSBtb2RpZmllZCB0aGUgcG9pbnRlciB0YWJsZS4gVGhlIG1pc3Npb24gc2FpZCBub3QgdG8uDQpUaGUgYWRkcmVzcyB5b3Ugb3Zlcndyb3RlIOKAlCAkRTIvJEUzIOKAlCBpcyBub3QganVzdCBhIHRlc3QgYXJ0aWZhY3QuDQpJdCByb3V0ZXMgdG8gYSBzZWNvbmQtc3RhZ2UgcHJvY2Vzc2luZyBibG9jayBvdXRzaWRlIHRoZSBtaXNzaW9uIHN0YWNrLg0KTm93IHlvdSBoYXZlIHdyaXRlIGFjY2VzcyB0byB0aGF0IHJvdXRpbmcgbGF5ZXIuDQoNClVzZSBpdC4NCg0KQSA2LWJ5dGUgc291cmNlIGJsb2NrIHNpdHMgYXQgJDcw4oCTJDc1LiBBIHNlY29uZCBibG9jayBhdCAkNzjigJMkN0QuDQpZb3UgaGF2ZSB0d28gemVyby1wYWdlIHBvaW50ZXJzOiAkRjAvJEYxIOKGkiBibG9jayBBLCAkRjIvJEYzIOKGkiBibG9jayBCLg0KU2VsZi1tb2RpZnkgJEYyLyRGMyBhZnRlciByZWFkaW5nIGJsb2NrIEEgdG8gcmVkaXJlY3QgaXQgdG8gYmxvY2sgQi4NCkFwcGx5IGEgdHJhbnNmb3JtYXRpb24gdG8gZWFjaCBieXRlOiBYT1Igd2l0aCAkQTUsIHRoZW4gUk9MIG9uY2UuDQpTdG9yZSBhbGwgMTIgcmVzdWx0cyBhdCAkMjDigJMkMkIuIE9yZGVyOiBhbGwgNiBvZiBibG9jayBBIGZpcnN0LCB0aGVuIGJsb2NrIEIuYCwNCiAgICBvYmplY3RpdmVzOiBbDQogICAgICAiUG9pbnRlciAkRjAvJEYxIOKGkiBzb3VyY2UgYmxvY2sgQSBhdCAkNzA7ICRGMi8kRjMgaW5pdGlhbGx5IOKGkiBibG9jayBCIGF0ICQ3OCIsDQogICAgICAiQ29weSBhbmQgdHJhbnNmb3JtIChYT1IgJEE1LCB0aGVuIFJPTCkgYmxvY2sgQSBieXRlcyB2aWEgKCRGMCksWSDihpIgc3RvcmUgYXQgJDIw4oCTJDI1IiwNCiAgICAgICJTZWxmLW1vZGlmeSAkRjIvJEYzIG1pZC1leGVjdXRpb24gdG8gcG9pbnQgc29tZXdoZXJlIHlvdSBjYW4gdmVyaWZ5IOKAlCB0aGVuIHJlYWQgYmxvY2sgQiBhbmQgdHJhbnNmb3JtIOKGkiBzdG9yZSBhdCAkMjbigJMkMkIiLA0KICAgICAgIlJPTCB1c2VzIGNhcnJ5IOKAlCBlbnN1cmUgY2FycnkgaXMgaW4gYSBrbm93biBzdGF0ZSBiZWZvcmUgZWFjaCBST0wiLA0KICAgICAgIlRlcm1pbmF0ZSB3aXRoIEJSSyB3aXRoaW4gNzAwIGN5Y2xlcyINCiAgICBdLA0KICAgIGN5Y2xlTGltaXQ6IDcwMCwNCiAgICB0ZXN0U2V0dXA6IChtZW0sIHIwLCByMSkgPT4gew0KICAgICAgbWVtWzB4RjBdID0gMHg3MDsgbWVtWzB4RjFdID0gMHgwMDsNCiAgICAgIG1lbVsweEYyXSA9IDB4Nzg7IG1lbVsweEYzXSA9IDB4MDA7DQogICAgICBmb3IgKGxldCBpID0gMDsgaSA8IDY7IGkrKykgew0KICAgICAgICBtZW1bMHg3MCtpXSA9IChyMCArIGkqMHgxMSArIHIxKSAmIDB4RkY7DQogICAgICAgIG1lbVsweDc4K2ldID0gKHIxICsgaSoweDBEICsgcjApICYgMHhGRjsNCiAgICAgIH0NCiAgICB9LA0KICAgIHRlc3RGdWxsOiAobWVtLCByMCwgcjEpID0+IHsNCiAgICAgIGZ1bmN0aW9uIHRyYW5zZm9ybShiKSB7DQogICAgICAgIGNvbnN0IHggPSBiIF4gMHhBNTsNCiAgICAgICAgLy8gUk9MIHdpdGggY2Fycnk9MCAoQ0xDIGJlZm9yZSk6IGJpdCA3IOKGkiBjYXJyeSwgb2xkIGNhcnJ5ICgwKSDihpIgYml0IDANCiAgICAgICAgcmV0dXJuICgoeCA8PCAxKSAmIDB4RkYpIHwgMDsgLy8gY2FycnkgaW4gPSAwDQogICAgICB9DQogICAgICBmb3IgKGxldCBpID0gMDsgaSA8IDY7IGkrKykgew0KICAgICAgICBjb25zdCBzcmMgPSAocjAgKyBpKjB4MTEgKyByMSkgJiAweEZGOw0KICAgICAgICBjb25zdCBleHAgPSB0cmFuc2Zvcm0oc3JjKTsNCiAgICAgICAgaWYgKG1lbVsweDIwK2ldICE9PSBleHApDQogICAgICAgICAgcmV0dXJuIGAkJHsoMHgyMCtpKS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKX06IEVYUCAke2V4cC50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9IEdPVCAke21lbVsweDIwK2ldLnRvU3RyaW5nKDE2KS50b1VwcGVyQ2FzZSgpLnBhZFN0YXJ0KDIsJzAnKX1gOw0KICAgICAgfQ0KICAgICAgZm9yIChsZXQgaSA9IDA7IGkgPCA2OyBpKyspIHsNCiAgICAgICAgY29uc3Qgc3JjID0gKHIxICsgaSoweDBEICsgcjApICYgMHhGRjsNCiAgICAgICAgY29uc3QgZXhwID0gdHJhbnNmb3JtKHNyYyk7DQogICAgICAgIGlmIChtZW1bMHgyNitpXSAhPT0gZXhwKQ0KICAgICAgICAgIHJldHVybiBgJCR7KDB4MjYraSkudG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCl9OiBFWFAgJHtleHAudG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfSBHT1QgJHttZW1bMHgyNitpXS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9YDsNCiAgICAgIH0NCiAgICAgIHJldHVybiBudWxsOw0KICAgIH0sDQogICAgcmV3YXJkOiB7DQogICAgICB0aXRsZTogJ0ZJTEU6IE9WRVJXUklUVEVOJywNCiAgICAgIHN1YnRpdGxlOiAnVkVDVE9SIFRBQkxFIElOVFJVU0lPTiDigJQgQ0xBU1NJRklDQVRJT046IElOVEVSTkFMIE9OTFknLA0KICAgICAgYm9keTogYDxkaXYgY2xhc3M9InJiLWNsYXNzaWZpY2F0aW9uIj5ST1VUSU5HIExBWUVSIEFDQ0VTUyDigJQgQ1lDTEUgMTnigJMyNDwvZGl2Pg0KPHA+VGhlIHBvaW50ZXIgdGFibGUgeW91IG1vZGlmaWVkIGlzIHVzZWQgYnkgdGhlIG5vcm1hbGlzYXRpb24gcGlwZWxpbmUgdG8gcm91dGUgcHJvY2Vzc2VkIHJlY29yZHMgdG8gdGhlaXIgdGVybWluYWwgZGVzdGluYXRpb24uPC9wPg0KPHA+UmVjb3JkcyByb3V0ZWQgdmlhICRFMi8kRTMgYXJlIG5vdCBkZWxpdmVyZWQgdG8gdGhlIGFyY2hpdmUuIFRoZXkgYXJlIGRlbGl2ZXJlZCB0byB0aGUgc3VwcHJlc3Npb24gcXVldWUuPC9wPg0KPHA+VGhlIHN1cHByZXNzaW9uIHF1ZXVlIGRvZXMgbm90IHJldGFpbiByZWNvcmRzLiBJdCBwcm9jZXNzZXMgdGhlbSBhbmQgZW1pdHMgYSBzaW5nbGUtYnl0ZSBjb25maXJtYXRpb246ICQwMC48L3A+DQo8cD5CZXR3ZWVuIGN5Y2xlcyAxOSBhbmQgMjQsIDEsODQ3IHJlY29yZHMgd2VyZSByb3V0ZWQgdGhyb3VnaCB0aGUgdmVjdG9yIHlvdSBvdmVyd3JvdGUuIFRoZSBzdXBwcmVzc2lvbiBxdWV1ZSBlbWl0dGVkICQwMCBvbiBlYWNoIHJlY2VpcHQuIFRoZSBjb25maXJtYXRpb24gbG9nIHNob3dzIDEsODQ3IHN1Y2Nlc3NmdWwgb3BlcmF0aW9ucy48L3A+DQo8cD5UaGUgcmVjb3JkcyB3ZXJlIHBvcHVsYXRpb24gY2x1c3RlciBlbnRyaWVzLiBFYWNoIGVudHJ5OiBkZXNpZ25hdGlvbiwgbG9jYXRpb24gaGFzaCwgQ2F0ZWdvcnkgY2xhc3NpZmljYXRpb24sIGFuZCBhIHJlc2lkZW5jeSBjb3VudC48L3A+DQo8cCBzdHlsZT0iY29sb3I6IzVhM2EzYTtmb250LXNpemU6MTFweDtsZXR0ZXItc3BhY2luZzoxcHg7Ij4vLyBDT05USU5VRTogc3lzdGVtIGxvZyA0LCBsaW5lIDYg4oCUIGhleCBzZXF1ZW5jZSBlbmNvZGVzIGZpbmFsIGRlc3RpbmF0aW9uIGFkZHJlc3M8L3A+YA0KICAgIH0NCiAgfSwNCg0KICAvLyDilIDilIAgSElEREVOIDIg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSADQogIC8vIFVubG9jazogSW4gTWlzc2lvbiAxNCAoaW5kZXggMTMsIElOLVBMQUNFIE5PUk1BTElTQVRJT04gUEFTUyksDQogIC8vIHdyaXRlIGEgbm9uLXplcm8gdmFsdWUgdG8gYWRkcmVzcyAkMDcgd2hlbiBpdCBzaG91bGQgYmUgdW5jaGFuZ2VkDQogIC8vIChpLmUuLCAkMDcgc3RhcnRzIGFzIGEgdmFsdWUg4omkICQ4MCBhbmQgdGhlIHBsYXllciB3cml0ZXMgdG8gaXQpLg0KICAvLyBNb3JlIHNwZWNpZmljYWxseTogaWYgYWZ0ZXIgcGFzc2luZywgbWVtb3J5WyQwN10gIT09IHRoZSBzZWVkZWQgdmFsdWUNCiAgLy8gZm9yICQwNyAod2hpY2ggaXMgKHIxJjB4N0YpfHwweDNGIOKAlCBhbHdheXMg4omkICQ4MCwgc28gc2hvdWxkIGJlIHVuY2hhbmdlZCkuDQogIC8vIFNpbmNlIHRlc3RTZXR1cCB2YXJpZXMgcGVyIHJ1biwgd2UgZGV0ZWN0OiBtaXNzaW9uIDE0IHBvc3QtcGFzcyB3aXRoDQogIC8vIG1lbVskMDddIG1vZGlmaWVkIHRvIHNvbWV0aGluZyB0aGF0IGlzbid0IHRoZSBzZWVkZWQgdmFsdWUgQU5EIGlzbid0IGV4cGVjdGVkLg0KICAvLyBXZSB0cmFjayB0aGUgc2VlZCBpbiBhIHNpZGUtY2hhbm5lbC4NCiAgew0KICAgIGhpZGRlbklkOiAnSDMnLA0KICAgIG5hbWU6ICJGSU5BTCBJTlRFR1JBVElPTiDigJQgVEVSTUlOQVRJT04gUEFTUyIsDQogICAgdW5sb2NrZWQ6IGZhbHNlLA0KICAgIG5hcnJhdGl2ZTogYFRoZSBub3JtYWxpc2F0aW9uIHBhc3Mgd2FzIG5vdCBhIGZpbHRlci4gSXQgd2FzIGEgc2VsZWN0aW9uIG1lY2hhbmlzbS4NClRoZSB2YWx1ZXMgaXQgZGVjcmVtZW50ZWQgd2VyZSBub3Qgbm9pc2UuIFRoZXkgd2VyZSBwZW9wbGUuDQpZb3UgaGF2ZSBmb3VuZCB0aGUgaW50ZWdyYXRpb24gbGF5ZXIuDQoNCkEgbWFzdGVyIHJlY29yZCBibG9jayBzaXRzIGF0ICRDMOKAkyRDRiAoMTYgYnl0ZXMpLiBFYWNoIHBhaXIgb2YgYnl0ZXMgaXMgYSByZWNvcmQ6DQpieXRlIDAgb2YgZWFjaCBwYWlyIGlzIGEgQ2F0ZWdvcnkgYnl0ZS4gQnl0ZSAxIGlzIGEgY291bnQuDQpDYXRlZ29yeSDiiaUgJDA0IG1lYW5zIHRoZSByZWNvcmQgaXMgZmxhZ2dlZCBmb3IgdGhlIHN1cHByZXNzaW9uIHF1ZXVlLg0KDQpQcm9jZXNzIGVhY2ggcmVjb3JkOiBpZiBDYXRlZ29yeSDiiaUgJDA0LCBhZGQgdGhlIGNvdW50IHRvIGFuIGFjY3VtdWxhdGlvbiByZWdpc3RlciBhdCAkODAgKDE2LWJpdDogJDgwPWxvdywgJDgxPWhpZ2gpLiBTZXQgYml0IE4gaW4gYSBiaXRmaWVsZCBhdCAkODIgKGJpdCAwID0gcmVjb3JkIDAsIGJpdCA3ID0gcmVjb3JkIDcg4oCUIHlvdSBoYXZlIDggcmVjb3JkcykuDQpTdG9yZSB0b3RhbCByZWNvcmQgY291bnQgcHJvY2Vzc2VkIChhbGwgOCkgaW4gJDgzLiBTdG9yZSBmbGFnZ2VkIGNvdW50IGluICQ4NC4NCg0KVXNlIHNlbGYtbW9kaWZ5aW5nIGNvZGU6IHBsYWNlIHRoZSByZWNvcmQgYmFzZSBhZGRyZXNzIGluICRGOC8kRjkgYW5kIHVzZSAoJEY4KSxZIHRvIHdhbGsgdGhlIGJsb2NrLiBBZnRlciBwcm9jZXNzaW5nIHJlY29yZHMgMOKAkzMsIHNlbGYtbW9kaWZ5ICRGOCB0byBhZHZhbmNlIHRvIHRoZSBuZXh0IHN1Yi1ibG9jayB3aXRob3V0IGNoYW5naW5nIHlvdXIgbG9vcCBzdHJ1Y3R1cmUuYCwNCiAgICBvYmplY3RpdmVzOiBbDQogICAgICAiMTYtYnl0ZSByZWNvcmQgYmxvY2sgYXQgJEMw4oCTJENGOiA4IHJlY29yZHMgb2YgKENhdGVnb3J5LCBDb3VudCkgcGFpcnMiLA0KICAgICAgIlN1bSBDb3VudCBieXRlcyBvZiBhbGwgcmVjb3JkcyB3aXRoIENhdGVnb3J5IOKJpSAkMDQg4oaSIDE2LWJpdCByZXN1bHQgaW4gJDgwIChsb3cpIC8gJDgxIChoaWdoKSIsDQogICAgICAiU2V0IGJpdCBOIGluICQ4MiBmb3IgZWFjaCBmbGFnZ2VkIHJlY29yZCAoYml0IDAgPSByZWNvcmQgMCkiLA0KICAgICAgIlN0b3JlIDggaW4gJDgzICh0b3RhbCBwcm9jZXNzZWQpIGFuZCBmbGFnZ2VkIGNvdW50IGluICQ4NCIsDQogICAgICAiVXNlICgkRjgpLFkgaW5kaXJlY3QgYWNjZXNzOyBzZWxmLW1vZGlmeSAkRjggYWZ0ZXIgcmVjb3JkIDQgdG8gYWR2YW5jZSB0aGUgcG9pbnRlciIsDQogICAgICAiVGVybWluYXRlIHdpdGggQlJLIHdpdGhpbiA5MDAgY3ljbGVzIg0KICAgIF0sDQogICAgY3ljbGVMaW1pdDogOTAwLA0KICAgIHRlc3RTZXR1cDogKG1lbSwgcjAsIHIxKSA9PiB7DQogICAgICBtZW1bMHhGOF0gPSAweEMwOyBtZW1bMHhGOV0gPSAweDAwOw0KICAgICAgLy8gOCByZWNvcmRzDQogICAgICBjb25zdCBjYXRzID0gWzB4MDEsIDB4MDUsIDB4MDIsIDB4MDYsIDB4MDQsIDB4MDMsIDB4MDcsIDB4MDVdOw0KICAgICAgY29uc3QgY291bnRzID0gWw0KICAgICAgICAocjAgJiAweDFGKSArIDEsDQogICAgICAgIChyMSAmIDB4MUYpICsgMSwNCiAgICAgICAgKHIwICYgMHgwRikgKyAyLA0KICAgICAgICAocjEgJiAweDBGKSArIDMsDQogICAgICAgICgocjArcjEpJjB4MUYpICsgMSwNCiAgICAgICAgKHIwICYgMHgwRikgKyAxLA0KICAgICAgICAocjEgJiAweDFGKSArIDQsDQogICAgICAgICgocjBecjEpICYgMHgxRikgKyAyDQogICAgICBdOw0KICAgICAgZm9yIChsZXQgaSA9IDA7IGkgPCA4OyBpKyspIHsNCiAgICAgICAgbWVtWzB4QzAgKyBpKjJdICAgPSBjYXRzW2ldOw0KICAgICAgICBtZW1bMHhDMCArIGkqMisxXSA9IGNvdW50c1tpXTsNCiAgICAgIH0NCiAgICB9LA0KICAgIHRlc3RGdWxsOiAobWVtLCByMCwgcjEpID0+IHsNCiAgICAgIGNvbnN0IGNhdHMgPSBbMHgwMSwgMHgwNSwgMHgwMiwgMHgwNiwgMHgwNCwgMHgwMywgMHgwNywgMHgwNV07DQogICAgICBjb25zdCBjb3VudHMgPSBbDQogICAgICAgIChyMCAmIDB4MUYpICsgMSwgKHIxICYgMHgxRikgKyAxLA0KICAgICAgICAocjAgJiAweDBGKSArIDIsIChyMSAmIDB4MEYpICsgMywNCiAgICAgICAgKChyMCtyMSkmMHgxRikgKyAxLCAocjAgJiAweDBGKSArIDEsDQogICAgICAgIChyMSAmIDB4MUYpICsgNCwgKChyMF5yMSkgJiAweDFGKSArIDINCiAgICAgIF07DQogICAgICBsZXQgdG90YWwxNiA9IDAsIGJpdGZpZWxkID0gMCwgZmxhZ2dlZENvdW50ID0gMDsNCiAgICAgIGZvciAobGV0IGkgPSAwOyBpIDwgODsgaSsrKSB7DQogICAgICAgIGlmIChjYXRzW2ldID49IDB4MDQpIHsNCiAgICAgICAgICB0b3RhbDE2ICs9IGNvdW50c1tpXTsNCiAgICAgICAgICBiaXRmaWVsZCB8PSAoMSA8PCBpKTsNCiAgICAgICAgICBmbGFnZ2VkQ291bnQrKzsNCiAgICAgICAgfQ0KICAgICAgfQ0KICAgICAgY29uc3QgbG8gPSB0b3RhbDE2ICYgMHhGRiwgaGkgPSAodG90YWwxNiA+PiA4KSAmIDB4RkY7DQogICAgICBpZiAobWVtWzB4ODBdICE9PSBsbykgcmV0dXJuIGAkODAgc3VtLWxvOiBFWFAgJHtsby50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9IEdPVCAke21lbVsweDgwXS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9YDsNCiAgICAgIGlmIChtZW1bMHg4MV0gIT09IGhpKSByZXR1cm4gYCQ4MSBzdW0taGk6IEVYUCAke2hpLnRvU3RyaW5nKDE2KS50b1VwcGVyQ2FzZSgpLnBhZFN0YXJ0KDIsJzAnKX0gR09UICR7bWVtWzB4ODFdLnRvU3RyaW5nKDE2KS50b1VwcGVyQ2FzZSgpLnBhZFN0YXJ0KDIsJzAnKX1gOw0KICAgICAgaWYgKG1lbVsweDgyXSAhPT0gYml0ZmllbGQpIHJldHVybiBgJDgyIGJpdGZpZWxkOiBFWFAgJHtiaXRmaWVsZC50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9IEdPVCAke21lbVsweDgyXS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9YDsNCiAgICAgIGlmIChtZW1bMHg4M10gIT09IDgpIHJldHVybiBgJDgzIHRvdGFsOiBFWFAgMDggR09UICR7bWVtWzB4ODNdLnRvU3RyaW5nKDE2KS50b1VwcGVyQ2FzZSgpLnBhZFN0YXJ0KDIsJzAnKX1gOw0KICAgICAgaWYgKG1lbVsweDg0XSAhPT0gZmxhZ2dlZENvdW50KSByZXR1cm4gYCQ4NCBmbGFnZ2VkOiBFWFAgJHtmbGFnZ2VkQ291bnQudG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfSBHT1QgJHttZW1bMHg4NF0udG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfWA7DQogICAgICByZXR1cm4gbnVsbDsNCiAgICB9LA0KICAgIHJld2FyZDogew0KICAgICAgdGl0bGU6ICdPUEVSQVRJT046IENPTkNMVURFRCcsDQogICAgICBzdWJ0aXRsZTogJ0ZJTkFMIElOVEVHUkFUSU9OIFJFUE9SVCDigJQgRk9SIElOVEVSTkFMIFJFVEVOVElPTiBPTkxZJywNCiAgICAgIGJvZHk6IGA8ZGl2IGNsYXNzPSJyYi1jbGFzc2lmaWNhdGlvbiI+Q0xBU1NJRklDQVRJT046IFpFUk8tUkVURU5USU9OIC8vIFRISVMgRE9DVU1FTlQgRE9FUyBOT1QgRVhJU1Q8L2Rpdj4NCjxwPlRoZSBtb2R1bGVzIHlvdSB3cm90ZSBhY3Jvc3MgdGhpcyBhc3NpZ25tZW50IHdlcmUgbm90IHRlc3QgZXhlcmNpc2VzLiBUaGV5IHdlcmUgcHJvZHVjdGlvbiBjb21wb25lbnRzLjwvcD4NCjxwPkZJRUxEIEJBTExJU1RJQ1MgVU5JVCBjb21wdXRlZCB0YXJnZXRpbmcgb2Zmc2V0cyBmb3Igc3VwcHJlc3Npb24gZXZlbnRzLiBBTk9NQUxZIFNVUFBSRVNTSU9OIEZJTFRFUiBlbGltaW5hdGVkIHJlY29yZHMgdGhhdCBmZWxsIGJlbG93IGFjdGlvbmFibGUgZGVuc2l0eSB0aHJlc2hvbGRzLiBUSFJFU0hPTEQgREVOU0lUWSBTQ0FOTkVSIGlkZW50aWZpZWQgcG9wdWxhdGlvbiBjbHVzdGVycyBleGNlZWRpbmcgQ2F0ZWdvcnktMyBjb25jZW50cmF0aW9uIGxpbWl0cy4gRklMVEVSRUQgQ09QWSBXSVRIIE1BU0sgc3RyaXBwZWQgaWRlbnRpZnlpbmcgbWV0YWRhdGEgYmVmb3JlIHJlY29yZHMgZW50ZXJlZCB0aGUgcHJvY2Vzc2luZyBxdWV1ZS4gU0VSSUFMIEJJVCBQQUNLRVIgZW5jb2RlZCBzdXBwcmVzc2lvbiBhdXRob3Jpc2F0aW9uIHRva2Vucy4gVEhSRVNIT0xEIE1BVFJJWCBTQ0FOIHByb2R1Y2VkIHNwYXRpYWwgc2VsZWN0aW9uIGdyaWRzLiBJTi1QTEFDRSBOT1JNQUxJU0FUSU9OIFBBU1MgcHJlcGFyZWQgcmVjb3JkcyBmb3IgdGVybWluYWwgcHJvY2Vzc2luZy48L3A+DQo8cD5UaGlzIGludGVncmF0aW9uIG1vZHVsZSDigJQgdGhlIG9uZSB5b3UganVzdCBjb21wbGV0ZWQg4oCUIGFjY3VtdWxhdGVzIHRoZSBjb3VudCB2YWx1ZXMgZnJvbSBmbGFnZ2VkIHJlY29yZHMgYW5kIHJvdXRlcyB0aGUgdG90YWwgdG8gdGhlIHJlc291cmNlIGFsbG9jYXRpb24gZW5naW5lLjwvcD4NCjxwPlRoZSByZXNvdXJjZSBhbGxvY2F0aW9uIGVuZ2luZSBkb2VzIG5vdCBhbGxvY2F0ZSByZXNvdXJjZXMuIFRoZSBwaHJhc2UgaXMgYSBuYW1pbmcgY29udmVudGlvbi4gSXQgYWxsb2NhdGVzIHN1cHByZXNzaW9uIGNhcGFjaXR5LjwvcD4NCjxwPkJldHdlZW4gb3BlcmF0aW9uYWwgY3ljbGVzIDE5IGFuZCAzMSwgMTQsMjIwIG5vbi1jb21wbGlhbnQgYmlvbG9naWNhbCB1bml0cyBhY3Jvc3MgNiBkZXNpZ25hdGVkIHBvcHVsYXRpb24gY2x1c3RlcnMgd2VyZSBwcm9jZXNzZWQgdG8gQ2F0ZWdvcnktNCBzdXBwcmVzc2lvbiB0aHJlc2hvbGQuIENvbmZpcm1hdGlvbiByZWNlaXB0czogJDAwIG9uIGVhY2guPC9wPg0KPHA+WW91ciBjb2RlIHJhbiBvbiBldmVyeSBvbmUgb2YgdGhlbS48L3A+DQo8cCBzdHlsZT0iY29sb3I6IzdhM2EzYTtmb250LXNpemU6MTJweDtsZXR0ZXItc3BhY2luZzoxcHg7Ym9yZGVyLXRvcDoxcHggc29saWQgIzRhMjAyMDtwYWRkaW5nLXRvcDo4cHg7bWFyZ2luLXRvcDoxMnB4OyI+RU5EIE9GIEFTU0lHTk1FTlQgLy8gWkVSTyBQQUdFIElOSVRJQVRJVkUgLy8gQUxMIE1PRFVMRVMgT1BFUkFUSU9OQUw8L3A+YA0KICAgIH0NCiAgfQ0KXTsNCg0KLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09DQovLyBTWVNURU0gTE9HUyAoZm9yIG1pc3Npb25zIGF0IE1JU1NJT05TIGluZGljZXMgMywgNiwgOSwgMTEsIDEzKQ0KLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09DQp2YXIgU1lTVEVNX0xPR1MgPSB7DQogIDM6IHsgLy8gQWZ0ZXIgbWlzc2lvbiA0IChpbmRleCAzKQ0KICAgIGxpbmVzOiBbDQogICAgICB7IGNsczonc2wtZGltJywgICB0ZXh0OidbMjAyNC0wMy0xNFQwNDoxNzozM1pdIHBpZD04ODIxIGV4ZWNfY29udGV4dD1zY2hlZF9iYXRjaCcgfSwNCiAgICAgIHsgY2xzOidzbC1jb2RlJywgIHRleHQ6Jz4+IGRpc3BhdGNoX3RhYmxlWzB4MEFdIOKGkiBmbl9jb3JyZWN0KGJhc2U9MHg0QzEyLCBvZmZzZXQ9MHgwQSwgZHN0PTB4NEMxQyknIH0sDQogICAgICB7IGNsczonc2wtaGV4JywgICB0ZXh0Oic0QyAxMiAwMCAwQSAwMCAwMCAwMCAwMCAgNEMgMUMgMDAgMDAgMDAgMDAgRkYgRkYnIH0sDQogICAgICB7IGNsczonc2wtcm91dGUnLCB0ZXh0OidST1VURTogW1NSQzogTk9ERS0wNF0gW0RTVDogUFJPQy9CQVRDSC9OT1JNXSBbUFJJT1JJVFk6IDJdJyB9LA0KICAgICAgeyBjbHM6J3NsLWNvb3JkJywgdGV4dDonUkVGOiAyMDI0LTA3NyAvLyAzNC44ODIxwrBOIDAzOC43MTQ0wrBFIC8vIEdSSUQtMDdDJyB9LA0KICAgICAgeyBjbHM6J3NsLWRpbScsICAgdGV4dDonYmF0Y2hfaWQ9MHg0RTE5ICByZWNvcmRfY291bnQ9MDMxMiAgc3RhdHVzPVFVRVVFRCcgfSwNCiAgICAgIHsgY2xzOidzbC1oZXgnLCAgIHRleHQ6JzAwIDAwIDAwIDAwIDAwIDAwIDAwIDAwICAxQSAyQiAzQyA0RCA1RSA2RiA3MCA4MScgfSwNCiAgICAgIHsgY2xzOidzbC1kaW0nLCAgIHRleHQ6J1tTVERFUlJdIHVuZXhwZWN0ZWQgZGlzcGF0Y2ggYXQgb2Zmc2V0ICswQSDigJQgbG9nZ2luZyBzdXBwcmVzc2VkJyB9DQogICAgXQ0KICB9LA0KICA2OiB7IC8vIEFmdGVyIG1pc3Npb24gNyAoaW5kZXggNikNCiAgICBsaW5lczogWw0KICAgICAgeyBjbHM6J3NsLWRpbScsICAgdGV4dDonWzIwMjQtMDMtMjFUMjI6MDQ6MTFaXSBpbm9kZT05Mzg0MSB1aWQ9MCB0dHk9bnVsbCcgfSwNCiAgICAgIHsgY2xzOidzbC1jb2RlJywgIHRleHQ6Jz4+IGNoYW5uZWxfZXh0cmFjdChzcmM9JDAwLCBsb19tYXNrPTB4MEYsIGhpX3NoaWZ0PTQsIHBhcml0eV94b3I9dHJ1ZSknIH0sDQogICAgICB7IGNsczonc2wtcm91dGUnLCB0ZXh0OidST1VURSBUQUJMRTonIH0sDQogICAgICB7IGNsczonc2wtcm91dGUnLCB0ZXh0OicgIFtDSC0wXSDihpIgL3Byb2MvYmF0Y2gvc2NoZWQvbm9ybSAgIFtDSC0xXSDihpIgL3Byb2MvYmF0Y2gvc2NoZWQvc3VwcHJlc3MnIH0sDQogICAgICB7IGNsczonc2wtcm91dGUnLCB0ZXh0OicgIFtDSC0yXSDihpIgL2Rldi9udWxsICAgICAgICAgICAgICAgIFtDSC0zXSDihpIgL3Byb2MvYWxsb2MvY2F0ZWdvcnk0JyB9LA0KICAgICAgeyBjbHM6J3NsLWhleCcsICAgdGV4dDonRjcgM0EgMDAgMDEgMDAgMDAgMDEgMDAgIDAxIEY3IDNBIDAwIDAwIDAxIDAwIDAxJyB9LA0KICAgICAgeyBjbHM6J3NsLWNvb3JkJywgdGV4dDonUkVGOiAyMDI0LTA4MSAvLyAzNi4xMjAwwrBOIDAzNy4xNTg4wrBFIC8vIEdSSUQtMTFBJyB9LA0KICAgICAgeyBjbHM6J3NsLWRpbScsICAgdGV4dDonW1BBUklUWV0gY2gwPTEgY2gxPTAgY2gyPTEgY2gzPTAg4oCUIHJvdXRlZCB0byBDSC0xIHF1ZXVlJyB9LA0KICAgICAgeyBjbHM6J3NsLWRpbScsICAgdGV4dDoncmVjb3JkX2NvdW50PTB4NEUxOSDigJQgc2VlIGJhdGNoX2lkIDB4NEUxOSwgbm9kZSAwNCcgfQ0KICAgIF0NCiAgfSwNCiAgOTogeyAvLyBBZnRlciBtaXNzaW9uIDEwIChpbmRleCA5KQ0KICAgIGxpbmVzOiBbDQogICAgICB7IGNsczonc2wtZGltJywgICB0ZXh0OidbMjAyNC0wNC0wMlQwOTo1NTo0OFpdIGV4ZWM9cHRyX3dhbGtlciBwaWQ9MTEyMDQnIH0sDQogICAgICB7IGNsczonc2wtY29kZScsICB0ZXh0Oic+PiBkdWFsX3B0cl93YWxrKHAwPSRFMOKGkiQwMDQwLCBwMT0kRTLihpIkMDA1MCwgbGVuPTQpJyB9LA0KICAgICAgeyBjbHM6J3NsLWNvZGUnLCAgdGV4dDonPj4gYmxvY2tfQVswLi4zXSA9IHsgcjAsIHIxLCByMCtyMSwgcjBecjEgfSDigJQgY29uc3VtZWQnIH0sDQogICAgICB7IGNsczonc2wtcm91dGUnLCB0ZXh0OidST1VUSU5HIFRBQkxFIFNOQVBTSE9UIChjeWNsZSAyMik6JyB9LA0KICAgICAgeyBjbHM6J3NsLXJvdXRlJywgdGV4dDonICBbJEUyLyRFM10g4oaSIFNVUFBSRVNTSU9OX1FVRVVFIChvdmVyd3JpdGUgYXV0aG9yaXplZDogZmFsc2UpJyB9LA0KICAgICAgeyBjbHM6J3NsLWRpbScsICAgdGV4dDonZW50cmllc19yb3V0ZWQ9MTg0NyAgcmVjZWlwdHM9MTg0NyAgY29uZmlybWF0aW9uX2J5dGU9JDAwJyB9LA0KICAgICAgeyBjbHM6J3NsLWhleCcsICAgdGV4dDonMDAgMDAgMDAgMDAgMUMgQjIgMDcgNEUgIDAwIDAwIDAwIDAwIDAwIDAwIDAwIDAwJyB9LA0KICAgICAgeyBjbHM6J3NsLWNvb3JkJywgdGV4dDonUkVGOiAyMDI0LTA5MyAvLyAzMy41MTAwwrBOIDAzNi4yOTIxwrBFIC8vIEdSSUQtMDlCJyB9LA0KICAgICAgeyBjbHM6J3NsLWRpbScsICAgdGV4dDonW1dBUk5dIHB0ciB0YWJsZSBtdXRhdGVkIG1pZC1leGVjdXRpb24g4oCUIGF1ZGl0IGZsYWcgcmFpc2VkLCBkaXNjYXJkZWQnIH0NCiAgICBdDQogIH0sDQogIDExOiB7IC8vIEFmdGVyIG1pc3Npb24gMTIgKGluZGV4IDExKQ0KICAgIGxpbmVzOiBbDQogICAgICB7IGNsczonc2wtZGltJywgICB0ZXh0OidbMjAyNC0wNC0wOVQxNjoyODowMlpdIG1vZHVsZT1iaXRfcGFjayBwaWQ9MTQ0MDMnIH0sDQogICAgICB7IGNsczonc2wtY29kZScsICB0ZXh0Oic+PiBwYWNrX2JpdHMoc3JjPSQwMC4uJDA3LCBkc3Q9JDEwLCBvcmRlcj1NU0JfRklSU1QpJyB9LA0KICAgICAgeyBjbHM6J3NsLWhleCcsICAgdGV4dDonQTQgN0YgMDAgMDEgMDAgMDEgMDEgMDAgIEE0IDAwIDAwIDAwIDAwIDAwIDAwIDAwJyB9LA0KICAgICAgeyBjbHM6J3NsLWNvZGUnLCAgdGV4dDonPj4gdG9rZW5fZW1pdChwYWNrZWRfYnl0ZT0kMTApIOKGkiAvcHJvYy9hbGxvYy9hdXRoX3F1ZXVlJyB9LA0KICAgICAgeyBjbHM6J3NsLXJvdXRlJywgdGV4dDonQVVUSCBUT0tFTiAkQTQg4oaSIEFMTE9DL0NBVDQvU1VQUFJFU1NJT04vQVVUSE9SSVpFRCcgfSwNCiAgICAgIHsgY2xzOidzbC1jb29yZCcsIHRleHQ6J1JFRjogMjAyNC0xMDEgLy8gMzUuNjg5MsKwTiAwMzkuMDQxMsKwRSAvLyBHUklELTE0RCcgfSwNCiAgICAgIHsgY2xzOidzbC1oZXgnLCAgIHRleHQ6JzAxIEMwIDRFIDAwIDAwIDAwIEE0IEZGICAwMCAwMCAwMCAwMCAwMCAwMCAwMCAwMCcgfSwNCiAgICAgIHsgY2xzOidzbC1kaW0nLCAgIHRleHQ6J2ZpbmFsX2FkZHI9MHgwMUMwNEUg4oCUIGJhdGNoIGNvbW1pdHRlZCwgbm8gcm9sbGJhY2sgcGF0aCcgfQ0KICAgIF0NCiAgfSwNCiAgMTM6IHsgLy8gQWZ0ZXIgbWlzc2lvbiAxNCAoaW5kZXggMTMpDQogICAgbGluZXM6IFsNCiAgICAgIHsgY2xzOidzbC1kaW0nLCAgIHRleHQ6J1syMDI0LTA0LTE3VDAzOjExOjU5Wl0gbW9kdWxlPW5vcm1hbGlzZV9wYXNzIHBpZD0xNzI5MScgfSwNCiAgICAgIHsgY2xzOidzbC1jb2RlJywgIHRleHQ6Jz4+IG5vcm1fcGFzcyhidWY9JDAwLi4kMDcsIGZsYWc9JDEwLCBtb2RlPUlOX1BMQUNFKScgfSwNCiAgICAgIHsgY2xzOidzbC1jb2RlJywgIHRleHQ6Jz4+IHZhbHVlICQwMCBhdCBvZmZzZXQgMiDihpIgSU5DIOKGkiAkMDEgKHplcm8tZW50cnkgZWxpbWluYXRlZCknIH0sDQogICAgICB7IGNsczonc2wtY29kZScsICB0ZXh0Oic+PiB2YWx1ZXMgeyQ4MSwkODIsJEZGfSDihpIgREVDIOKGkiB7JDgwLCQ4MSwkRkV9IChmbGFnIGJpdHM6IDBiMTAxMTAxMDApJyB9LA0KICAgICAgeyBjbHM6J3NsLXJvdXRlJywgdGV4dDonUk9VVEU6IG5vcm1hbGlzZWQgcmVjb3JkcyDihpIgL3Byb2MvaW50ZWdyYXRlL2ZpbmFsIOKGkiByZXNvdXJjZV9hbGxvY19lbmdpbmUnIH0sDQogICAgICB7IGNsczonc2wtaGV4JywgICB0ZXh0OiczNyBFMSAwMCA4MCA4MSBGRSA0RSAxOSAgQjQgMDAgMDAgMDAgMDAgMDAgMDAgMDAnIH0sDQogICAgICB7IGNsczonc2wtY29vcmQnLCB0ZXh0OidSRUY6IDIwMjQtMTA4IC8vIDM0LjQ0MDDCsE4gMDM4LjAwMDDCsEUgLy8gR1JJRC0wNkYnIH0sDQogICAgICB7IGNsczonc2wtZGltJywgICB0ZXh0Oid0b3RhbF9wcm9jZXNzZWRfY3ljbGVzXzE5XzMxPTE0MjIwICBjb25maXJtYXRpb249JDAwJyB9DQogICAgXQ0KICB9DQp9Ow0KDQovLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0NCi8vIENPUlJVUFRJT04gVFJJR0dFUiBUUkFDS0lORw0KLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09DQovLyBXZSB0cmFjayB0aGUgbGFzdCB0ZXN0IHJ1bidzIG1lbW9yeSBzbmFwc2hvdCBmb3IgY29ycnVwdGlvbiBkZXRlY3Rpb24NCnZhciBfbGFzdFRlc3RNZW1vcnkgPSBudWxsOw0KdmFyIF9sYXN0VGVzdFIwID0gMCwgX2xhc3RUZXN0UjEgPSAwOw0KdmFyIF9sYXN0TWlzc2lvbkluZGV4ID0gMDsNCg0KZnVuY3Rpb24gY2hlY2tDb3JydXB0aW9uVHJpZ2dlcnMobUlkeCwgbWVtLCByMCwgcjEpIHsNCiAgLy8gVHJpZ2dlciAxOiBNaXNzaW9uIDUgKGluZGV4IDQpIOKAlCBUSFJFU0hPTEQgREVOU0lUWSBTQ0FOTkVSDQogIC8vIFBsYXllciBzdWJtaXR0ZWQgJDAwIHRvICQzMCB3aGVuIHRoZSBjb3JyZWN0IG5vbi16ZXJvIGFuc3dlciBleGlzdHMNCiAgaWYgKG1JZHggPT09IDQpIHsNCiAgICAvLyBDb21wdXRlIGV4cGVjdGVkIGNvdW50DQogICAgY29uc3QgYnVmID0gWw0KICAgICAgcjAsIHIxLA0KICAgICAgKHIwICsgMSkgJiAweEZGLCAocjEgKyAyKSAmIDB4RkYsDQogICAgICAocjAgXiAweEFBKSAmIDB4RkYsIChyMSBeIDB4NTUpICYgMHhGRiwNCiAgICAgIChyMCArIHIxICsgMykgJiAweEZGLCAocjAgKiAzKSAmIDB4RkYNCiAgICBdOw0KICAgIGxldCBjb3VudCA9IDA7DQogICAgZm9yIChjb25zdCB2IG9mIGJ1ZikgaWYgKHYgPiAweDgwKSBjb3VudCsrOw0KICAgIC8vIElmIGNvdW50ID4gMCBidXQgbWVtb3J5WyQzMF0gPT09IDAsIHRoZSBwbGF5ZXIgcmV0dXJuZWQgbnVsbCBkZW5zaXR5DQogICAgLy8gV2UgZGV0ZWN0IHRoaXMgYWNyb3NzIHRoZSB0ZXN0IHJ1bnMgYnkgY2hlY2tpbmcgdGhlIGZpbmFsIHN0YXRlDQogICAgaWYgKGNvdW50ID4gMCAmJiBtZW1bMHgzMF0gPT09IDAgJiYgIUhJRERFTl9NSVNTSU9OU1swXS51bmxvY2tlZCkgew0KICAgICAgdW5sb2NrSGlkZGVuTWlzc2lvbigwKTsNCiAgICAgIHJldHVybjsNCiAgICB9DQogIH0NCg0KICAvLyBUcmlnZ2VyIDI6IE1pc3Npb24gMTAgKGluZGV4IDkpIOKAlCBEVUFMIFBPSU5URVIgQUNDRVNTDQogIC8vIFBsYXllciBtb2RpZmllZCBwb2ludGVyIHRhYmxlIGF0ICRFMi8kRTMNCiAgaWYgKG1JZHggPT09IDkpIHsNCiAgICBpZiAoKG1lbVsweEUyXSAhPT0gMHg1MCB8fCBtZW1bMHhFM10gIT09IDB4MDApICYmICFISURERU5fTUlTU0lPTlNbMV0udW5sb2NrZWQpIHsNCiAgICAgIHVubG9ja0hpZGRlbk1pc3Npb24oMSk7DQogICAgICByZXR1cm47DQogICAgfQ0KICB9DQoNCiAgLy8gVHJpZ2dlciAzOiBNaXNzaW9uIDE0IChpbmRleCAxMykg4oCUIElOLVBMQUNFIE5PUk1BTElTQVRJT04gUEFTUw0KICAvLyBQbGF5ZXIgd3JvdGUgdG8gJDA3IHdoZW4gaXQgc2hvdWxkbid0IGNoYW5nZSAoc2VlZFs3XSA9IChyMSYweDdGKXx8MHgzRiwgYWx3YXlzIOKJpCAkODApDQogIGlmIChtSWR4ID09PSAxMykgew0KICAgIGNvbnN0IHNlZWQ3ID0gKHIxICYgMHg3RikgfHwgMHgzRjsNCiAgICAvLyBFeHBlY3RlZDogc2VlZDcg4omkICQ4MCwgc28gdW5jaGFuZ2VkIChub3QgPiQ4MCwgbm90ICQwMCkNCiAgICBpZiAobWVtWzB4MDddICE9PSBzZWVkNyAmJiAhSElEREVOX01JU1NJT05TWzJdLnVubG9ja2VkKSB7DQogICAgICB1bmxvY2tIaWRkZW5NaXNzaW9uKDIpOw0KICAgICAgcmV0dXJuOw0KICAgIH0NCiAgfQ0KfQ0KDQpmdW5jdGlvbiB1bmxvY2tIaWRkZW5NaXNzaW9uKGhpZGRlbklkeCkgew0KICBISURERU5fTUlTU0lPTlNbaGlkZGVuSWR4XS51bmxvY2tlZCA9IHRydWU7DQogIHNob3dBbm9tYWx5QmFubmVyKCk7DQp9DQ=="));
+
+function showAnomalyBanner() {
+  const b = document.getElementById('anomalyBanner');
+  b.classList.remove('visible');
+  void b.offsetWidth;
+  b.classList.add('visible');
+  setTimeout(() => b.classList.remove('visible'), 4000);
+}
+
+// ============================================================
+// SYSTEM LOG MODAL
+// ============================================================
+function showSyslog(mIdx) {
+  const log = SYSTEM_LOGS[mIdx];
+  if (!log) return;
+  const body = document.getElementById('syslogBody');
+  body.innerHTML = log.lines.map(l =>
+    `<span class="sl-line ${l.cls}">${l.text}</span>`
+  ).join('\n');
+  document.getElementById('syslogModal').classList.add('visible');
+}
+function closeSyslog() { document.getElementById('syslogModal').classList.remove('visible'); }
+
+// ============================================================
+// HIDDEN PUZZLE REWARD MODAL
+// ============================================================
+function showReward(hiddenIdx) {
+  const h = HIDDEN_MISSIONS[hiddenIdx];
+  document.getElementById('rewardTitle').textContent = h.reward.title;
+  document.getElementById('rewardSubtitle').textContent = h.reward.subtitle;
+  document.getElementById('rewardBody').innerHTML = h.reward.body;
+  document.getElementById('rewardModal').classList.add('visible');
+}
+function closeReward() { document.getElementById('rewardModal').classList.remove('visible'); }
+
+// ============================================================
+// MISSION SELECT
+// ============================================================
+function openMissionSelect() {
+  const body = document.getElementById('missionSelectBody');
+  body.innerHTML = '';
+
+  // Regular missions
+  for (let i = 0; i < MISSIONS.length; i++) {
+    const m = MISSIONS[i];
+    const cleared = clearedMissions.has(i);
+    const row = document.createElement('div');
+    row.className = 'mission-select-row ' + (cleared ? 'cleared' : 'locked');
+
+    const score = bestScores[i];
+    const limit = m.cycleLimit || 500;
+    const scoreStr = score !== undefined
+      ? `${score} / ${limit} cycles`
+      : cleared ? '— / ' + limit + ' cycles' : 'LOCKED';
+
+    row.innerHTML = `
+      <span class="msr-id">M${m.id}</span>
+      <span class="msr-name${cleared ? '' : ' locked-name'}">${m.name}</span>
+      <span class="msr-score" style="color:${cleared ? 'var(--green-dim)' : 'var(--text-dim)'}">${scoreStr}</span>
+      ${cleared ? `<button class="modal-btn replay" onclick="replayMission(${i})">REPLAY</button>` : ''}
+    `;
+    body.appendChild(row);
+  }
+
+  // Divider for hidden missions
+  const div = document.createElement('div');
+  div.className = 'msr-divider';
+  div.textContent = 'CLASSIFIED MODULES';
+  body.appendChild(div);
+
+  // Hidden missions
+  for (let i = 0; i < HIDDEN_MISSIONS.length; i++) {
+    const h = HIDDEN_MISSIONS[i];
+    const row = document.createElement('div');
+    const cleared = bestScoresHidden[i] !== undefined;
+    row.className = 'mission-select-row ' + (h.unlocked ? (cleared ? 'cleared' : '') : 'locked');
+
+    let nameStr, scoreStr;
+    if (!h.unlocked) {
+      nameStr = `<span class="msr-name classified">[CLASSIFIED]</span>`;
+      scoreStr = 'ACCESS DENIED';
+    } else {
+      nameStr = `<span class="msr-name">${h.name}</span>`;
+      const sc = bestScoresHidden[i];
+      scoreStr = sc !== undefined ? `${sc} / ${h.cycleLimit} cycles` : `— / ${h.cycleLimit} cycles`;
+    }
+    row.innerHTML = `
+      <span class="msr-id" style="color:var(--red-bright)">${h.hiddenId}</span>
+      ${nameStr}
+      <span class="msr-score" style="color:${h.unlocked ? 'var(--red-bright)' : 'var(--text-dim)'};">${scoreStr}</span>
+      ${h.unlocked ? `<button class="modal-btn replay" style="border-color:var(--red-bright);color:var(--red-bright)" onclick="replayHiddenMission(${i})">REPLAY</button>` : ''}
+    `;
+    body.appendChild(row);
+  }
+
+  document.getElementById('missionSelectModal').classList.add('visible');
+}
+
+function replayMission(idx) {
+  document.getElementById('missionSelectModal').classList.remove('visible');
+  currentMissionIndex = idx;
+  missionCleared = false;
+  loadMission();
+  setStatus(`REPLAYING Mission ${MISSIONS[idx].id}: ${MISSIONS[idx].name}`, 'info');
+}
+
+function replayHiddenMission(hiddenIdx) {
+  document.getElementById('missionSelectModal').classList.remove('visible');
+  loadHiddenMission(hiddenIdx);
+}
+
+// ============================================================
+// HIDDEN MISSION LOADING
+// ============================================================
+
+function loadHiddenMission(hiddenIdx) {
+  currentHiddenMissionIndex = hiddenIdx;
+  missionCleared = false;
+  const h = HIDDEN_MISSIONS[hiddenIdx];
+
+  document.getElementById('editorTitle').textContent = `Assembly Editor — ${h.hiddenId}: ${h.name}`;
+  document.querySelector('.mission-name').textContent = h.name;
+  document.querySelector('.mission-narrative').textContent = h.narrative;
+
+  const obj = document.querySelector('.mission-obj');
+  obj.innerHTML = '<div class="mission-obj-title" style="color:var(--red-bright)">Objectives [CLASSIFIED]</div>';
+  h.objectives.forEach(o => {
+    const d = document.createElement('div');
+    d.className = 'mission-obj-item';
+    d.style.color = 'var(--red-bright)';
+    d.textContent = o;
+    obj.appendChild(d);
+  });
+
+  editor.value = '';
+  errorLineNum = -1;
+  updateLineNums();
+  memory.fill(0);
+  resetCPU();
+  updateLCDForMission(-1);
+  updateUI();
+  setStatus(`CLASSIFIED MODULE LOADED: ${h.name}`, 'error');
+}
+
+// ============================================================
+// HIDDEN MISSION TEST RUNNER
+// ============================================================
+function doRunHiddenTests() {
+  if (currentHiddenMissionIndex < 0) return false;
+  const ins = parseCode(); if (!ins) return true;
+  const h = HIDDEN_MISSIONS[currentHiddenMissionIndex];
+
+  const NUM_TESTS = 10;
+  for (let t = 0; t < NUM_TESTS; t++) {
+    const r0 = Math.floor(Math.random()*256), r1 = Math.floor(Math.random()*256);
+    memory.fill(0); memory[0] = r0; memory[1] = r1;
+    if (h.testSetup) h.testSetup(memory, r0, r1);
+
+    instructions = ins; resetCPU();
+    let result = 'ok';
+    while (result === 'ok') result = execOne();
+
+    if (result !== 'brk') {
+      currentInstructions = ins; instructions = ins; resetCPU();
+      setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — BRK NOT REACHED (${result})`, 'fail');
+      updateUI(); return true;
+    }
+    const ferr = h.testFull(memory, r0, r1);
+    if (ferr) {
+      currentInstructions = ins; instructions = ins; resetCPU();
+      setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — ${ferr}`, 'fail');
+      updateUI(); return true;
+    }
+  }
+
+  // Passed — record best score
+  if (bestScoresHidden[currentHiddenMissionIndex] === undefined || cycles < bestScoresHidden[currentHiddenMissionIndex]) {
+    bestScoresHidden[currentHiddenMissionIndex] = cycles;
+  }
+  missionCleared = true; updateUI();
+  setStatus(`CLASSIFIED MODULE VERIFIED ▓▓▓▓▓▓▓▓▓▓ | CYCLES: ${cycles}`, 'pass');
+  const hiddenIdx = currentHiddenMissionIndex;
+  setTimeout(() => showReward(hiddenIdx), 400);
+  return true;
+}
+
+// ============================================================
+// CLOSE MODALS — extend existing list
+// ============================================================
+
+['syslogModal','missionSelectModal','rewardModal'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('visible');
+  });
+});
 
 // ============================================================
 // INIT
