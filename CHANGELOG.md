@@ -1,5 +1,19 @@
 # ZERO PAGE — Changelog
 
+## 2026-03-03 (c)
+
+### Bug Fixes
+
+- **Immediate value notation in mission objectives**: Fixed objectives across multiple puzzles where hex values were written as `$XX` (which looks like a memory address) instead of `#$XX` (proper 6502 immediate notation). This could mislead players into using zero-page addressing instead of immediate mode. Affected puzzles: 2, 4, 6, 7, 8, plus equivalent fixes in hidden content.
+
+### UI Improvements
+
+- **Resizable left panel split**: The Mission Brief and Technical Reference panels in the left column now have a draggable resize handle between them. Players can adjust how much space each panel gets. Both panels scroll independently — no scroll traps.
+
+- **Tech reference formatting**: Split cramped STX/STY and TAX/TAY/TXA/TYA entries onto separate lines to match the clean one-instruction-per-line format used everywhere else.
+
+---
+
 ## 2026-03-03 (b)
 
 ### UI Improvements
