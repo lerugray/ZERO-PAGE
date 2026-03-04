@@ -1,5 +1,13 @@
 # ZERO PAGE — Changelog
 
+## 2026-03-03 (e)
+
+### Sandbox Mode — Sticky Framebuffer
+
+- **Framebuffer pinned at top**: The framebuffer canvas now stays fixed at the top of the sandbox panel while the full memory grid scrolls independently beneath it. Players can watch live framebuffer output while inspecting any memory address.
+
+---
+
 ## 2026-03-03 (d)
 
 ### Sandbox Mode — UI Overhaul

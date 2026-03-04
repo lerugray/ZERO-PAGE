@@ -392,6 +392,9 @@
     display: none; padding: 8px 10px;
     border-top: 1px solid var(--border);
     width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
   body.sandbox-mode .sandbox-mem-panel { display: block; }
 
@@ -430,7 +433,7 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: flex-start;
-    overflow-y: auto;
+    overflow: hidden;
   }
   body.sandbox-mode .framebuffer-section { display: flex; }
 
