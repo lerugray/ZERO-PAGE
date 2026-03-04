@@ -1,5 +1,13 @@
 # ZERO PAGE — Changelog
 
+## 2026-03-04
+
+### Bug Fixes
+
+- **Right column overflow in mission mode**: The right column (Machine State, Memory, LCD Display) was clipping content on smaller screens with no way to scroll. Added `overflow-y: auto` so a scrollbar appears when needed.
+
+---
+
 ## 2026-03-03 (e)
 
 ### Sandbox Mode — Sticky Framebuffer
