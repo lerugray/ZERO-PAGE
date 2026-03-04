@@ -1,0 +1,16 @@
+ZERO PAGE — TODO
+=================
+
+BEFORE RELEASE
+--------------
+1. Test all 18 puzzles — verify displays, objectives, debriefs, and test logic
+2. Audit UI across puzzles — check all three columns render correctly at various window sizes
+3. Sound design — ambient drone, key clicks, tones for RUN/PASS/FAIL/BRK (Web Audio API)
+4. Electron integration — package as standalone desktop app for Steam/itch.io release
+5. Persistent save system — replace localStorage with file-based saves (via Electron) so progress survives across sessions
+6. Boot/title screen — startup sequence that serves as the game's title screen
+
+NICE TO HAVE
+-------------
+7. Leaderboards — cycle/instruction counts, per-puzzle rankings
+8. Puzzle creator — let players design and share custom puzzles
