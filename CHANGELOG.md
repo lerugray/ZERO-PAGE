@@ -1,5 +1,15 @@
 # ZERO PAGE — Changelog
 
+## 2026-03-03 (b)
+
+### UI Improvements
+
+- **Tech reference formatting cleanup**: Reformatted shift/rotate instructions (ASL, LSR, ROL, ROR) to prevent awkward line wrapping. Split PHA/PLA onto separate lines.
+
+- **FLAGS notes text**: Increased size from 10px to 12px and brightened color from amber-dim to amber for better readability.
+
+---
+
 ## 2026-03-03
 
 ### Bug Fixes

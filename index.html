@@ -934,19 +934,20 @@
           <div class="tech-ref-item"><code>BIT $nn</code> — Test bits. Sets N=bit7, V=bit6, Z=(A AND mem)=0. Does not change A</div>
           <br>
           <!-- SHIFT / ROTATE -->
-          <div class="tech-ref-item"><code>ASL</code> — Shift A left 1 bit (×2). Old bit 7 → C. &nbsp;<code>ASL $nn</code> — shift memory</div>
-          <div class="tech-ref-item"><code>LSR</code> — Shift A right 1 bit (÷2). Old bit 0 → C. &nbsp;<code>LSR $nn</code> — shift memory</div>
-          <div class="tech-ref-item"><code>ROL</code> — Rotate A left through carry. bit 7→C, old C→bit 0. &nbsp;<code>ROL $nn</code> — rotate memory</div>
-          <div class="tech-ref-item"><code>ROR</code> — Rotate A right through carry. bit 0→C, old C→bit 7. &nbsp;<code>ROR $nn</code> — rotate memory</div>
+          <div class="tech-ref-item"><code>ASL</code> / <code>ASL $nn</code> — Shift left 1 bit (×2). Old bit 7 → C</div>
+          <div class="tech-ref-item"><code>LSR</code> / <code>LSR $nn</code> — Shift right 1 bit (÷2). Old bit 0 → C</div>
+          <div class="tech-ref-item"><code>ROL</code> / <code>ROL $nn</code> — Rotate left through carry. bit 7→C, old C→bit 0</div>
+          <div class="tech-ref-item"><code>ROR</code> / <code>ROR $nn</code> — Rotate right through carry. bit 0→C, old C→bit 7</div>
           <br>
           <!-- SUBROUTINES / STACK / FLOW -->
           <div class="tech-ref-item"><code>JSR label</code> — Jump to subroutine at label. Pushes return address on stack</div>
           <div class="tech-ref-item"><code>RTS</code> — Return from subroutine. Pops return address from stack</div>
           <div class="tech-ref-item"><code>JMP label</code> — Unconditional jump. Does not push stack</div>
-          <div class="tech-ref-item"><code>PHA</code> — Push A onto stack. &nbsp;<code>PLA</code> — Pull A from stack (LIFO)</div>
+          <div class="tech-ref-item"><code>PHA</code> — Push A onto stack</div>
+          <div class="tech-ref-item"><code>PLA</code> — Pull A from stack (LIFO)</div>
           <div class="tech-ref-item"><code>NOP</code> — No operation. 1 cycle, no effect</div>
           <br>
-          <div class="tech-ref-item" style="color:var(--amber-dim);font-size:10px;">
+          <div class="tech-ref-item" style="color:var(--amber);font-size:12px;line-height:1.5;">
             FLAGS: N=negative (bit7) &nbsp;Z=zero &nbsp;C=carry/borrow &nbsp;V=overflow<br>
             SBC requires SEC first. ADC chains need CLC first to prevent carry leaking between additions.<br>
             Stack lives at $0100–$01FF. SP starts at $FF. Labels are case-sensitive.<br>
