@@ -1,5 +1,23 @@
 # ZERO PAGE — Changelog
 
+## 2026-03-05 (b)
+
+### New Features
+
+- **Light mode (LCD display)**: Added a light theme for accessibility, particularly for users with astigmatism. Warm parchment/beige palette evokes government forms under fluorescent lighting. Toggle via the LCD/CRT button in the header. Preference persists to localStorage. Dark mode remains the default for new visitors.
+
+- **Theme-aware syntax highlighting**: All syntax highlighting colors (mnemonics, immediates, zero-page addresses, comments, labels, errors) now use CSS custom properties so they adapt to light/dark mode automatically.
+
+### UI Improvements
+
+- **Anomaly banner visibility**: The anomaly detection notification is now larger (15px), centered on screen, lasts ~7 seconds (up from 3.5s), and features a pulsing red border glow. Much harder to miss.
+
+- **Header button contrast**: Header buttons (CLEAR SAVE, MISSION SELECT, MANUAL, LCD/CRT) now use amber text and borders for better readability in both themes.
+
+- **Manual: display mode section**: Added a "Display Mode" section to the manual explaining the LCD/CRT toggle.
+
+---
+
 ## 2026-03-05
 
 ### Bug Fixes

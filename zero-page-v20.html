@@ -29,6 +29,92 @@
     --sandbox-color: #4a6a9a;
     --sandbox-bright: #6a8aba;
     --sandbox-dim: #0e1824;
+    --hl-mnem: #a8f5a8;
+    --hl-mnem-shadow: rgba(106,176,106,0.6);
+    --hl-imm: #ffd166;
+    --hl-imm-shadow: rgba(208,160,48,0.6);
+    --hl-zp: #7ec8ff;
+    --hl-zp-shadow: rgba(122,176,208,0.6);
+    --hl-comment: #4d7a4d;
+    --hl-label: #ffb347;
+    --hl-label-shadow: rgba(200,150,42,0.6);
+    --hl-err-bg: rgba(192,80,80,0.35);
+    --hl-err-border: #ff6666;
+    --hl-exec-bg: rgba(106,176,106,0.25);
+    --hl-exec-border: #6ab06a;
+    --scanline: rgba(0,0,0,0.08);
+    --classified-text: #3a3a2a;
+    --lcd-bg: #0a120a;
+  }
+
+  /* ===== LIGHT THEME — Government form under fluorescent lighting ===== */
+  body.light-theme {
+    --bg: #ede8dd;
+    --bg2: #e4ddd0;
+    --bg3: #d9d0c2;
+    --border: #b8ad98;
+    --border-bright: #9a8e78;
+    --green: #2a6a2a;
+    --green-bright: #1a5a1a;
+    --green-dim: #6a8a62;
+    --amber: #6a4a00;
+    --amber-bright: #5a3a00;
+    --amber-dim: #9a8a58;
+    --red: #8a3030;
+    --red-bright: #a03030;
+    --text: #2a4a2a;
+    --text-bright: #1a3a1a;
+    --text-dim: #4a5a42;
+    --pass: #2a6a2a;
+    --fail: #8a3a3a;
+    --sandbox-color: #3a5a7a;
+    --sandbox-bright: #2a4a6a;
+    --sandbox-dim: #c8d4e0;
+    --hl-mnem: #1a6a1a;
+    --hl-mnem-shadow: rgba(40,100,40,0.2);
+    --hl-imm: #7a5a00;
+    --hl-imm-shadow: rgba(120,90,0,0.2);
+    --hl-zp: #2a5a8a;
+    --hl-zp-shadow: rgba(42,90,138,0.2);
+    --hl-comment: #4a5a42;
+    --hl-label: #8a5a10;
+    --hl-label-shadow: rgba(138,90,16,0.2);
+    --hl-err-bg: rgba(180,60,60,0.12);
+    --hl-err-border: #b04040;
+    --hl-exec-bg: rgba(40,100,40,0.12);
+    --hl-exec-border: #3a7a3a;
+    --scanline: rgba(0,0,0,0.03);
+    --classified-text: #c8c0b0;
+    --lcd-bg: #d0c8b8;
+  }
+  body.light-theme::after {
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      var(--scanline) 2px, var(--scanline) 4px
+    );
+  }
+  body.light-theme .title {
+    text-shadow: none;
+  }
+  /* Light theme: keep corruption/reward/syslog modals dark */
+  body.light-theme .modal-box.reward,
+  body.light-theme .modal-box.syslog {
+    --bg2: #0c110c;
+    --bg3: #111811;
+    --border: #1e2e1e;
+    --border-bright: #2a4a2a;
+    --text-dim: #2a5a2a;
+    --text: #5a9a5a;
+    --green-bright: #6ab06a;
+    --amber: #b08020;
+    --amber-dim: #604810;
+    --red-bright: #c05050;
+  }
+  /* Anomaly banner always dark-themed */
+  body.light-theme #anomalyBanner {
+    background: #1a0808;
+    color: #c05050;
+    border-color: #c05050;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -51,7 +137,7 @@
     top: 0; left: 0; right: 0; bottom: 0;
     background: repeating-linear-gradient(
       0deg, transparent, transparent 2px,
-      rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
+      var(--scanline) 2px, var(--scanline) 4px
     );
     pointer-events: none;
     z-index: 9999;
@@ -93,8 +179,8 @@
 
   .btn-header {
     background: var(--bg3);
-    border: 1px solid var(--border-bright);
-    color: var(--text-dim);
+    border: 1px solid var(--amber-dim);
+    color: var(--amber);
     font-family: 'Share Tech Mono', 'Courier New', monospace;
     font-size: 11px;
     padding: 3px 10px;
@@ -104,7 +190,7 @@
     transition: all 0.1s;
   }
 
-  .btn-header:hover { border-color: var(--amber); color: var(--amber); }
+  .btn-header:hover { border-color: var(--amber-bright); color: var(--amber-bright); }
 
   .blink { animation: blink 1.2s step-end infinite; }
   @keyframes blink { 50% { opacity: 0; } }
@@ -289,40 +375,40 @@
 
   /* Syntax token colours — boosted contrast */
 .hl-mnem {
-  color: #a8f5a8;
+  color: var(--hl-mnem);
   font-weight: 600;
-  text-shadow: 0 0 10px rgba(106,176,106,0.6);
+  text-shadow: 0 0 10px var(--hl-mnem-shadow);
 }
 
 .hl-imm {
-  color: #ffd166;
-  text-shadow: 0 0 6px rgba(208,160,48,0.6);
+  color: var(--hl-imm);
+  text-shadow: 0 0 6px var(--hl-imm-shadow);
 }
 
 .hl-zp {
-  color: #7ec8ff;
-  text-shadow: 0 0 6px rgba(122,176,208,0.6);
+  color: var(--hl-zp);
+  text-shadow: 0 0 6px var(--hl-zp-shadow);
 }
 
 .hl-comment {
-  color: #4d7a4d;
+  color: var(--hl-comment);
   opacity: 0.75;
 }
 
 .hl-label {
-  color: #ffb347;
-  text-shadow: 0 0 6px rgba(200,150,42,0.6);
+  color: var(--hl-label);
+  text-shadow: 0 0 6px var(--hl-label-shadow);
 }
 
 .hl-err {
-  background: rgba(192,80,80,0.35);
-  border-left: 3px solid #ff6666;
+  background: var(--hl-err-bg);
+  border-left: 3px solid var(--hl-err-border);
   padding-left: 3px;
 }
 
 .hl-exec {
-  background: rgba(106,176,106,0.25);
-  border-left: 3px solid #6ab06a;
+  background: var(--hl-exec-bg);
+  border-left: 3px solid var(--hl-exec-border);
   padding-left: 3px;
 }
 
@@ -365,7 +451,7 @@
 
   /* LCD */
   .lcd-panel {
-    background: #0a120a; border: 1px solid var(--border-bright);
+    background: var(--lcd-bg); border: 1px solid var(--border-bright);
     padding: 8px; font-family: 'VT323', monospace; position: relative;
   }
   .lcd-row {
@@ -644,25 +730,29 @@
 
   /* ===== ANOMALY FLASH ===== */
   @keyframes anomalyFlash {
-    0%   { opacity: 0; transform: translateY(-8px) scaleX(0.95); }
-    10%  { opacity: 1; transform: translateY(0) scaleX(1); }
-    70%  { opacity: 1; }
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+    8%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    75%  { opacity: 1; }
     100% { opacity: 0; }
+  }
+  @keyframes anomalyPulse {
+    0%   { border-color: var(--red-bright); box-shadow: 0 0 12px rgba(192,80,80,0.3); }
+    50%  { border-color: #ff6060; box-shadow: 0 0 24px rgba(192,80,80,0.6); }
+    100% { border-color: var(--red-bright); box-shadow: 0 0 12px rgba(192,80,80,0.3); }
   }
   #anomalyBanner {
     display: none;
     position: fixed;
-    top: 40px;
+    top: 32%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     background: #1a0808;
-    border: 1px solid var(--red-bright);
-    border-top: 2px solid var(--red-bright);
+    border: 2px solid var(--red-bright);
     color: var(--red-bright);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 2px;
-    padding: 8px 24px;
+    font-size: 15px;
+    letter-spacing: 3px;
+    padding: 14px 36px;
     text-align: center;
     z-index: 20000;
     pointer-events: none;
@@ -670,7 +760,7 @@
   }
   #anomalyBanner.visible {
     display: block;
-    animation: anomalyFlash 3.5s ease-out forwards;
+    animation: anomalyFlash 6.5s ease-out forwards, anomalyPulse 0.8s ease-in-out 0.5s 6;
   }
 
   /* ===== MISSION SELECT MODAL ===== */
@@ -686,7 +776,7 @@
   .msr-name { flex: 1; color: var(--text); font-size: 12px; }
   .msr-score { color: var(--green-dim); font-size: 11px; min-width: 140px; text-align: right; }
   .msr-name.locked-name { color: var(--text-dim); font-style: italic; }
-  .msr-name.classified { color: #3a3a2a; letter-spacing: 1px; }
+  .msr-name.classified { color: var(--classified-text); letter-spacing: 1px; }
   .modal-btn.replay { border-color: var(--green-dim); color: var(--green-dim); padding: 3px 10px; font-size: 10px; }
   .modal-btn.replay:hover { border-color: var(--green-bright); color: var(--green-bright); }
   .msr-divider {
@@ -742,7 +832,7 @@
   }
 
   /* SANDBOX LIVE EXECUTION — sandbox-only button styles */
-  .btn.live-btn { display: none; border-color: #4a8a4a; color: #4a8a4a; }
+  .btn.live-btn { display: none; border-color: var(--green); color: var(--green); }
   body.sandbox-mode .btn.live-btn { display: inline-block; }
   .btn.live-btn:hover { background: rgba(74,138,74,0.15); border-color: var(--green-bright); color: var(--green-bright); }
   .btn.live-btn.active { background: rgba(74,138,74,0.2); border-color: var(--green-bright); color: var(--green-bright); box-shadow: 0 0 8px rgba(74,138,74,0.4); }
@@ -876,6 +966,11 @@
       </div>
 
       <div class="manual-sec">
+        <div class="manual-sec-title">Display Mode</div>
+        <p>Press <strong style="color:var(--amber)">LCD</strong> in the header to switch to light mode for improved readability. Press <strong style="color:var(--amber)">CRT</strong> to return to the default dark display. Your preference is saved automatically.</p>
+      </div>
+
+      <div class="manual-sec">
         <div class="manual-sec-title">Memory-Mapped I/O (Sandbox Only)</div>
         <p>In Sandbox Mode, two special addresses provide hardware input. They behave like normal memory in Mission Mode and do not affect grading.</p>
         <div class="manual-entry">
@@ -907,6 +1002,7 @@
     <button class="btn-header" onclick="confirmClearSave()">CLEAR SAVE</button>
     <button class="btn-header" onclick="openMissionSelect()">MISSION SELECT</button>
     <button class="btn-header" onclick="document.getElementById('manualModal').classList.add('visible')">MANUAL</button>
+    <button class="btn-header" id="themeToggle" onclick="toggleTheme()">LCD</button>
     <span id="clockDisplay">CLK: 00000000</span>
     <span class="blink">█</span>
   </div>
@@ -1191,6 +1287,31 @@ function toggleSandbox() {
     setStatus('SANDBOX MODE ACTIVE — GRADING DISABLED — DIRECT MEMORY ACCESS ENABLED', 'sandbox');
   }
 }
+
+// ============================================================
+// DISPLAY THEME (CRT / LCD)
+// ============================================================
+function initTheme() {
+  const saved = localStorage.getItem('zp_theme');
+  if (saved === 'light') {
+    document.body.classList.add('light-theme');
+  }
+  // Dark mode is always the default for first-time visitors
+  updateThemeButton();
+}
+function toggleTheme() {
+  document.body.classList.toggle('light-theme');
+  const isLight = document.body.classList.contains('light-theme');
+  localStorage.setItem('zp_theme', isLight ? 'light' : 'dark');
+  updateThemeButton();
+}
+function updateThemeButton() {
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  const isLight = document.body.classList.contains('light-theme');
+  btn.textContent = isLight ? 'CRT' : 'LCD';
+}
+initTheme();
 
 // ============================================================
 // ASSEMBLER
@@ -3774,7 +3895,7 @@ function showAnomalyBanner() {
   b.classList.remove('visible');
   void b.offsetWidth;
   b.classList.add('visible');
-  setTimeout(() => b.classList.remove('visible'), 4000);
+  setTimeout(() => b.classList.remove('visible'), 7000);
   saveGame(); // persist hidden mission unlock
 }
 

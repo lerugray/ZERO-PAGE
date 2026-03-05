@@ -6,7 +6,7 @@ A 6502 assembly language puzzle game played in the browser. The player takes on 
 Think TIS-100 meets moral complicity. The mechanics are the hook; the narrative is the point.
 
 ## How to Run
-Open `zero-page-v19.html` in a web browser. This is the **active working file** — all edits should go here. Other HTML files (index.html, earlier versions) are outdated snapshots and should NOT be edited.
+Open `zero-page-v20.html` in a web browser. This is the **active working file** — all edits should go here. Other HTML files (index.html, earlier versions) are outdated snapshots and should NOT be edited.
 
 ## Project Structure
 - **Single-file architecture**: The entire game (HTML, CSS, JavaScript, puzzle definitions, assembler, simulator, UI) lives in one HTML file.
