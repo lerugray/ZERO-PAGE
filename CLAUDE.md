@@ -49,6 +49,7 @@ Each puzzle introduces exactly one new concept, uses it meaningfully, and advanc
 - **Target**: 500 copies is achievable with good trailer, community outreach (r/programming, r/gamedev, Hacker News, Zachtronics communities)
 
 ## For Claude Sessions
+- **Check `session_notes.md` first** — if it contains in-progress work, pick up where the last session left off. Clear it when the work is complete.
 - Read `DESIGN.md` first for the full architectural and design overview.
 - When adding new puzzles, follow the exact pattern of existing MISSIONS array entries.
 - For puzzles testing multiple outputs, use `outputSlots` as an array.

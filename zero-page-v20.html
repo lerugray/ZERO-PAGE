@@ -1,0 +1,4043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZERO PAGE — Microprocessor Systems Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+  :root {
+    --bg: #080c08;
+    --bg2: #0c110c;
+    --bg3: #111811;
+    --border: #1e2e1e;
+    --border-bright: #2a4a2a;
+    --green: #4a8a4a;
+    --green-bright: #6ab06a;
+    --green-dim: #2a5a2a;
+    --amber: #b08020;
+    --amber-bright: #d0a030;
+    --amber-dim: #604810;
+    --red: #8a3030;
+    --red-bright: #c05050;
+    --text: #5a9a5a;
+    --text-bright: #8aba8a;
+    --text-dim: #2a5a2a;
+    --pass: #4a9a4a;
+    --fail: #9a4a4a;
+    --sandbox-color: #4a6a9a;
+    --sandbox-bright: #6a8aba;
+    --sandbox-dim: #0e1824;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 17px;
+    line-height: 1.4;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border-bright);
+    padding: 6px 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .title {
+    font-family: 'VT323', monospace;
+    font-size: 28px;
+    color: var(--green-bright);
+    letter-spacing: 4px;
+    text-shadow: 0 0 12px var(--green-dim);
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  .btn-header {
+    background: var(--bg3);
+    border: 1px solid var(--border-bright);
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.1s;
+  }
+
+  .btn-header:hover { border-color: var(--amber); color: var(--amber); }
+
+  .blink { animation: blink 1.2s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  @keyframes memFlash {
+    0%   { box-shadow: none; background: var(--bg3); }
+    30%  { box-shadow: 0 0 10px 2px rgba(208,160,48,0.5); background: rgba(96,72,16,0.35); }
+    100% { box-shadow: none; background: var(--bg3); }
+  }
+
+  @keyframes lcdFlash {
+    0%   { color: var(--amber-bright); text-shadow: 0 0 8px var(--amber-dim); }
+    25%  { color: #fffbe0; text-shadow: 0 0 22px var(--amber-bright), 0 0 40px var(--amber); }
+    100% { color: var(--amber-bright); text-shadow: 0 0 8px var(--amber-dim); }
+  }
+
+  @keyframes clampPulse {
+    0%   { color: var(--amber-bright); }
+    25%  { color: var(--red-bright); text-shadow: 0 0 14px rgba(192,80,80,0.9); }
+    100% { color: var(--amber-bright); }
+  }
+
+  @keyframes suppressionFade {
+    0%   { opacity: 0; transform: translateY(-3px); }
+    15%  { opacity: 1; transform: translateY(0); }
+    75%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.96) translateY(-10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  @keyframes btnFeedback {
+    0%   { filter: brightness(1); }
+    40%  { filter: brightness(1.6); }
+    100% { filter: brightness(1); }
+  }
+
+  .mem-cell.flash-write  { animation: memFlash 0.55s ease-out; }
+  .lcd-val.flash-write   { animation: lcdFlash 0.55s ease-out; }
+  .lcd-val.clamp-pulse   { animation: clampPulse 0.75s ease-out; }
+
+  .sandbox-indicator {
+    display: none;
+    background: var(--sandbox-dim);
+    border-bottom: 1px solid var(--sandbox-color);
+    color: var(--sandbox-bright);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 3px 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  body.sandbox-mode .sandbox-indicator { display: block; }
+
+  .main {
+    display: grid;
+    grid-template-columns: 280px 1fr 260px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+  }
+  .col:last-child { border-right: none; overflow-y: auto; }
+
+  .panel {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px;
+  }
+  .panel:last-child { border-bottom: none; }
+
+  .panel-title {
+    color: var(--amber);
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--amber-dim);
+    padding-bottom: 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .panel-title .toggle {
+    cursor: pointer; color: var(--text-dim); font-size: 14px;
+    line-height: 1; user-select: none;
+  }
+  .panel-title .toggle:hover { color: var(--text); }
+
+  .mission-name {
+    color: var(--green-bright);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .mission-narrative { color: var(--text-dim); font-size: 16px; line-height: 1.6; margin-bottom: 8px; }
+  .mission-obj { margin-top: 6px; }
+  .mission-obj-title { color: var(--amber); font-size: 11px; letter-spacing: 2px; margin-bottom: 4px; }
+  .mission-obj-item { color: var(--text); font-size: 16px; margin-bottom: 3px; padding-left: 8px; }
+  .mission-obj-item::before { content: '> '; color: var(--green-dim); }
+
+  .collapsible-content { overflow: hidden; transition: max-height 0.2s ease; }
+  .collapsible-content.collapsed { max-height: 0 !important; }
+
+  .tech-ref-item { font-size: 13px; margin-bottom: 5px; color: var(--text-dim); }
+  .tech-ref-item code {
+    color: var(--green-bright); background: var(--bg3);
+    padding: 1px 4px; border: 1px solid var(--border); font-size: 13px;
+  }
+
+  .left-scroll { overflow-y: auto; flex: 1; min-height: 60px; }
+
+  .mission-brief-wrap {
+    overflow-y: auto;
+    flex: 0 1 auto;
+    min-height: 60px;
+    max-height: 50%;
+  }
+
+  .left-resize-handle {
+    height: 5px;
+    cursor: ns-resize;
+    background: var(--border);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .left-resize-handle:hover,
+  .left-resize-handle.dragging {
+    background: var(--amber-dim);
+  }
+
+  /* Editor */
+  .editor-wrap {
+    flex: 1; overflow: hidden; background: var(--bg2);
+    position: relative; display: flex;
+  }
+
+  .line-numbers {
+    background: var(--bg3); border-right: 1px solid var(--border);
+    padding: 8px 6px; min-width: 36px; text-align: right;
+    color: var(--text-dim); font-size: 18px; line-height: 1.8;
+    overflow: hidden; user-select: none; flex-shrink: 0; white-space: pre;
+  }
+
+  .editor-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+  .highlight-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    padding: 8px;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 18px; line-height: 1.8;
+    pointer-events: none;
+    overflow: hidden; white-space: pre-wrap; word-break: break-all;
+    z-index: 1;
+  }
+
+  /* SYNTAX HIGHLIGHT STABILITY FIX — editor text transparent, caret remains visible */
+  #codeEditor {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: transparent; border: none; outline: none; resize: none;
+    color: transparent;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 18px; line-height: 1.8; padding: 8px;
+    caret-color: var(--amber-bright);
+    overflow-y: auto; tab-size: 2; z-index: 2;
+  }
+
+  /* SYNTAX HIGHLIGHT STABILITY FIX — selection uses semi-transparent so highlight visible */
+  #codeEditor::selection { background: rgba(74,138,74,0.4); color: transparent; }
+  #codeEditor::placeholder { color: var(--text-dim); opacity: 1; }
+  #codeEditor::-webkit-input-placeholder { color: var(--text-dim); opacity: 1; }
+  #codeEditor::-moz-placeholder { color: var(--text-dim); opacity: 1; }
+
+  /* Syntax token colours — boosted contrast */
+.hl-mnem {
+  color: #a8f5a8;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(106,176,106,0.6);
+}
+
+.hl-imm {
+  color: #ffd166;
+  text-shadow: 0 0 6px rgba(208,160,48,0.6);
+}
+
+.hl-zp {
+  color: #7ec8ff;
+  text-shadow: 0 0 6px rgba(122,176,208,0.6);
+}
+
+.hl-comment {
+  color: #4d7a4d;
+  opacity: 0.75;
+}
+
+.hl-label {
+  color: #ffb347;
+  text-shadow: 0 0 6px rgba(200,150,42,0.6);
+}
+
+.hl-err {
+  background: rgba(192,80,80,0.35);
+  border-left: 3px solid #ff6666;
+  padding-left: 3px;
+}
+
+.hl-exec {
+  background: rgba(106,176,106,0.25);
+  border-left: 3px solid #6ab06a;
+  padding-left: 3px;
+}
+
+  /* Registers */
+  .reg-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; margin-bottom: 8px; }
+  .reg-box { background: var(--bg3); border: 1px solid var(--border); padding: 4px 6px; text-align: center; }
+  .reg-label { color: var(--text-dim); font-size: 14px; letter-spacing: 1px; }
+  .reg-value { color: var(--green-bright); font-family: 'VT323', monospace; font-size: 32px; line-height: 1; }
+
+  .flags-row { display: flex; gap: 2px; margin-bottom: 8px; }
+  .flag-box { flex: 1; background: var(--bg3); border: 1px solid var(--border); padding: 3px 2px; text-align: center; }
+  .flag-label { color: var(--text-dim); font-size: 14px; }
+  .flag-val { font-family: 'VT323', monospace; font-size: 24px; line-height: 1; color: var(--green-dim); }
+  .flag-val.active { color: var(--green-bright); text-shadow: 0 0 8px var(--green); }
+
+  .pc-cycles { display: flex; gap: 8px; margin-bottom: 6px; }
+  .pc-box {
+    flex: 1; background: var(--bg3); border: 1px solid var(--border);
+    padding: 3px 6px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .pc-lbl { color: var(--text-dim); font-size: 14px; }
+  .pc-val { color: var(--amber); font-family: 'VT323', monospace; font-size: 24px; }
+
+  /* Memory */
+  .mem-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; }
+  .sandbox-mem-grid { display: grid; grid-template-columns: repeat(8,1fr); gap: 2px; }
+
+  .mem-cell {
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 3px 2px; text-align: center; font-size: 10px;
+  }
+  .sandbox-mem-grid .mem-cell { cursor: pointer; transition: border-color 0.1s; }
+  .sandbox-mem-grid .mem-cell:hover { border-color: var(--sandbox-bright); }
+  .sandbox-mem-grid .mem-cell.editing { border-color: var(--amber-bright); background: rgba(176,128,32,0.15); }
+
+  .mem-addr { color: var(--text-dim); font-size: 13px; }
+  .mem-val  { color: var(--green-bright); font-family: 'VT323', monospace; font-size: 20px; line-height: 1; }
+  .mem-cell.output .mem-val { color: var(--amber-bright); }
+  .mem-cell.input  .mem-val { color: var(--green-bright); }
+
+  /* LCD */
+  .lcd-panel {
+    background: #0a120a; border: 1px solid var(--border-bright);
+    padding: 8px; font-family: 'VT323', monospace; position: relative;
+  }
+  .lcd-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 3px 0; border-bottom: 1px solid var(--border);
+  }
+  .lcd-row:last-child { border-bottom: none; }
+  .lcd-label { color: var(--text-dim); font-size: 16px; letter-spacing: 1px; }
+  .lcd-val {
+    font-size: 26px; color: var(--amber-bright);
+    text-shadow: 0 0 8px var(--amber-dim); letter-spacing: 2px;
+  }
+  .lcd-val.input { color: var(--green-bright); text-shadow: 0 0 8px var(--green-dim); }
+
+  .suppression-msg {
+    position: absolute; left: 0; right: 0; bottom: -28px;
+    text-align: center; color: var(--red-bright);
+    font-size: 13px; letter-spacing: 2px;
+    animation: suppressionFade 2.6s ease-out forwards;
+    pointer-events: none;
+  }
+
+  /* Sandbox panel */
+  .sandbox-mem-panel {
+    display: none; padding: 8px 10px;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  body.sandbox-mode .sandbox-mem-panel { display: block; }
+
+  /* Sandbox inline input */
+  .inline-edit {
+    background: var(--bg); border: 1px solid var(--amber);
+    color: var(--amber-bright); font-family: 'Share Tech Mono', monospace;
+    font-size: 14px; width: 3em; padding: 1px 2px;
+    text-align: center; outline: none; display: block;
+  }
+
+  .sandbox-badge {
+    display: inline-block; background: var(--sandbox-dim);
+    border: 1px solid var(--sandbox-color); color: var(--sandbox-bright);
+    font-size: 10px; letter-spacing: 2px; padding: 1px 6px; margin-left: 8px;
+  }
+
+  /* Framebuffer display */
+  .center-inner {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  .editor-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .framebuffer-section {
+    display: none;
+    flex-direction: column;
+    background: var(--bg2);
+    padding: 8px;
+    width: 340px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+  body.sandbox-mode .framebuffer-section { display: flex; }
+
+  .center-resize-handle {
+    display: none;
+    width: 5px;
+    cursor: ew-resize;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  body.sandbox-mode .center-resize-handle { display: block; }
+  .center-resize-handle:hover,
+  .center-resize-handle.dragging {
+    background: var(--amber-dim);
+  }
+  .framebuffer-title {
+    color: var(--sandbox-bright);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    width: 100%;
+    border-bottom: 1px solid var(--sandbox-color);
+    padding-bottom: 4px;
+  }
+  #fbCanvas {
+    border: 1px solid var(--sandbox-color);
+    image-rendering: pixelated;
+    display: block;
+  }
+  .framebuffer-info {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* Bottom bar */
+  .bottom-bar {
+    background: var(--bg2); border-top: 1px solid var(--border-bright);
+    padding: 6px 12px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+
+  .btn {
+    background: var(--bg3); border: 1px solid var(--border-bright);
+    color: var(--text); font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 12px; padding: 5px 14px; cursor: pointer;
+    letter-spacing: 1px; text-transform: uppercase; transition: all 0.1s;
+  }
+  .btn:hover  { background: var(--green-dim); border-color: var(--green); color: var(--text-bright); }
+  .btn:active { background: var(--green); color: var(--bg); animation: btnFeedback 0.25s ease; }
+
+  .btn.primary { border-color: var(--amber); color: var(--amber); }
+  .btn.primary:hover { background: var(--amber-dim); color: var(--amber-bright); }
+
+  .btn.sandbox-btn { border-color: var(--sandbox-color); color: var(--sandbox-color); }
+  .btn.sandbox-btn:hover { background: var(--sandbox-dim); border-color: var(--sandbox-bright); color: var(--sandbox-bright); }
+  .btn.sandbox-btn.active {
+    background: var(--sandbox-dim); border-color: var(--sandbox-bright);
+    color: var(--sandbox-bright); box-shadow: 0 0 8px rgba(74,106,154,0.4);
+  }
+
+  body.sandbox-mode .btn#btnTests,
+  body.sandbox-mode .btn#btnNext { opacity: 0.4; pointer-events: none; }
+
+  .status { flex: 1; font-size: 12px; letter-spacing: 1px; padding-left: 12px; border-left: 1px solid var(--border); }
+  .status.pass    { color: var(--pass); }
+  .status.fail    { color: var(--fail); }
+  .status.info    { color: var(--text-dim); }
+  .status.halt    { color: var(--amber); }
+  .status.error   { color: var(--red-bright); }
+  .status.sandbox { color: var(--sandbox-bright); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+  /* ===== MODALS ===== */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85); z-index: 10000;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+
+  .modal-box {
+    background: var(--bg2); border: 1px solid var(--border-bright);
+    border-top: 2px solid var(--amber); padding: 28px 32px;
+    max-width: 520px; width: 90%; position: relative;
+    animation: modalIn 0.2s ease-out; max-height: 82vh; overflow-y: auto;
+  }
+  .modal-box.wide { max-width: 640px; }
+
+  .modal-title {
+    font-family: 'VT323', monospace; font-size: 26px;
+    color: var(--green-bright); letter-spacing: 4px;
+    margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 8px;
+  }
+  .modal-subtitle { color: var(--amber); font-size: 10px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+
+  .modal-body { color: var(--text-dim); font-size: 14px; line-height: 1.8; }
+  .modal-body p { margin-bottom: 10px; }
+
+  .modal-footer { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+
+  .modal-btn {
+    background: var(--bg3); border: 1px solid var(--border-bright);
+    color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; padding: 6px 18px; cursor: pointer;
+    letter-spacing: 1px; text-transform: uppercase; transition: all 0.1s;
+  }
+  .modal-btn:hover { border-color: var(--green); color: var(--text); }
+  .modal-btn.amber { border-color: var(--amber); color: var(--amber); }
+  .modal-btn.amber:hover { background: var(--amber-dim); color: var(--amber-bright); }
+
+  /* Manual sections */
+  .manual-sec { margin-bottom: 18px; }
+  .manual-sec-title {
+    color: var(--amber); font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    border-bottom: 1px solid var(--amber-dim); padding-bottom: 3px; margin-bottom: 8px;
+  }
+  .manual-sec p { color: var(--text-dim); font-size: 13px; line-height: 1.7; margin-bottom: 6px; }
+  .manual-sec code {
+    color: var(--green-bright); background: var(--bg3);
+    padding: 1px 4px; border: 1px solid var(--border); font-size: 12px;
+  }
+  .manual-entry { padding-left: 10px; border-left: 2px solid var(--border); margin-bottom: 8px; }
+  .manual-entry strong { color: var(--green-bright); display: block; font-size: 13px; margin-bottom: 2px; }
+
+  .completion-email { color: var(--green-bright); font-size: 16px; letter-spacing: 1px; margin: 12px 0; }
+
+  /* ===== MEMORY-MAPPED I/O LCD ROWS (sandbox only) ===== */
+  @keyframes keyFlash {
+    0%   { color: var(--sandbox-bright); text-shadow: 0 0 8px rgba(106,138,186,0.4); }
+    20%  { color: #e0f0ff; text-shadow: 0 0 24px var(--sandbox-bright), 0 0 48px rgba(106,138,186,0.6); }
+    100% { color: var(--sandbox-bright); text-shadow: 0 0 8px rgba(106,138,186,0.4); }
+  }
+  @keyframes rngFlash {
+    0%   { color: var(--amber-bright); text-shadow: 0 0 8px var(--amber-dim); }
+    20%  { color: #fff8c0; text-shadow: 0 0 22px var(--amber-bright), 0 0 44px var(--amber); }
+    100% { color: var(--amber-bright); text-shadow: 0 0 8px var(--amber-dim); }
+  }
+  .lcd-val.key-flash  { animation: keyFlash 0.5s ease-out; }
+  .lcd-val.rng-flash  { animation: rngFlash 0.5s ease-out; }
+
+  /* $FF key input display uses sandbox-blue tint */
+  .lcd-val.key-io {
+    color: var(--sandbox-bright);
+    text-shadow: 0 0 8px rgba(74,106,154,0.5);
+  }
+
+  /* Sandbox-only rows hidden in mission mode; mission rows hidden in sandbox */
+  .lcd-row-sandbox { display: none; }
+  body.sandbox-mode .lcd-row-sandbox { display: flex; }
+  body.sandbox-mode .lcd-row-mission { display: none !important; }
+
+  /* Clickable watch address labels */
+  .lcd-watch-label {
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .lcd-watch-label:hover {
+    color: var(--sandbox-bright);
+  }
+
+  /* ===== SYSTEM LOG MODAL ===== */
+  @keyframes syslogFlicker {
+    0%   { opacity: 1; }
+    5%   { opacity: 0.3; }
+    8%   { opacity: 0.9; }
+    12%  { opacity: 0.1; }
+    16%  { opacity: 0.85; }
+    20%  { opacity: 0.4; }
+    24%  { opacity: 1; }
+    28%  { opacity: 0.7; }
+    32%  { opacity: 0.95; }
+    36%  { opacity: 0.2; }
+    40%  { opacity: 1; }
+    100% { opacity: 1; }
+  }
+  .modal-box.syslog {
+    border-top: 2px solid #5a3a3a;
+    border-color: #3a2a2a;
+    background: #06090a;
+    animation: modalIn 0.2s ease-out, syslogFlicker 0.45s ease-out;
+  }
+  .modal-box.syslog .modal-title { color: #7a4a4a; letter-spacing: 3px; }
+  .modal-box.syslog .modal-subtitle { color: #5a3a2a; }
+  .syslog-body {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: #5a5a4a;
+    line-height: 1.9;
+    background: #050808;
+    border: 1px solid #1e1e16;
+    padding: 12px 14px;
+    margin-bottom: 4px;
+  }
+  .syslog-body .sl-line { display: block; }
+  .syslog-body .sl-line.sl-code { color: #4a6a4a; }
+  .syslog-body .sl-line.sl-hex  { color: #5a4a2a; letter-spacing: 2px; }
+  .syslog-body .sl-line.sl-route{ color: #3a5a5a; }
+  .syslog-body .sl-line.sl-coord{ color: #4a4a6a; }
+  .syslog-body .sl-line.sl-dim  { color: #3a3a3a; }
+
+  /* ===== ANOMALY FLASH ===== */
+  @keyframes anomalyFlash {
+    0%   { opacity: 0; transform: translateY(-8px) scaleX(0.95); }
+    10%  { opacity: 1; transform: translateY(0) scaleX(1); }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  #anomalyBanner {
+    display: none;
+    position: fixed;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a0808;
+    border: 1px solid var(--red-bright);
+    border-top: 2px solid var(--red-bright);
+    color: var(--red-bright);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 8px 24px;
+    text-align: center;
+    z-index: 20000;
+    pointer-events: none;
+    text-transform: uppercase;
+  }
+  #anomalyBanner.visible {
+    display: block;
+    animation: anomalyFlash 3.5s ease-out forwards;
+  }
+
+  /* ===== MISSION SELECT MODAL ===== */
+  .mission-select-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .mission-select-row:last-child { border-bottom: none; }
+  .mission-select-row.locked { opacity: 0.35; cursor: default; }
+  .mission-select-row.cleared { cursor: default; }
+  .msr-id { color: var(--amber-dim); min-width: 32px; font-size: 11px; }
+  .msr-name { flex: 1; color: var(--text); font-size: 12px; }
+  .msr-score { color: var(--green-dim); font-size: 11px; min-width: 140px; text-align: right; }
+  .msr-name.locked-name { color: var(--text-dim); font-style: italic; }
+  .msr-name.classified { color: #3a3a2a; letter-spacing: 1px; }
+  .modal-btn.replay { border-color: var(--green-dim); color: var(--green-dim); padding: 3px 10px; font-size: 10px; }
+  .modal-btn.replay:hover { border-color: var(--green-bright); color: var(--green-bright); }
+  .msr-divider {
+    margin: 10px 0 4px;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--amber-dim);
+    border-top: 1px solid var(--amber-dim);
+    padding-top: 6px;
+    text-transform: uppercase;
+  }
+
+  /* ===== HIDDEN PUZZLE REWARD MODAL ===== */
+  @keyframes corruptGlitch {
+    0%   { filter: none; }
+    10%  { filter: hue-rotate(180deg) saturate(2); transform: translateX(2px); }
+    12%  { filter: none; transform: translateX(0); }
+    40%  { filter: none; }
+    42%  { filter: brightness(2) hue-rotate(90deg); transform: translateX(-1px); }
+    44%  { filter: none; transform: translateX(0); }
+    100% { filter: none; }
+  }
+  .modal-box.reward {
+    border-top: 2px solid var(--red-bright);
+    border-color: #4a2020;
+    background: #0a0808;
+    animation: modalIn 0.2s ease-out, corruptGlitch 1.2s ease-out;
+  }
+  .modal-box.reward .modal-title { color: var(--red-bright); }
+  .modal-box.reward .modal-subtitle { color: #7a4a3a; }
+  .reward-body {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: #8a6a5a;
+    line-height: 1.8;
+    border-left: 2px solid #4a2020;
+    padding-left: 12px;
+    margin-bottom: 8px;
+  }
+  .reward-body p { margin-bottom: 10px; color: #8a6a5a; }
+  .reward-body .rb-classification {
+    color: var(--red-bright); font-size: 10px; letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+
+  /* SANDBOX LIVE EXECUTION — sandbox-only button styles */
+  .btn.live-btn { display: none; border-color: #4a8a4a; color: #4a8a4a; }
+  body.sandbox-mode .btn.live-btn { display: inline-block; }
+  .btn.live-btn:hover { background: rgba(74,138,74,0.15); border-color: var(--green-bright); color: var(--green-bright); }
+  .btn.live-btn.active { background: rgba(74,138,74,0.2); border-color: var(--green-bright); color: var(--green-bright); box-shadow: 0 0 8px rgba(74,138,74,0.4); }
+  .btn.stop-btn { display: none; border-color: var(--red-bright); color: var(--red-bright); }
+  body.sandbox-mode .btn.stop-btn { display: inline-block; }
+  .btn.stop-btn:hover { background: rgba(138,48,48,0.2); color: var(--red-bright); }
+  .btn.snake-btn { display: none; border-color: var(--amber); color: var(--amber); }
+  body.sandbox-mode .btn.snake-btn { display: inline-block; }
+  .btn.snake-btn:hover { background: var(--amber-dim); color: var(--amber-bright); }
+</style>
+</head>
+<body>
+
+<!-- ANOMALY BANNER -->
+<div id="anomalyBanner">▓ ANOMALY DETECTED — UNAUTHORIZED MEMORY STATE — NEW ENTRY UNLOCKED ▓</div>
+
+<!-- SYSTEM LOG MODAL -->
+<div class="modal-overlay" id="syslogModal">
+  <div class="modal-box syslog">
+    <div class="modal-title" id="syslogTitle">SYSTEM // UNHANDLED OUTPUT</div>
+    <div class="modal-subtitle" id="syslogSubtitle">[THIS SCREEN SHOULD NOT BE VISIBLE — LOGGING TO /dev/null]</div>
+    <div class="syslog-body" id="syslogBody"></div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="closeSyslog()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- HIDDEN PUZZLE REWARD MODAL -->
+<div class="modal-overlay" id="rewardModal">
+  <div class="modal-box reward">
+    <div class="modal-title" id="rewardTitle">ACCESS: RESTRICTED</div>
+    <div class="modal-subtitle" id="rewardSubtitle">CLASSIFIED — INTERNAL USE ONLY</div>
+    <div class="reward-body" id="rewardBody"></div>
+    <div class="modal-footer">
+      <button class="modal-btn" style="border-color:var(--red-bright);color:var(--red-bright)" onclick="closeReward()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- MISSION SELECT MODAL -->
+<div class="modal-overlay" id="missionSelectModal">
+  <div class="modal-box wide">
+    <div class="modal-title">MISSION SELECT</div>
+    <div class="modal-subtitle">REPLAY CLEARED MISSIONS — BEST SCORES TRACKED</div>
+    <div class="modal-body" id="missionSelectBody" style="padding:0;max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="modal-btn amber" onclick="document.getElementById('missionSelectModal').classList.remove('visible')">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEBRIEF MODAL -->
+<div class="modal-overlay" id="debriefModal">
+  <div class="modal-box">
+    <div class="modal-title" id="debriefTitle">MISSION COMPLETE</div>
+    <div class="modal-subtitle" id="debriefSubtitle">POST-OPERATION ASSESSMENT</div>
+    <div class="modal-body" id="debriefBody"></div>
+    <div class="modal-footer">
+      <button class="modal-btn amber" onclick="closeDebrief()">ACKNOWLEDGE</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETION MODAL -->
+<div class="modal-overlay" id="completionModal">
+  <div class="modal-box">
+    <div class="modal-title">PROGRAM CONCLUDED</div>
+    <div class="modal-subtitle">SESSION TERMINATION — ALL UNITS LOGGED</div>
+    <div class="modal-body">
+      <p>All assigned modules have been verified. Your contributions to the ZERO PAGE initiative have been recorded and filed under operational archives.</p>
+      <p>The systems team acknowledges your work on the anomaly suppression filter. Whether the data logged during suppression events will be reviewed by command is, as always, a matter of protocol.</p>
+      <p>This simulation was developed for educational and demonstrational purposes. If you encountered issues, discovered edge cases, or have feedback:</p>
+      <div class="completion-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b4c6c3d1ddc7c7f4d7dbdac7ddd9c7d8c0d09ad7dbd9">[email&#160;protected]</a></div>
+      <p style="font-size:12px;color:var(--text-dim);">Bug reports, suggestions, and observations welcome. All correspondence reviewed.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn amber" onclick="document.getElementById('completionModal').classList.remove('visible')">CLOSE TERMINAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL MODAL -->
+<div class="modal-overlay" id="manualModal">
+  <div class="modal-box wide">
+    <div class="modal-title">FIELD MANUAL</div>
+    <div class="modal-subtitle">ZERO PAGE OPERATIONS — QUICK REFERENCE</div>
+    <div class="modal-body">
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Registers</div>
+        <div class="manual-entry"><strong>A — Accumulator</strong>The primary work register. Most operations load into, modify, or read from A. Holds one byte (0–255).</div>
+        <div class="manual-entry"><strong>X, Y — Index Registers</strong>Auxiliary registers. Available for advanced programs.</div>
+        <div class="manual-entry"><strong>PC — Program Counter</strong>Points to the current instruction index. Advances automatically after each instruction.</div>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Zero Page</div>
+        <p>Zero page is memory addresses $00–$FF. All accessible memory in this system is zero page. Inputs are pre-loaded at $00 and $01. Results go to $02 and/or $03.</p>
+        <p>Syntax: <code>LDA $00</code> reads from address $00. <code>STA $02</code> writes to $02. <code>LDA #$05</code> loads the literal value 5.</p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Carry Flag</div>
+        <p>Used by addition and subtraction. Before <code>SBC</code>, always <code>SEC</code> (set carry). Before <code>ADC</code> without carry-in, use <code>CLC</code>.</p>
+        <p>After subtraction: C=1 means no borrow (result ≥ 0). C=0 means borrow occurred (result went negative / wrapped).</p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">How SBC Works</div>
+        <p>Computes: <code>A = A - value - (1 - C)</code>. Results wrap at 8 bits (0–255). Always <code>SEC</code> first.</p>
+        <p><code>SEC</code> / <code>LDA $00</code> / <code>SBC $01</code> / <code>STA $02</code> / <code>BRK</code></p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Branching</div>
+        <p><code>CMP $nn</code> compares A to a zero-page value and sets flags. <code>BCS n</code> branches to instruction index n if C=1 (A ≥ value). <code>BCC n</code> branches if C=0 (A &lt; value).</p>
+        <p>Branches use instruction indices (count only executable instructions, not blank lines or comments).</p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Cycle Limit</div>
+        <p>Programs allow a maximum of 500 cycles. Each instruction costs 1 cycle. Infinite loops or excessive branching will cause a CYCLE LIMIT HALT. Grade is partly based on efficiency.</p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Mission Mode vs Sandbox Mode</div>
+        <p><strong style="color:var(--green-bright)">Mission Mode:</strong> Default. Programs are assembled and tested against randomised inputs. Grading is active. Pass all tests to advance.</p>
+        <p><strong style="color:var(--sandbox-bright)">Sandbox Mode:</strong> No grading. Write arbitrary programs and manually edit any memory cell ($00–$FF) by clicking on it. Press SANDBOX to toggle.</p>
+      </div>
+
+      <div class="manual-sec">
+        <div class="manual-sec-title">Memory-Mapped I/O (Sandbox Only)</div>
+        <p>In Sandbox Mode, two special addresses provide hardware input. They behave like normal memory in Mission Mode and do not affect grading.</p>
+        <div class="manual-entry">
+          <strong>Keyboard Input — $FF</strong>
+          Reading from <code>$FF</code> returns the last key pressed as a byte. Arrow keys return special codes: Up=01, Down=02, Left=03, Right=04. Printable keys return their ASCII value. After <code>LDA $FF</code>, the register auto-clears to 00 — each read consumes the keypress.
+          <br><br>Example: <code>LDA $FF</code> / <code>STA $02</code>
+        </div>
+        <div class="manual-entry">
+          <strong>Random Number Generator — $FE</strong>
+          Reading from <code>$FE</code> generates a fresh pseudo-random byte (0–255) and loads it into A. The value is not stored in memory — each <code>LDA $FE</code> produces a new number.
+          <br><br>Example: <code>LDA $FE</code> / <code>STA $02</code>
+        </div>
+        <p>Both registers are visible on the LCD Display panel when in Sandbox Mode.</p>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="generateManualPDF()">EXPORT PDF</button>
+      <button class="modal-btn amber" onclick="document.getElementById('manualModal').classList.remove('visible')">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <span class="title">ZERO PAGE</span>
+  <span class="subtitle">Microprocessor Systems Lab</span>
+  <div class="header-right">
+    <button class="btn-header" onclick="confirmClearSave()">CLEAR SAVE</button>
+    <button class="btn-header" onclick="openMissionSelect()">MISSION SELECT</button>
+    <button class="btn-header" onclick="document.getElementById('manualModal').classList.add('visible')">MANUAL</button>
+    <span id="clockDisplay">CLK: 00000000</span>
+    <span class="blink">█</span>
+  </div>
+</div>
+
+<div class="sandbox-indicator" id="sandboxIndicator">[ SANDBOX MODE — GRADING DISABLED — DIRECT MEMORY ACCESS ENABLED ]</div>
+
+<div class="main">
+
+  <!-- LEFT COL -->
+  <div class="col">
+    <div class="mission-brief-wrap" id="missionBriefWrap">
+      <div class="panel">
+        <div class="panel-title">Mission Brief</div>
+        <div class="mission-name">FIELD BALLISTICS UNIT — PROTO A</div>
+        <div class="mission-narrative">
+          Artillery unit reports systematic deviation in impact coordinates. Field sensors return raw range data,
+          but atmospheric wind drift introduces consistent offset. Command requires real-time correction computation
+          for target acquisition. You have been assigned to program the correction module.
+        </div>
+        <div class="mission-obj">
+          <div class="mission-obj-title">Objectives</div>
+          <div class="mission-obj-item">Read RAW RANGE from $00</div>
+          <div class="mission-obj-item">Read WIND DRIFT from $01</div>
+          <div class="mission-obj-item">Store ($00 - $01) &amp; $FF into $02</div>
+          <div class="mission-obj-item">Do not modify $00 or $01</div>
+          <div class="mission-obj-item">Terminate with BRK</div>
+          <div class="mission-obj-item">Complete within 500 cycles</div>
+        </div>
+      </div>
+    </div>
+    <div class="left-resize-handle" id="leftResizeHandle"></div>
+    <div class="left-scroll">
+      <div class="panel">
+        <div class="panel-title">
+          Technical Reference
+          <span class="toggle" id="refToggle" onclick="toggleRef()">▼</span>
+        </div>
+        <div class="collapsible-content" id="refContent" style="max-height:9999px">
+          <!-- CORE ISA — always visible -->
+          <div class="tech-ref-item"><code>LDA #$nn</code> — Load literal value $nn into A</div>
+          <div class="tech-ref-item"><code>LDA $nn</code> — Load value at memory address $nn into A</div>
+          <div class="tech-ref-item"><code>STA $nn</code> — Store A into memory address $nn</div>
+          <div class="tech-ref-item"><code>ADC #$nn</code> — Add $nn to A (use <code>CLC</code> first for clean addition)</div>
+          <div class="tech-ref-item"><code>ADC $nn</code> — Add value at $nn to A</div>
+          <div class="tech-ref-item"><code>SBC #$nn</code> — Subtract $nn from A (use <code>SEC</code> first)</div>
+          <div class="tech-ref-item"><code>SBC $nn</code> — Subtract value at $nn from A</div>
+          <div class="tech-ref-item"><code>CMP $nn</code> — Compare A to $nn. Sets flags; does not change A</div>
+          <div class="tech-ref-item"><code>AND #$nn / AND $nn</code> — Bitwise AND. Keeps only bits set in both A and operand</div>
+          <div class="tech-ref-item"><code>ORA #$nn / ORA $nn</code> — Bitwise OR. Sets bits in A where either operand has a 1</div>
+          <div class="tech-ref-item"><code>EOR #$nn / EOR $nn</code> — Bitwise XOR. Flips bits in A where operand has a 1</div>
+          <div class="tech-ref-item"><code>BCS label</code> — Branch if C=1 (carry set — A ≥ compared value)</div>
+          <div class="tech-ref-item"><code>BCC label</code> — Branch if C=0 (carry clear — A &lt; compared value)</div>
+          <div class="tech-ref-item"><code>BEQ label</code> — Branch if Z=1 (result was zero / values were equal)</div>
+          <div class="tech-ref-item"><code>BNE label</code> — Branch if Z=0 (result was non-zero / values differ)</div>
+          <div class="tech-ref-item"><code>BMI label</code> — Branch if N=1 (result was negative, bit 7 set)</div>
+          <div class="tech-ref-item"><code>BPL label</code> — Branch if N=0 (result was positive or zero)</div>
+          <div class="tech-ref-item"><code>SEC</code> — Set carry flag (required before SBC)</div>
+          <div class="tech-ref-item"><code>CLC</code> — Clear carry flag (required before ADC chains)</div>
+          <div class="tech-ref-item"><code>BRK</code> — Halt execution. Program must reach BRK to pass tests</div>
+          <br>
+          <!-- INDEX REGISTERS -->
+          <div class="tech-ref-item"><code>LDX #$nn / LDX $nn</code> — Load X register with value</div>
+          <div class="tech-ref-item"><code>LDY #$nn / LDY $nn</code> — Load Y register with value</div>
+          <div class="tech-ref-item"><code>STX $nn</code> — Store X into memory address $nn</div>
+          <div class="tech-ref-item"><code>STY $nn</code> — Store Y into memory address $nn</div>
+          <div class="tech-ref-item"><code>INX / DEX</code> — Increment / Decrement X. Sets N, Z</div>
+          <div class="tech-ref-item"><code>INY / DEY</code> — Increment / Decrement Y. Sets N, Z</div>
+          <div class="tech-ref-item"><code>TAX</code> — Copy A→X. &nbsp;<code>TXA</code> — Copy X→A</div>
+          <div class="tech-ref-item"><code>TAY</code> — Copy A→Y. &nbsp;<code>TYA</code> — Copy Y→A</div>
+          <div class="tech-ref-item"><code>CPX #$nn / CPX $nn</code> — Compare X to value. Sets N, Z, C (C=1 if X≥val)</div>
+          <div class="tech-ref-item"><code>CPY #$nn / CPY $nn</code> — Compare Y to value. Sets N, Z, C (C=1 if Y≥val)</div>
+          <br>
+          <!-- INDEXED ADDRESSING -->
+          <div class="tech-ref-item"><code>LDA $nn,X</code> — Load from address ($nn + X), wraps in zero page</div>
+          <div class="tech-ref-item"><code>STA $nn,X</code> — Store A to address ($nn + X), zero page wrap</div>
+          <div class="tech-ref-item"><code>LDA $nn,Y / STA $nn,Y</code> — Same but indexed by Y</div>
+          <div class="tech-ref-item"><code>LDA ($nn),Y</code> — Indirect indexed. Reads 16-bit pointer from $nn/$nn+1, adds Y for final address</div>
+          <div class="tech-ref-item"><code>STA ($nn),Y</code> — Store via indirect pointer + Y</div>
+          <div class="tech-ref-item"><code>LDA ($nn,X)</code> — Indexed indirect. Adds X to $nn; reads 16-bit pointer from that address</div>
+          <div class="tech-ref-item"><code>STA ($nn,X)</code> — Store via pointer selected by $nn+X</div>
+          <br>
+          <!-- MEMORY OPS -->
+          <div class="tech-ref-item"><code>INC $nn</code> — Increment memory byte. $FF wraps to $00. Sets N, Z</div>
+          <div class="tech-ref-item"><code>DEC $nn</code> — Decrement memory byte. $00 wraps to $FF. Sets N, Z</div>
+          <div class="tech-ref-item"><code>BIT $nn</code> — Test bits. Sets N=bit7, V=bit6, Z=(A AND mem)=0. Does not change A</div>
+          <br>
+          <!-- SHIFT / ROTATE -->
+          <div class="tech-ref-item"><code>ASL</code> / <code>ASL $nn</code> — Shift left 1 bit (×2). Old bit 7 → C</div>
+          <div class="tech-ref-item"><code>LSR</code> / <code>LSR $nn</code> — Shift right 1 bit (÷2). Old bit 0 → C</div>
+          <div class="tech-ref-item"><code>ROL</code> / <code>ROL $nn</code> — Rotate left through carry. bit 7→C, old C→bit 0</div>
+          <div class="tech-ref-item"><code>ROR</code> / <code>ROR $nn</code> — Rotate right through carry. bit 0→C, old C→bit 7</div>
+          <br>
+          <!-- SUBROUTINES / STACK / FLOW -->
+          <div class="tech-ref-item"><code>JSR label</code> — Jump to subroutine at label. Pushes return address on stack</div>
+          <div class="tech-ref-item"><code>RTS</code> — Return from subroutine. Pops return address from stack</div>
+          <div class="tech-ref-item"><code>JMP label</code> — Unconditional jump. Does not push stack</div>
+          <div class="tech-ref-item"><code>PHA</code> — Push A onto stack</div>
+          <div class="tech-ref-item"><code>PLA</code> — Pull A from stack (LIFO)</div>
+          <div class="tech-ref-item"><code>NOP</code> — No operation. 1 cycle, no effect</div>
+          <br>
+          <div class="tech-ref-item" style="color:var(--amber);font-size:12px;line-height:1.5;">
+            FLAGS: N=negative (bit7) &nbsp;Z=zero &nbsp;C=carry/borrow &nbsp;V=overflow<br>
+            SBC requires SEC first. ADC chains need CLC first to prevent carry leaking between additions.<br>
+            Stack lives at $0100–$01FF. SP starts at $FF. Labels are case-sensitive.<br>
+            All values wrap to 8-bit ($00–$FF). Memory $00–$FF is zero page only.
+          </div>
+          <!-- Sandbox-only framebuffer reference -->
+          <div id="refFramebuffer" style="display:none;margin-top:8px;border-top:1px solid var(--sandbox-color);padding-top:8px;">
+            <div style="color:var(--sandbox-bright);font-size:10px;letter-spacing:2px;margin-bottom:4px;">FRAMEBUFFER ($80–$FF)</div>
+            <div class="tech-ref-item">Resolution: <code>16×8 pixels</code> (128 bytes total)</div>
+            <div class="tech-ref-item">Address: <code>addr = $80 + (y × 16) + x</code></div>
+            <div class="tech-ref-item">Pixel: <code>$00</code> = off (black) &nbsp;|&nbsp; nonzero = on (green)</div>
+            <div class="tech-ref-item">Example: <code>LDA #$FF / STA $80</code> lights pixel (0,0)</div>
+            <div class="tech-ref-item" style="color:var(--amber-dim);font-size:10px;">Arrow key input: ArrowUp=$01 ArrowDown=$02 ArrowLeft=$03 ArrowRight=$04 → written to $FF on keypress, cleared after LDA $FF.</div>
+            <!-- LIVE EXECUTION MODE DOCUMENTATION -->
+            <div style="color:var(--sandbox-bright);font-size:10px;letter-spacing:2px;margin:8px 0 4px;">LIVE EXECUTION MODE</div>
+            <div class="tech-ref-item"><code>RUN LIVE</code> — Begins continuous execution loop at ~60 FPS. Cycle limit ignored.</div>
+            <div class="tech-ref-item"><code>STOP</code> — Halts live execution. CPU state is preserved.</div>
+            <div class="tech-ref-item">Programs that reach BRK auto-restart from PC=0 for continuous loops.</div>
+            <!-- SNAKE DEMO DOCUMENTATION -->
+            <div style="color:var(--sandbox-bright);font-size:10px;letter-spacing:2px;margin:8px 0 4px;">SNAKE DEMO</div>
+            <div class="tech-ref-item">Demonstrates framebuffer graphics + live execution + $FF key input.</div>
+            <div class="tech-ref-item">Display: $80–$FF (16&times;8 px). Keys: ArrowUp/Down/Left/Right.</div>
+            <div class="tech-ref-item">Score tracked in $04/$05, displayed on LCD at $02/$03.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER COL -->
+  <div class="col">
+    <div class="panel" style="flex-shrink:0">
+      <div class="panel-title" id="editorTitle">Assembly Editor — Mission 1</div>
+    </div>
+    <div class="center-inner">
+      <div class="editor-section">
+        <div class="editor-wrap">
+          <div class="line-numbers" id="lineNums">1</div>
+          <div class="editor-area">
+            <div class="highlight-overlay" id="highlightOverlay" aria-hidden="true"></div>
+            <textarea id="codeEditor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
+              placeholder="; Write your solution here.
+; Comments begin with semicolons — the assembler ignores them.
+;
+; Quick reference:
+;   LDA $nn     — load value from memory address $nn into A
+;   STA $nn     — store A into memory address $nn
+;   LDA #$nn    — load the literal number $nn into A
+;   ADC #$nn    — add $nn to A (set CLC first for clean addition)
+;   SBC $nn     — subtract memory from A (set SEC first)
+;   BRK         — halt execution
+;
+; Run TESTS when ready to verify your solution."
+            ></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="center-resize-handle" id="centerResizeHandle"></div>
+      <!-- FRAMEBUFFER PANEL — sandbox only -->
+      <div class="framebuffer-section" id="fbSection">
+        <div class="framebuffer-title">FRAMEBUFFER $80–$FF</div>
+        <canvas id="fbCanvas" width="320" height="160"></canvas>
+        <div class="framebuffer-info">
+          16×8 px &nbsp;|&nbsp; addr = $80 + (y×16) + x<br>
+          00 = off &nbsp;|&nbsp; nonzero = on
+        </div>
+        <!-- Sandbox full memory panel -->
+        <div class="sandbox-mem-panel" id="sandboxMemPanel">
+          <div class="panel-title" style="margin-bottom:6px">
+            Full Memory $00–$FF
+            <span style="color:var(--sandbox-color);font-size:10px;letter-spacing:1px;">CLICK TO EDIT</span>
+          </div>
+          <div class="sandbox-mem-grid" id="sandboxMemGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COL -->
+  <div class="col">
+    <div class="panel">
+      <div class="panel-title">Machine State</div>
+      <div class="reg-grid">
+        <div class="reg-box"><div class="reg-label">A</div><div class="reg-value" id="regA">00</div></div>
+        <div class="reg-box"><div class="reg-label">X</div><div class="reg-value" id="regX">00</div></div>
+        <div class="reg-box"><div class="reg-label">Y</div><div class="reg-value" id="regY">00</div></div>
+        <div class="reg-box"><div class="reg-label">SP</div><div class="reg-value" id="regSP">FF</div></div>
+      </div>
+      <div class="flags-row">
+        <div class="flag-box"><div class="flag-label">N</div><div class="flag-val" id="fN">0</div></div>
+        <div class="flag-box"><div class="flag-label">V</div><div class="flag-val" id="fV">0</div></div>
+        <div class="flag-box"><div class="flag-label">-</div><div class="flag-val" id="fX">-</div></div>
+        <div class="flag-box"><div class="flag-label">B</div><div class="flag-val" id="fB">0</div></div>
+        <div class="flag-box"><div class="flag-label">D</div><div class="flag-val" id="fD">0</div></div>
+        <div class="flag-box"><div class="flag-label">I</div><div class="flag-val" id="fI">0</div></div>
+        <div class="flag-box"><div class="flag-label">Z</div><div class="flag-val" id="fZ">0</div></div>
+        <div class="flag-box"><div class="flag-label">C</div><div class="flag-val" id="fC">0</div></div>
+      </div>
+      <div class="pc-cycles">
+        <div class="pc-box"><span class="pc-lbl">PC</span><span class="pc-val" id="regPC">0000</span></div>
+        <div class="pc-box"><span class="pc-lbl">CYCLES</span><span class="pc-val" id="cycles">0</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Memory $00–$0F</div>
+      <div class="mem-grid" id="memGrid"></div>
+    </div>
+
+    <div class="panel" style="flex:1">
+      <div class="panel-title">LCD Display</div>
+      <div class="lcd-panel" id="lcdPanel">
+        <!-- Mission-mode LCD rows (generated dynamically by updateLCDForMission) -->
+        <div id="lcdMissionRows"></div>
+        <!-- Sandbox-only rows -->
+        <div class="lcd-row lcd-row-sandbox">
+          <span class="lcd-label">RANDOM      $FE</span>
+          <span class="lcd-val" id="lcdFE">00</span>
+        </div>
+        <div class="lcd-row lcd-row-sandbox">
+          <span class="lcd-label">KEY INPUT   $FF</span>
+          <span class="lcd-val key-io" id="lcdFF">00</span>
+        </div>
+        <div class="lcd-row lcd-row-sandbox lcd-watch-row" data-watch="0">
+          <span class="lcd-label lcd-watch-label" title="Click to change address">WATCH       $00</span>
+          <span class="lcd-val" id="lcdWatch0">00</span>
+        </div>
+        <div class="lcd-row lcd-row-sandbox lcd-watch-row" data-watch="1" style="border-bottom:none">
+          <span class="lcd-label lcd-watch-label" title="Click to change address">WATCH       $01</span>
+          <span class="lcd-val" id="lcdWatch1">00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-bar">
+  <button class="btn" id="btnReset" onclick="doReset()">RESET</button>
+  <button class="btn" id="btnStep"  onclick="doStep()">STEP</button>
+  <button class="btn" id="btnRun"   onclick="doRun()">RUN</button>
+  <button class="btn primary" id="btnTests" onclick="doRunTests()">RUN TESTS</button>
+  <button class="btn" id="btnNext"  onclick="nextMission()">NEXT MISSION</button>
+  <button class="btn sandbox-btn" id="btnSandbox" onclick="toggleSandbox()">SANDBOX</button>
+  <!-- SANDBOX LIVE EXECUTION — buttons visible only in sandbox mode -->
+  <button class="btn live-btn" id="btnRunLive" onclick="doRunLive()">RUN LIVE</button>
+  <button class="btn stop-btn" id="btnStop"    onclick="doStop()">STOP</button>
+  <button class="btn snake-btn" id="btnSnake"  onclick="loadSnakeDemo()">LOAD SNAKE DEMO</button>
+  <div class="status info" id="statusLine">READY — SYSTEM INITIALIZED</div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ============================================================
+// MODE
+// ============================================================
+let mode = 'mission'; // 'mission' | 'sandbox'
+
+function toggleSandbox() {
+  const btn = document.getElementById('btnSandbox');
+  if (mode === 'sandbox') {
+    saveGame();
+    mode = 'mission';
+    btn.classList.remove('active');
+    document.body.classList.remove('sandbox-mode');
+    // Clear memory-mapped I/O registers on exit
+    memory[0xFF] = 0;
+    memory[0xFE] = 0;
+    lastRngByte = 0;
+    _sbGridBuilt = false; // force full rebuild next time
+    loadMission();
+    setStatus('SANDBOX MODE DEACTIVATED — MISSION MODE RESTORED', 'info');
+  } else {
+    saveGame();
+    mode = 'sandbox';
+    btn.classList.add('active');
+    document.body.classList.add('sandbox-mode');
+    document.getElementById('editorTitle').innerHTML = 'Assembly Editor <span class="sandbox-badge">SANDBOX</span>';
+    updateLCDForMission(-1);
+    updateSandboxMemGrid();
+    setStatus('SANDBOX MODE ACTIVE — GRADING DISABLED — DIRECT MEMORY ACCESS ENABLED', 'sandbox');
+  }
+}
+
+// ============================================================
+// ASSEMBLER
+// ============================================================
+const ALLOWED_MNEMONICS = [
+  'LDA','STA','ADC','SBC','SEC','CLC','BRK','CMP','BCS','BCC',
+  // ISA EXPANSION PACK
+  'LDX','STX','LDY','STY','INX','DEX','INY','DEY',
+  'JSR','RTS','PHA','PLA',
+  'AND','ORA','EOR','LSR','ASL','ROL','ROR',
+  'BEQ','BNE','BMI','BPL',
+  'TAX','TAY','TXA','TYA','TXS','TSX',
+  'NOP','SEI','CLI','SEV','CLV',
+  // ISA EXPANSION ADDITIONS
+  'CPX','CPY','INC','DEC',
+  // === ADD: JMP INSTRUCTION ===
+  'JMP',
+  // === ADD: BIT INSTRUCTION ===
+  'BIT'
+];
+
+// ============================================================
+// MISSIONS
+// ============================================================
+const MISSIONS = [
+  {
+    id: 1,
+    name: "FIELD BALLISTICS UNIT — PROTO A",
+    narrative: `Artillery unit reports systematic deviation in impact coordinates.
+Field sensors return raw range data, but atmospheric wind drift introduces consistent offset.
+Program the correction module.`,
+    objectives: [
+      "Read RAW RANGE from $00",
+      "Read WIND DRIFT from $01",
+      "Store ($00 - $01) & $FF into $02",
+      "Do not modify $00 or $01",
+      "Terminate with BRK",
+      "Complete within 500 cycles"
+    ],
+    outputSlot: 2,
+    testLogic: (r0, r1) => (r0 - r1) & 0xFF,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: ROUTINE',
+      body: `<p>Correction module validated against field data. Trajectory adjustments are within acceptable deviation margins.</p>
+<p>Command has noted the implementation. No anomalies flagged at this time. The module has been forwarded to integration for deployment review.</p>
+<p>Proceed to next assignment when ready. Delay at your own discretion.</p>`
+    }
+  },
+  {
+    id: 2,
+    name: "IMPACT CLASSIFIER — PROTO B",
+    narrative: `Field command requires automatic classification of trajectory stability.
+If RAW RANGE ≥ WIND DRIFT, classify as STABLE.
+Otherwise classify as UNSTABLE.`,
+    objectives: [
+      "Read RAW RANGE from $00",
+      "Read WIND DRIFT from $01",
+      "If $00 ≥ $01 store #$FF into $03 (STABLE)",
+      "Else store 0 into $03 (UNSTABLE)",
+      "Do not modify $00 or $01",
+      "Terminate with BRK",
+      "Complete within 500 cycles"
+    ],
+    outputSlot: 3,
+    testLogic: (r0, r1) => r0 >= r1 ? 0xFF : 0x00,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: REVIEWED',
+      body: `<p>Classification module verified. Stable and unstable trajectory signatures are being categorised as specified.</p>
+<p>Field command has not commented on the specific threshold logic. The definition of "stable" in operational contexts remains at command discretion.</p>
+<p>Your work has been logged. A third module awaits calibration.</p>`
+    }
+  },
+  {
+    id: 3,
+    name: "ANOMALY SUPPRESSION FILTER — PROTO C",
+    narrative: `System diagnostics indicate that certain computed deltas fall outside acceptable operational bounds.
+
+To maintain data integrity, values below zero must be clamped to zero prior to storage.
+
+Additionally, suppression events must be flagged for audit logging.
+
+Do not alter source registers.`,
+    objectives: [
+      "Read PRIMARY VALUE from $00",
+      "Read OFFSET VALUE from $01",
+      "Compute ($00 - $01)",
+      "If result < 0: store 0 into $02 and 1 into $03",
+      "Else: store result into $02 and 0 into $03",
+      "Do not modify $00 or $01",
+      "Terminate with BRK",
+      "Complete within 500 cycles"
+    ],
+    outputSlots: [2, 3],
+    testLogic: (r0, r1) => {
+      const diff = r0 - r1;
+      return diff >= 0 ? { out2: diff & 0xFF, out3: 0 } : { out2: 0, out3: 1 };
+    },
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: ARCHIVED',
+      body: `<p>Anomaly suppression filter has passed verification. Suppression events are being logged as required.</p>
+<p>Audit records indicate a non-trivial number of values were clamped during testing. Whether these anomalies represent genuine data integrity issues or normal operational variance is not within the scope of this report.</p>
+<p>The audit log is routed to a system you do not have access to. This is standard. All three modules are now operational.</p>`
+    }
+  },
+  // ============================================================
+  // CLUSTER 1 — INSTITUTIONAL (Puzzles 4–7)
+  // ============================================================
+  {
+    id: 4,
+    name: "RANGE TABLE CORRECTION UNIT",
+    narrative: `A 4-byte input table has been loaded at $00–$03.
+Each entry is a raw field reading. A fixed correction constant of $0A has been determined from prior calibration.
+Apply the constant to each entry. Write the corrected values to $10–$13.
+Use a counted loop. Do not unroll.`,
+    objectives: [
+      "Read 4 values from $00–$03",
+      "Add correction constant #$0A to each (result wraps at $FF)",
+      "Store corrected values to $10–$13 in order",
+      "Use a loop with X or Y as counter — do not unroll",
+      "Terminate with BRK within 300 cycles"
+    ],
+    cycleLimit: 300,
+    testSetup: (mem, r0, r1) => {
+      // r0→$00, r1→$01 already set; seed $02 and $03 with known values
+      mem[2] = (r0 + r1) & 0xFF;
+      mem[3] = (r0 ^ r1) & 0xFF;
+    },
+    testFull: (mem, r0, r1) => {
+      const inputs = [r0, r1, (r0 + r1) & 0xFF, (r0 ^ r1) & 0xFF];
+      for (let i = 0; i < 4; i++) {
+        const exp = (inputs[i] + 0x0A) & 0xFF;
+        if (mem[0x10 + i] !== exp)
+          return `$${(0x10+i).toString(16).toUpperCase()}: EXP ${exp.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10+i].toString(16).toUpperCase().padStart(2,'0')}`;
+      }
+      return null;
+    },
+    testLogic: () => 0, // unused when testFull present
+    outputSlot: 0x10,   // shown in UI as primary output
+    allowInputModify: false,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: ROUTINE',
+      body: `<p>Correction pass verified across all four table entries. Output table forwarded to integration.</p>
+<p>The calibration constant was sourced from a prior session. Its origin is not within the scope of this assignment.</p>`
+    }
+  },
+  {
+    id: 5,
+    name: "THRESHOLD DENSITY SCANNER",
+    narrative: `An 8-byte data buffer has been loaded at $00–$07.
+The buffer length is fixed at $08 and stored at $20.
+Scan the buffer using indexed addressing. Count how many values exceed $80.
+Store the count in $30.`,
+    objectives: [
+      "Read buffer length from $20 (will be $08)",
+      "Scan $00–$07 using LDA $00,X indexed addressing",
+      "Count entries where value > $80",
+      "Store final count in $30",
+      "Terminate with BRK within 500 cycles"
+    ],
+    cycleLimit: 500,
+    testSetup: (mem, r0, r1) => {
+      // r0→$00, r1→$01; seed $02–$07 deterministically from r0/r1
+      mem[2] = (r0 + 1) & 0xFF;
+      mem[3] = (r1 + 2) & 0xFF;
+      mem[4] = (r0 ^ 0xAA) & 0xFF;
+      mem[5] = (r1 ^ 0x55) & 0xFF;
+      mem[6] = (r0 + r1 + 3) & 0xFF;
+      mem[7] = (r0 * 3) & 0xFF;
+      mem[0x20] = 8; // buffer length
+    },
+    testFull: (mem, r0, r1) => {
+      const buf = [
+        r0, r1,
+        (r0 + 1) & 0xFF, (r1 + 2) & 0xFF,
+        (r0 ^ 0xAA) & 0xFF, (r1 ^ 0x55) & 0xFF,
+        (r0 + r1 + 3) & 0xFF, (r0 * 3) & 0xFF
+      ];
+      let count = 0;
+      for (const v of buf) if (v > 0x80) count++;
+      if (mem[0x30] !== count)
+        return `$30: EXP ${count.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x30].toString(16).toUpperCase().padStart(2,'0')}`;
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x30,
+    allowInputModify: false,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: FILED',
+      body: `<p>Density count confirmed. Statistical distribution of above-threshold values is within expected variance.</p>
+<p>Whether that variance was derived from prior operational data is not documented here.</p>`
+    }
+  },
+  {
+    id: 6,
+    name: "SIGNAL INTEGRITY — CHECKSUM MODULE",
+    narrative: `A 6-byte signal packet occupies $00–$05.
+Compute an integrity checksum: sum all six bytes, retaining only the low byte. Store in $10.
+Additionally, if any byte in the packet equals $FF — a reserved sentinel value — store $01 in $11. Otherwise store $00.
+The sentinel flag must be set even if only one byte triggers it.`,
+    objectives: [
+      "Sum bytes at $00–$05 (low byte only) → store in $10",
+      "If any byte equals #$FF → store #$01 in $11, else #$00",
+      "Terminate with BRK within 600 cycles"
+    ],
+    cycleLimit: 600,
+    testSetup: (mem, r0, r1) => {
+      mem[2] = (r0 ^ r1) & 0xFF;
+      mem[3] = (r0 + 0x10) & 0xFF;
+      mem[4] = (r1 + 0x20) & 0xFF;
+      mem[5] = (r0 & 0x7F);
+    },
+    testFull: (mem, r0, r1) => {
+      const buf = [
+        r0, r1,
+        (r0 ^ r1) & 0xFF, (r0 + 0x10) & 0xFF,
+        (r1 + 0x20) & 0xFF, (r0 & 0x7F)
+      ];
+      let sum = 0, sentinel = 0;
+      for (const v of buf) { sum = (sum + v) & 0xFF; if (v === 0xFF) sentinel = 1; }
+      if (mem[0x10] !== sum)
+        return `$10 checksum: EXP ${sum.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10].toString(16).toUpperCase().padStart(2,'0')}`;
+      if (mem[0x11] !== sentinel)
+        return `$11 sentinel flag: EXP ${sentinel.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x11].toString(16).toUpperCase().padStart(2,'0')}`;
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x10,
+    allowInputModify: false,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: FILED',
+      body: `<p>Checksum module validated. Sentinel values were detected during testing. Their operational meaning is defined at a classification level above this contract.</p>`
+    }
+  },
+  {
+    id: 7,
+    name: "PRIORITY ENCODER — CHANNEL EXTRACTION",
+    narrative: `A packed status byte is loaded at $00.
+Bits 0–3 encode four sensor channels. Bits 4–7 encode system flags.
+Extract each nibble into separate output locations.
+Compute the parity of the low nibble — XOR all four bits together — and store the result.
+Do not alter $00.`,
+    objectives: [
+      "Store low nibble of $00 (bits 0–3) in $10",
+      "Store high nibble of $00 (bits 4–7, shifted right 4) in $11",
+      "Compute parity of low nibble (XOR of bits 0–3) → store in $12 (#$00 or #$01)",
+      "Do not modify $00",
+      "Terminate with BRK within 400 cycles"
+    ],
+    cycleLimit: 400,
+    testFull: (mem, r0, r1) => {
+      const lo = r0 & 0x0F;
+      const hi = (r0 >> 4) & 0x0F;
+      const parity = ((r0 ^ (r0 >> 1) ^ (r0 >> 2) ^ (r0 >> 3)) & 1);
+      if (mem[0x10] !== lo) return `$10 low nibble: EXP ${lo.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10].toString(16).toUpperCase().padStart(2,'0')}`;
+      if (mem[0x11] !== hi) return `$11 high nibble: EXP ${hi.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x11].toString(16).toUpperCase().padStart(2,'0')}`;
+      if (mem[0x12] !== parity) return `$12 parity: EXP ${parity} GOT ${mem[0x12]}`;
+      if (mem[0x00] !== r0) return `$00 was modified`;
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x10,
+    allowInputModify: false,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: FILED',
+      body: `<p>Channel extraction confirmed. Parity checks nominal. Sensor channel designations are assigned by field operations — this module does not require that information.</p>`
+    }
+  },
+  // ============================================================
+  // CLUSTER 2 — COMPLICIT (Puzzles 8–11)
+  // ============================================================
+  {
+    id: 8,
+    name: "CLAMP SUBROUTINE — REFACTOR",
+    narrative: `Command has requested that the clamp-to-zero logic be refactored into a reusable subroutine.
+The subroutine receives a value in A. If A represents a negative result — that is, the result of a prior subtraction that borrowed — clamp to $00.
+Call it three times with the three input pairs below. Store results to $10–$12.
+The call site is reviewed. Structure matters.`,
+    objectives: [
+      "Write a subroutine at a named label that clamps A to #$00 if negative (borrow occurred)",
+      "Pair 1: $00 − $01 → clamped result into $10",
+      "Pair 2: $02 − $03 → clamped result into $11",
+      "Pair 3: $04 − $05 → clamped result into $12",
+      "Use JSR/RTS — not inline code",
+      "Terminate with BRK within 700 cycles"
+    ],
+    cycleLimit: 700,
+    testSetup: (mem, r0, r1) => {
+      mem[2] = (r1 + 0x30) & 0xFF;
+      mem[3] = (r0 + 0x10) & 0xFF;
+      mem[4] = (r0 & 0x7F);
+      mem[5] = r1 & 0xFF;
+    },
+    testFull: (mem, r0, r1) => {
+      const pairs = [
+        [r0, r1],
+        [(r1 + 0x30) & 0xFF, (r0 + 0x10) & 0xFF],
+        [r0 & 0x7F, r1 & 0xFF]
+      ];
+      for (let i = 0; i < 3; i++) {
+        const diff = pairs[i][0] - pairs[i][1];
+        const exp = diff < 0 ? 0 : diff & 0xFF;
+        if (mem[0x10 + i] !== exp)
+          return `$${(0x10+i).toString(16).toUpperCase()}: EXP ${exp.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10+i].toString(16).toUpperCase().padStart(2,'0')}`;
+      }
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x10,
+    allowInputModify: false,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: NOTED',
+      body: `<p>Subroutine architecture noted. Reusable components reduce review overhead. All three outputs passed validation.</p>`
+    }
+  },
+  {
+    id: 9,
+    name: "SEQUENCE REVERSAL — STACK METHOD",
+    narrative: `A 5-byte sequence occupies $00–$04.
+The required output is that sequence reversed, placed at $10–$14.
+The method is specified: push all five bytes onto the stack, then pull them in order.
+The stack is not invisible scaffolding. It is a data structure.`,
+    objectives: [
+      "Push bytes at $00–$04 onto the stack in forward order",
+      "Pull them into $10–$14 (LIFO reversal)",
+      "$10 must equal $04, $11 must equal $03, etc.",
+      "Terminate with BRK within 400 cycles"
+    ],
+    cycleLimit: 400,
+    testSetup: (mem, r0, r1) => {
+      mem[2] = (r0 ^ r1 ^ 0x3C) & 0xFF;
+      mem[3] = (r0 + r1 + 7) & 0xFF;
+      mem[4] = (r1 * 2 + 1) & 0xFF;
+    },
+    testFull: (mem, r0, r1) => {
+      const seq = [
+        r0, r1,
+        (r0 ^ r1 ^ 0x3C) & 0xFF,
+        (r0 + r1 + 7) & 0xFF,
+        (r1 * 2 + 1) & 0xFF
+      ];
+      for (let i = 0; i < 5; i++) {
+        const exp = seq[4 - i];
+        if (mem[0x10 + i] !== exp)
+          return `$${(0x10+i).toString(16).toUpperCase()}: EXP ${exp.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10+i].toString(16).toUpperCase().padStart(2,'0')}`;
+      }
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x10,
+    allowInputModify: false,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: NOTED',
+      body: `<p>Reversal confirmed. Stack usage within acceptable parameters.</p>
+<p>A note has been appended to your file: <em>efficient</em>. No further context provided.</p>`
+    }
+  },
+  {
+    id: 10,
+    name: "DUAL POINTER ACCESS — INDIRECT MODES",
+    narrative: `Two addressing modes are required for this assignment.
+A table of two 2-byte pointers occupies $E0–$E3. The first pointer ($E0/$E1) references block A. The second ($E2/$E3) references block B.
+Use ($E0,X) with X=0 to read the first byte of block A, and X=2 to read the first byte of block B — demonstrating pointer table selection.
+Then use ($E0),Y with Y=0–3 to copy all four bytes of block A into $10–$13, and ($E2),Y with Y=0–3 to copy block B into $14–$17.
+Do not modify the pointer table or the source blocks.`,
+    objectives: [
+      "Pointer table at $E0–$E3: two little-endian 2-byte pointers",
+      "Use LDA ($E0,X) with X=0 to read byte 0 of block A (confirm the mode works)",
+      "Use LDA ($E0),Y with Y=0–3 to copy block A into $10–$13",
+      "Use LDA ($E2),Y with Y=0–3 to copy block B into $14–$17",
+      "Do not modify $E0–$E3 or the source data blocks",
+      "Terminate with BRK within 500 cycles"
+    ],
+    cycleLimit: 500,
+    testSetup: (mem, r0, r1) => {
+      // Block 0 at $40, block 1 at $50
+      mem[0xE0] = 0x40; mem[0xE1] = 0x00; // ptr0 → $0040
+      mem[0xE2] = 0x50; mem[0xE3] = 0x00; // ptr1 → $0050
+      // Block 0 data
+      mem[0x40] = r0;
+      mem[0x41] = r1;
+      mem[0x42] = (r0 + r1) & 0xFF;
+      mem[0x43] = (r0 ^ r1) & 0xFF;
+      // Block 1 data
+      mem[0x50] = (r0 + 1) & 0xFF;
+      mem[0x51] = (r1 + 2) & 0xFF;
+      mem[0x52] = (r0 * 2) & 0xFF;
+      mem[0x53] = (r1 * 3) & 0xFF;
+    },
+    testFull: (mem, r0, r1) => {
+      const b0 = [r0, r1, (r0+r1)&0xFF, (r0^r1)&0xFF];
+      const b1 = [(r0+1)&0xFF, (r1+2)&0xFF, (r0*2)&0xFF, (r1*3)&0xFF];
+      for (let i = 0; i < 4; i++) {
+        if (mem[0x10+i] !== b0[i]) return `$${(0x10+i).toString(16).toUpperCase()}: EXP ${b0[i].toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10+i].toString(16).toUpperCase().padStart(2,'0')}`;
+        if (mem[0x14+i] !== b1[i]) return `$${(0x14+i).toString(16).toUpperCase()}: EXP ${b1[i].toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x14+i].toString(16).toUpperCase().padStart(2,'0')}`;
+      }
+      // Check pointer table not modified
+      if (mem[0xE0]!==0x40||mem[0xE1]!==0x00||mem[0xE2]!==0x50||mem[0xE3]!==0x00)
+        return 'pointer table at $E0–$E3 was modified';
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x10,
+    allowInputModify: false,
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: RESTRICTED',
+      body: `<p>Pointer traversal verified. Both blocks accessed and copied without error.</p>
+<p>The origin of the data blocks is marked restricted. Access was granted for the purposes of this module only.</p>`
+    }
+  },
+  {
+    id: 11,
+    name: "FILTERED COPY WITH MASK",
+    narrative: `An 8-byte data block is accessible via a 2-byte pointer at $FE–$FF (low byte first).
+A mask byte at $20 defines which bits of each value to retain.
+Copy each value, ANDed with the mask, into the output block at $10–$17.
+If a masked value equals $00, increment the suppression counter at $18.`,
+    objectives: [
+      "2-byte pointer at $FE (low) and $FF (high) — do not modify",
+      "Mask byte at $20 — do not modify",
+      "Read 8 bytes via LDA ($FE),Y for Y=0–7",
+      "AND each with mask, store results to $10–$17",
+      "For each result that equals $00, increment $18",
+      "Terminate with BRK within 800 cycles"
+    ],
+    cycleLimit: 800,
+    testSetup: (mem, r0, r1) => {
+      // Data block at $60
+      mem[0xFE] = 0x60; mem[0xFF] = 0x00;
+      const mask = r0 | 0x01; // ensure mask never zero
+      mem[0x20] = mask;
+      for (let i = 0; i < 8; i++) {
+        mem[0x60 + i] = (r0 * (i+1) + r1) & 0xFF;
+      }
+      mem[0x18] = 0;
+    },
+    testFull: (mem, r0, r1) => {
+      const mask = r0 | 0x01;
+      let suppCount = 0;
+      for (let i = 0; i < 8; i++) {
+        const src = (r0 * (i+1) + r1) & 0xFF;
+        const masked = (src & mask) & 0xFF;
+        if (mem[0x10+i] !== masked)
+          return `$${(0x10+i).toString(16).toUpperCase()}: EXP ${masked.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10+i].toString(16).toUpperCase().padStart(2,'0')}`;
+        if (masked === 0) suppCount++;
+      }
+      if (mem[0x18] !== suppCount)
+        return `$18 suppression count: EXP ${suppCount} GOT ${mem[0x18]}`;
+      if (mem[0xFE]!==0x60||mem[0xFF]!==0x00) return 'pointer at $FE/$FF was modified';
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x10,
+    allowInputModify: true, // $FE/$FF are set in testSetup, not counted as inputs
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: ARCHIVED',
+      body: `<p>Masking confirmed. Suppression count recorded.</p>
+<p>The counter has been appended to a report you have not been sent. Standard procedure.</p>`
+    }
+  },
+  // ============================================================
+  // CLUSTER 3 — TERMINAL (Puzzles 12–15)
+  // ============================================================
+  {
+    id: 12,
+    name: "SERIAL BIT PACKER",
+    narrative: `Eight single-bit values occupy the low bit of bytes $00–$07. Each byte is either $00 or $01.
+Pack them into a single output byte at $10.
+$00 becomes the most significant bit. $07 becomes the least significant.
+Use rotation through carry to assemble the byte one bit at a time.`,
+    objectives: [
+      "Read low bit of $00–$07 in order",
+      "Pack into a single byte using ROL/ROR through carry",
+      "$00 bit → MSB, $07 bit → LSB",
+      "Store packed byte at $10",
+      "Terminate with BRK within 600 cycles"
+    ],
+    cycleLimit: 600,
+    testSetup: (mem, r0, r1) => {
+      // r0 encodes the 8 bits — each byte in $00–$07 gets one bit
+      for (let i = 0; i < 8; i++) {
+        mem[i] = (r0 >> (7 - i)) & 1;
+      }
+    },
+    testFull: (mem, r0, r1) => {
+      // r0 is the packed byte — bits 7..0 go into $00...$07
+      const expected = r0; // by design
+      if (mem[0x10] !== expected)
+        return `$10: EXP ${expected.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10].toString(16).toUpperCase().padStart(2,'0')}`;
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x10,
+    allowInputModify: true, // $00-$07 are input bits (may be modified if needed, but shouldn't be required)
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: TRANSMITTED',
+      body: `<p>Packed byte transmitted. Destination address classified.</p>`
+    }
+  },
+  {
+    id: 13,
+    name: "THRESHOLD MATRIX SCAN",
+    narrative: `A 4×4 matrix occupies $00–$0F in row-major order.
+A row threshold is at $20. A column threshold is at $21.
+Scan the matrix. For cells where both the row index exceeds the row threshold AND the column index exceeds the column threshold, set the corresponding bit in a selection bitfield at $30.
+Bit 0 = cell [2][2]. Bit 1 = cell [2][3]. Bit 2 = cell [3][2]. Bit 3 = cell [3][3].
+Use CPX and CPY for index comparisons.`,
+    objectives: [
+      "Matrix at $00–$0F (row-major), row threshold at $20, col threshold at $21",
+      "Use CPX/CPY for index comparisons",
+      "Set bit N in $30 for each qualifying cell (row>thresh AND col>thresh)",
+      "Bit 0=$[2][2], Bit 1=$[2][3], Bit 2=$[3][2], Bit 3=$[3][3]",
+      "Terminate with BRK within 1000 cycles"
+    ],
+    cycleLimit: 1000,
+    testSetup: (mem, r0, r1) => {
+      for (let i = 0; i < 16; i++) mem[i] = (r0 * i + r1) & 0xFF;
+      mem[0x20] = 1; // row threshold = 1 (rows > 1, i.e. row 2 and 3)
+      mem[0x21] = 1; // col threshold = 1 (cols > 1, i.e. col 2 and 3)
+    },
+    testFull: (mem, r0, r1) => {
+      const rowTh = 1, colTh = 1;
+      let bits = 0;
+      const cells = [[2,2],[2,3],[3,2],[3,3]];
+      for (let b = 0; b < 4; b++) {
+        const [row, col] = cells[b];
+        if (row > rowTh && col > colTh) bits |= (1 << b);
+      }
+      // With fixed thresholds 1,1 all four cells qualify → bits = 0x0F
+      if (mem[0x30] !== bits)
+        return `$30: EXP ${bits.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x30].toString(16).toUpperCase().padStart(2,'0')}`;
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x30,
+    allowInputModify: true, // testSetup seeds $00-$0F with matrix data, overwriting r0/r1 slots
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: RESTRICTED',
+      body: `<p>Selection matrix computed. Downstream systems will act on the output.</p>
+<p>Your involvement ends at $30.</p>`
+    }
+  },
+  {
+    id: 14,
+    name: "IN-PLACE NORMALISATION PASS",
+    narrative: `A buffer at $00–$07 contains values requiring a single normalisation pass.
+Values greater than $80 are interpreted as negative in two's complement and must be decremented by 1. When a value is decremented, set the corresponding bit in $10.
+Values equal to $00 must be incremented by 1 to eliminate zero entries.
+All other values remain unchanged.
+Modify the buffer in place.`,
+    objectives: [
+      "Process each byte at $00–$07 in place",
+      "Value > $80: DEC it, set bit N in $10 (bit 0 = $00, bit 7 = $07)",
+      "Value = $00: INC it",
+      "All others: unchanged",
+      "Terminate with BRK within 800 cycles"
+    ],
+    cycleLimit: 800,
+    testSetup: (mem, r0, r1) => {
+      // Seed $00-$07 with values covering all three cases
+      const seeds = [r0, r1, 0x00, 0x81, (r0 & 0x7F) || 0x40, 0x82, 0xFF, (r1 & 0x7F) || 0x3F];
+      for (let i = 0; i < 8; i++) mem[i] = seeds[i];
+    },
+    testFull: (mem, r0, r1) => {
+      const seeds = [r0, r1, 0x00, 0x81, (r0 & 0x7F) || 0x40, 0x82, 0xFF, (r1 & 0x7F) || 0x3F];
+      let expectedFlag = 0;
+      for (let i = 0; i < 8; i++) {
+        let v = seeds[i];
+        let expected;
+        if (v > 0x80) { expected = (v - 1) & 0xFF; expectedFlag |= (1 << i); }
+        else if (v === 0x00) { expected = 0x01; }
+        else { expected = v; }
+        if (mem[i] !== expected)
+          return `$${i.toString(16).toUpperCase().padStart(2,'0')}: EXP ${expected.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[i].toString(16).toUpperCase().padStart(2,'0')}`;
+      }
+      if (mem[0x10] !== expectedFlag)
+        return `$10 flag: EXP ${expectedFlag.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10].toString(16).toUpperCase().padStart(2,'0')}`;
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x10,
+    allowInputModify: true, // in-place modification is the entire point
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: NOTED',
+      body: `<p>Normalisation pass complete. Adjusted values will be used as-is in subsequent processing.</p>`
+    }
+  },
+  {
+    id: 15,
+    name: "DEAD RECKONING — POSITION INTEGRATOR",
+    narrative: `Initial X-coordinate is at $00. Initial Y-coordinate is at $01.
+Eight movement commands occupy $10–$17.
+Each command byte encodes direction in bits 6–7 (00=North, 01=East, 10=South, 11=West) and magnitude in bits 0–5.
+Apply each command in sequence. After each update, clamp both coordinates to $00–$3F.
+Each clamping event increments the counter at $22.
+Store final X at $20, final Y at $21.`,
+    objectives: [
+      "Parse 8 command bytes at $10–$17",
+      "Direction from bits 6–7: 00=N(Y−), 01=E(X+), 10=S(Y+), 11=W(X−)",
+      "Magnitude from bits 0–5",
+      "Update X ($00) and Y ($01), clamp both to $00–$3F after each command",
+      "Count each clamping event in $22",
+      "Store final X in $20, final Y in $21",
+      "Terminate with BRK within 1200 cycles"
+    ],
+    cycleLimit: 1200,
+    testSetup: (mem, r0, r1) => {
+      mem[0] = r0 & 0x3F;  // clamp initial position
+      mem[1] = r1 & 0x3F;
+      // 8 fixed commands: N3 E5 S4 W2 E10 N6 S1 W8
+      const cmds = [
+        (0x00 << 6) | 3,   // N 3
+        (0x01 << 6) | 5,   // E 5
+        (0x02 << 6) | 4,   // S 4
+        (0x03 << 6) | 2,   // W 2
+        (0x01 << 6) | 10,  // E 10
+        (0x00 << 6) | 6,   // N 6
+        (0x02 << 6) | 1,   // S 1
+        (0x03 << 6) | 8    // W 8
+      ];
+      for (let i = 0; i < 8; i++) mem[0x10 + i] = cmds[i];
+    },
+    testFull: (mem, r0, r1) => {
+      let x = r0 & 0x3F, y = r1 & 0x3F, clampCount = 0;
+      const cmds = [
+        (0x00 << 6)|3, (0x01 << 6)|5, (0x02 << 6)|4, (0x03 << 6)|2,
+        (0x01 << 6)|10, (0x00 << 6)|6, (0x02 << 6)|1, (0x03 << 6)|8
+      ];
+      for (const cmd of cmds) {
+        const dir = (cmd >> 6) & 0x03;
+        const mag = cmd & 0x3F;
+        if      (dir === 0) y -= mag;
+        else if (dir === 1) x += mag;
+        else if (dir === 2) y += mag;
+        else                x -= mag;
+        if (x < 0)    { x = 0;    clampCount++; }
+        if (x > 0x3F) { x = 0x3F; clampCount++; }
+        if (y < 0)    { y = 0;    clampCount++; }
+        if (y > 0x3F) { y = 0x3F; clampCount++; }
+      }
+      if (mem[0x20] !== x) return `$20 final X: EXP ${x.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x20].toString(16).toUpperCase().padStart(2,'0')}`;
+      if (mem[0x21] !== y) return `$21 final Y: EXP ${y.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x21].toString(16).toUpperCase().padStart(2,'0')}`;
+      if (mem[0x22] !== clampCount) return `$22 clamp count: EXP ${clampCount} GOT ${mem[0x22]}`;
+      return null;
+    },
+    testLogic: () => 0,
+    outputSlot: 0x20,
+    allowInputModify: true, // position coords may be updated in place
+    debrief: {
+      subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: CLOSED',
+      body: `<p>Final coordinates logged. You have been a reliable contractor. This concludes your current assignment.</p>
+<p style="color:var(--amber);font-size:13px;margin-top:8px;">ZERO PAGE OPERATIONS CONCLUDED. TERMINAL CLOSING.</p>`
+    }
+  }
+];
+
+let currentMissionIndex = 0;
+let missionCleared = false;
+let completionShown = false;
+let currentHiddenMissionIndex = -1; // -1 = not in hidden mission mode
+
+// ============================================================
+// LCD DISPLAY CONFIG PER MISSION
+// Each mission defines which addresses to show on the LCD panel.
+// addr = memory address, label = display text, input = green (true) or amber (false)
+// ============================================================
+const MISSION_LCD = [
+  // idx 0: FIELD BALLISTICS
+  [{addr:0x00,label:'RAW RANGE  $00',input:true},{addr:0x01,label:'WIND DRIFT $01',input:true},{addr:0x02,label:'CORRECTED  $02'}],
+  // idx 1: ANOMALY SUPPRESSION FILTER
+  [{addr:0x00,label:'RAW RANGE  $00',input:true},{addr:0x01,label:'WIND DRIFT $01',input:true},{addr:0x02,label:'OUTPUT     $02'},{addr:0x03,label:'CLASSIFY   $03'}],
+  // idx 2: ANOMALY SUPPRESSION — NEGATIVE HANDLER
+  [{addr:0x00,label:'PRIMARY    $00',input:true},{addr:0x01,label:'OFFSET     $01',input:true},{addr:0x02,label:'RESULT     $02'},{addr:0x03,label:'SUPPRESS   $03'}],
+  // idx 3: FILTERED INTERCEPT BUFFER
+  [{addr:0x00,label:'$00',input:true},{addr:0x01,label:'$01',input:true},{addr:0x02,label:'$02'},{addr:0x03,label:'OUTPUT     $03'}],
+  // idx 4: THRESHOLD DENSITY SCANNER
+  [{addr:0x00,label:'$00',input:true},{addr:0x01,label:'$01',input:true},{addr:0x20,label:'BUF LEN    $20',input:true},{addr:0x30,label:'COUNT      $30'}],
+  // idx 5: SIGNAL INTEGRITY — CHECKSUM MODULE
+  [{addr:0x00,label:'$00',input:true},{addr:0x01,label:'$01',input:true},{addr:0x10,label:'CHECKSUM   $10'},{addr:0x11,label:'SENTINEL   $11'}],
+  // idx 6: PRIORITY ENCODER — CHANNEL EXTRACTION
+  [{addr:0x00,label:'INPUT      $00',input:true},{addr:0x10,label:'LO NIBBLE  $10'},{addr:0x11,label:'HI NIBBLE  $11'},{addr:0x12,label:'PARITY     $12'}],
+  // idx 7: CLAMP SUBROUTINE — REFACTOR
+  [{addr:0x10,label:'RESULT 1   $10'},{addr:0x11,label:'RESULT 2   $11'},{addr:0x12,label:'RESULT 3   $12'}],
+  // idx 8: SEQUENCE REVERSAL — STACK METHOD
+  [{addr:0x10,label:'$10'},{addr:0x11,label:'$11'},{addr:0x12,label:'$12'},{addr:0x13,label:'$13'}],
+  // idx 9: DUAL POINTER ACCESS — INDIRECT MODES
+  [{addr:0x10,label:'A[0]       $10'},{addr:0x13,label:'A[3]       $13'},{addr:0x14,label:'B[0]       $14'},{addr:0x17,label:'B[3]       $17'}],
+  // idx 10: FILTERED COPY WITH MASK
+  [{addr:0x10,label:'OUT[0]     $10'},{addr:0x17,label:'OUT[7]     $17'},{addr:0x18,label:'SUPPRESS   $18'},{addr:0x20,label:'MASK       $20',input:true}],
+  // idx 11: SERIAL BIT PACKER
+  [{addr:0x00,label:'BIT 0      $00',input:true},{addr:0x07,label:'BIT 7      $07',input:true},{addr:0x10,label:'PACKED     $10'}],
+  // idx 12: THRESHOLD MATRIX SCAN
+  [{addr:0x20,label:'ROW THRESH $20',input:true},{addr:0x21,label:'COL THRESH $21',input:true},{addr:0x30,label:'BITFIELD   $30'}],
+  // idx 13: IN-PLACE NORMALISATION PASS
+  [{addr:0x00,label:'$00',input:true},{addr:0x01,label:'$01',input:true},{addr:0x10,label:'FLAG BYTE  $10'}],
+  // idx 14: DEAD RECKONING — POSITION INTEGRATOR
+  [{addr:0x20,label:'FINAL X    $20'},{addr:0x21,label:'FINAL Y    $21'},{addr:0x22,label:'CLAMP CNT  $22'}],
+];
+
+// Tracks which LCD addresses are currently displayed (set by updateLCDForMission)
+let _activeLCDAddrs = [];
+
+// ============================================================
+// MEMORY-MAPPED I/O (Sandbox only)
+// $FE = RNG register   $FF = Keyboard input register
+// ============================================================
+let rngSeed = Date.now() & 0x7FFFFFFF;
+let lastRngByte = 0;   // track last generated value for LCD
+
+function nextRandomByte() {
+  rngSeed = (Math.imul(rngSeed, 1103515245) + 12345) & 0x7FFFFFFF;
+  return (rngSeed >> 8) & 0xFF;
+}
+
+function hex2(n){ return ('0'+((n)&0xFF).toString(16).toUpperCase()).slice(-2); }
+function hex4(n){ return ('000'+((n)&0xFFFF).toString(16).toUpperCase()).slice(-4); }
+
+function assemble(src) {
+  const lines = src.split('\n');
+  const instructions = [];
+  // ISA EXPANSION ADDITIONS — Two-pass label resolution
+  // Pass 1: collect label -> instruction index mapping
+  const labelMap = {};
+  let instrCount = 0;
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    const ci = line.indexOf(';');
+    if (ci !== -1) line = line.slice(0, ci);
+    line = line.trim();
+    if (!line) continue;
+    const labelMatch = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*:(.*)/);
+    if (labelMatch) {
+      labelMap[labelMatch[1].toLowerCase()] = instrCount;
+      line = labelMatch[2].trim();
+      if (!line) continue;
+    }
+    // Count this as an instruction
+    instrCount++;
+  }
+
+  // Pass 2: assemble with label resolution
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    const ci = line.indexOf(';');
+    if (ci !== -1) line = line.slice(0, ci);
+    line = line.trim();
+    if (!line) continue;
+
+    if (line.match(/^[A-Za-z_][A-Za-z0-9_]*\s*:/)) {
+      line = line.replace(/^[A-Za-z_][A-Za-z0-9_]*\s*:\s*/, '').trim();
+      if (!line) continue;
+    }
+
+    const parts = line.split(/\s+/);
+    const mnem = parts[0].toUpperCase();
+    if (!ALLOWED_MNEMONICS.includes(mnem))
+      return { error: `Line ${i+1}: Unknown or disallowed instruction: ${mnem}` };
+
+    const operand = parts.slice(1).join('').trim();
+
+    // Implied instructions (no operand)
+    if (['SEC','CLC','BRK','INX','DEX','INY','DEY','RTS','PHA','PLA',
+         'TAX','TAY','TXA','TYA','TXS','TSX','NOP','SEI','CLI','CLV'].includes(mnem)) {
+      if (operand) return { error: `Line ${i+1}: ${mnem} takes no operand` };
+      instructions.push({ mnem, mode:'imp', val:0, lineNum:i });
+      continue;
+    }
+
+    // ISA EXPANSION ADDITIONS — Accumulator mode for shift/rotate (no operand)
+    // ASL, LSR, ROL, ROR with no operand operate on A register
+    if (['ASL','LSR','ROL','ROR'].includes(mnem) && !operand) {
+      instructions.push({ mnem, mode:'imp', val:0, lineNum:i });
+      continue;
+    }
+
+    // Branch instructions (numeric index or label)
+    if (['BCS','BCC','BEQ','BNE','BMI','BPL'].includes(mnem)) {
+      if (operand.match(/^[0-9]+$/)) {
+        instructions.push({ mnem, mode:'branch', val:parseInt(operand,10), lineNum:i });
+        continue;
+      }
+      // ISA EXPANSION ADDITIONS — label-based branch targets
+      const labelKey = operand.toLowerCase();
+      if (labelMap.hasOwnProperty(labelKey)) {
+        instructions.push({ mnem, mode:'branch', val:labelMap[labelKey], lineNum:i });
+        continue;
+      }
+      return { error: `Line ${i+1}: ${mnem} requires a numeric instruction index or label` };
+    }
+
+    // JSR $nnnn (absolute) or JSR label
+    // LABEL/BRANCH/JMP/JSR FIXES (SANDBOX SAFE)
+    if (mnem === 'JSR') {
+      if (operand.match(/^\$[0-9A-Fa-f]{1,4}$/)) {
+        instructions.push({ mnem, mode:'abs', val:parseInt(operand.slice(1),16), lineNum:i });
+        continue;
+      }
+      // Label-based JSR
+      const jsrLabel = operand.toLowerCase();
+      if (labelMap.hasOwnProperty(jsrLabel)) {
+        instructions.push({ mnem, mode:'abs', val:labelMap[jsrLabel], lineNum:i });
+        continue;
+      }
+      return { error: `Line ${i+1}: JSR requires $nnnn operand or valid label` };
+    }
+    // END LABEL/BRANCH/JMP/JSR FIXES
+
+    // === ADD: JMP INSTRUCTION ===
+    // JMP $nnnn — absolute jump to instruction index
+    // JMP label  — label-based jump (resolved in pass 1)
+    if (mnem === 'JMP') {
+      if (operand.match(/^\$[0-9A-Fa-f]{1,4}$/)) {
+        instructions.push({ mnem, mode:'jmp', val:parseInt(operand.slice(1),16), lineNum:i });
+        continue;
+      }
+      // Label-based jump
+      const jmpLabel = operand.toLowerCase();
+      if (labelMap.hasOwnProperty(jmpLabel)) {
+        instructions.push({ mnem, mode:'jmp', val:labelMap[jmpLabel], lineNum:i });
+        continue;
+      }
+      return { error: `Line ${i+1}: JMP requires $nnnn operand or valid label` };
+    }
+    // === END ADD: JMP INSTRUCTION ===
+
+    // ---- ISA EXPANSION PACK — new addressing modes ----
+
+    // Immediate: #$nn
+    if (operand.match(/^#\$[0-9A-Fa-f]{1,2}$/)) {
+      instructions.push({ mnem, mode:'imm', val:parseInt(operand.slice(2),16), lineNum:i });
+      continue;
+    }
+
+    // Indexed indirect: ($nn,X)
+    const indIdxX = operand.match(/^\(\$([0-9A-Fa-f]{1,2}),X\)$/i);
+    if (indIdxX) {
+      instructions.push({ mnem, mode:'ind_x', val:parseInt(indIdxX[1],16), lineNum:i });
+      continue;
+    }
+
+    // Indirect indexed: ($nn),Y
+    const indIdxY = operand.match(/^\(\$([0-9A-Fa-f]{1,2})\),Y$/i);
+    if (indIdxY) {
+      instructions.push({ mnem, mode:'ind_y', val:parseInt(indIdxY[1],16), lineNum:i });
+      continue;
+    }
+
+    // Indirect: ($nn)
+    const indZP = operand.match(/^\(\$([0-9A-Fa-f]{1,2})\)$/i);
+    if (indZP) {
+      instructions.push({ mnem, mode:'ind', val:parseInt(indZP[1],16), lineNum:i });
+      continue;
+    }
+
+    // Absolute indexed: $nnnn,X or $nnnn,Y
+    const absIdxX = operand.match(/^\$([0-9A-Fa-f]{3,4}),X$/i);
+    if (absIdxX) {
+      instructions.push({ mnem, mode:'abs_x', val:parseInt(absIdxX[1],16), lineNum:i });
+      continue;
+    }
+    const absIdxY = operand.match(/^\$([0-9A-Fa-f]{3,4}),Y$/i);
+    if (absIdxY) {
+      instructions.push({ mnem, mode:'abs_y', val:parseInt(absIdxY[1],16), lineNum:i });
+      continue;
+    }
+
+    // Zero page indexed: $nn,X or $nn,Y
+    const zpIdxX = operand.match(/^\$([0-9A-Fa-f]{1,2}),X$/i);
+    if (zpIdxX) {
+      instructions.push({ mnem, mode:'zp_x', val:parseInt(zpIdxX[1],16), lineNum:i });
+      continue;
+    }
+    const zpIdxY = operand.match(/^\$([0-9A-Fa-f]{1,2}),Y$/i);
+    if (zpIdxY) {
+      instructions.push({ mnem, mode:'zp_y', val:parseInt(zpIdxY[1],16), lineNum:i });
+      continue;
+    }
+
+    // Absolute: $nnnn
+    if (operand.match(/^\$[0-9A-Fa-f]{3,4}$/)) {
+      instructions.push({ mnem, mode:'abs', val:parseInt(operand.slice(1),16), lineNum:i });
+      continue;
+    }
+
+    // Zero page: $nn
+    if (operand.match(/^\$[0-9A-Fa-f]{1,2}$/)) {
+      instructions.push({ mnem, mode:'zp', val:parseInt(operand.slice(1),16), lineNum:i });
+      continue;
+    }
+
+    return { error: `Line ${i+1}: Invalid operand: '${operand}'.` };
+  }
+  if (!instructions.length) return { error: 'No instructions found.' };
+  return { instructions };
+}
+
+// ============================================================
+// CPU
+// ============================================================
+let cpu = { A:0, X:0, Y:0, PC:0, SP:0xFF, N:0, V:0, B:0, D:0, I:0, Z:0, C:0 };
+let memory = new Uint8Array(256 + 256); // 0x00-0xFF zero page + 0x100-0x1FF stack page
+let instructions = [];
+let halted = false;
+let cycles = 0;
+let currentExecLineNum = -1;
+let lastWrittenSlots = [];
+
+function resetCPU() {
+  cpu = { A:0, X:0, Y:0, PC:0, SP:0xFF, N:0, V:0, B:0, D:0, I:0, Z:0, C:0 };
+  cycles = 0; halted = false;
+  currentExecLineNum = -1; lastWrittenSlots = [];
+  updateSyntaxHighlight();
+}
+
+function setNZ(val) {
+  val &= 0xFF; cpu.N = (val>>7)&1; cpu.Z = val===0?1:0;
+}
+
+function execOne() {
+  if (halted) return 'halted';
+  if (cpu.PC >= instructions.length) return 'overrun';
+  // SANDBOX LIVE EXECUTION — ignore cycle limit in live mode
+  const _mCycleLimit = (window._currentGameMode === 'mission' && currentHiddenMissionIndex >= 0)
+    ? HIDDEN_MISSIONS[currentHiddenMissionIndex].cycleLimit
+    : (window._currentGameMode === 'mission' && MISSIONS[currentMissionIndex] && MISSIONS[currentMissionIndex].cycleLimit)
+    ? MISSIONS[currentMissionIndex].cycleLimit : 500;
+  if (cycles >= _mCycleLimit && !window._sandboxLiveMode) return 'cycle_limit';
+
+  const ins = instructions[cpu.PC];
+  currentExecLineNum = ins.lineNum;
+  cpu.PC++; cycles++;
+  lastWrittenSlots = [];
+
+  const { mnem, mode, val } = ins;
+
+  // ============================================================
+  // ISA EXPANSION PACK — Address resolution helper
+  // ============================================================
+  // Resolve effective address and operand value based on mode
+  function resolveAddr() {
+    switch(mode) {
+      case 'imm':   return { addr: -1, v: val & 0xFF };
+      case 'zp':    return { addr: val & 0xFF, v: memory[val & 0xFF] };
+      case 'zp_x':  { const a = (val + cpu.X) & 0xFF; return { addr: a, v: memory[a] }; }
+      case 'zp_y':  { const a = (val + cpu.Y) & 0xFF; return { addr: a, v: memory[a] }; }
+      case 'abs':   { const a = val & 0xFF; return { addr: a, v: memory[a] }; } // abs used as extended zp here
+      case 'abs_x': { const a = (val + cpu.X) & 0xFF; return { addr: a, v: memory[a] }; }
+      case 'abs_y': { const a = (val + cpu.Y) & 0xFF; return { addr: a, v: memory[a] }; }
+      case 'ind_y': {
+        const lo = memory[val & 0xFF];
+        const hi = memory[(val + 1) & 0xFF];
+        const base = (hi << 8) | lo;
+        const a = (base + cpu.Y) & 0xFF;
+        return { addr: a, v: memory[a] };
+      }
+      case 'ind_x': {
+        // Add X to zero-page address to select which pointer to use
+        const ptr = (val + cpu.X) & 0xFF;
+        const lo = memory[ptr];
+        const hi = memory[(ptr + 1) & 0xFF];
+        const a = ((hi << 8) | lo) & 0xFF;
+        return { addr: a, v: memory[a] };
+      }
+      case 'ind': {
+        const lo = memory[val & 0xFF];
+        const hi = memory[(val + 1) & 0xFF];
+        const a = ((hi << 8) | lo) & 0xFF;
+        return { addr: a, v: memory[a] };
+      }
+      default: return { addr: -1, v: 0 };
+    }
+  }
+
+  // Stack helpers (uses memory[0x100..0x1FF] — indices 256..511 in our expanded array)
+  function stackPush(b) {
+    memory[0x100 + cpu.SP] = b & 0xFF;
+    cpu.SP = (cpu.SP - 1) & 0xFF;
+  }
+  function stackPop() {
+    cpu.SP = (cpu.SP + 1) & 0xFF;
+    return memory[0x100 + cpu.SP];
+  }
+
+  // ---- Memory-Mapped I/O hooks (sandbox only, surgical override) ----
+  // Applied only for read operations; mnem-specific below.
+
+  const { addr, v: operandVal } = resolveAddr();
+
+  // MMIO override for LDA $FE / $FF in sandbox mode
+  let mmioVal = operandVal;
+  if ((mode === 'zp' || mode === 'zp_x' || mode === 'zp_y') && mnem === 'LDA' && window._sandboxMode) {
+    if (addr === 0xFF) {
+      // Restore latch to memory if still pending, then consume it
+      if (keyLatch !== 0) { memory[0xFF] = keyLatch; }
+      mmioVal = memory[0xFF];
+      memory[0xFF] = 0x00;
+      keyLatch = 0; // latch consumed
+      _flashLCDIO('lcdFF', 'key-flash');
+    } else if (addr === 0xFE) {
+      lastRngByte = nextRandomByte();
+      mmioVal = lastRngByte;
+      _flashLCDIO('lcdFE', 'rng-flash');
+    }
+  }
+
+  // Helper for write: store value and track
+  function memWrite(a, b) {
+    a = a & 0xFF;
+    memory[a] = b & 0xFF;
+    lastWrittenSlots.push(a);
+  }
+
+  switch(mnem) {
+    // ---- Original instructions ----
+    case 'LDA': cpu.A = mmioVal & 0xFF; setNZ(cpu.A); break;
+    case 'STA': memWrite(addr, cpu.A); break;
+    case 'ADC': {
+      const r = cpu.A + operandVal + cpu.C;
+      cpu.V = (~(cpu.A^operandVal)&(cpu.A^r)&0x80)?1:0;
+      cpu.C = r>0xFF?1:0; cpu.A = r&0xFF; setNZ(cpu.A); break;
+    }
+    case 'SBC': {
+      const v2 = operandVal&0xFF;
+      const r2 = cpu.A - v2 - (cpu.C?0:1);
+      const res8 = r2&0xFF;
+      cpu.C = r2>=0?1:0;
+      cpu.V = ((cpu.A^res8)&(cpu.A^v2)&0x80)?1:0;
+      cpu.A = res8; setNZ(cpu.A); break;
+    }
+    case 'SEC': cpu.C = 1; break;
+    case 'CLC': cpu.C = 0; break;
+    case 'SEI': cpu.I = 1; break;
+    case 'CLI': cpu.I = 0; break;
+    case 'CLV': cpu.V = 0; break;
+    case 'CMP': {
+      const cr = cpu.A - operandVal;
+      cpu.C = cpu.A>=operandVal?1:0; setNZ(cr&0xFF); break;
+    }
+    case 'BCS': if(cpu.C===1) cpu.PC=val; break;
+    case 'BCC': if(cpu.C===0) cpu.PC=val; break;
+    case 'BEQ': if(cpu.Z===1) cpu.PC=val; break;
+    case 'BNE': if(cpu.Z===0) cpu.PC=val; break;
+    case 'BMI': if(cpu.N===1) cpu.PC=val; break;
+    case 'BPL': if(cpu.N===0) cpu.PC=val; break;
+    case 'BRK': cpu.B=1; halted=true; currentExecLineNum=-1; return 'brk';
+
+    // ============================================================
+    // ISA EXPANSION PACK — Phase 1: X/Y registers & indexing
+    // ============================================================
+    case 'LDX': cpu.X = operandVal & 0xFF; setNZ(cpu.X); break;
+    case 'LDY': cpu.Y = operandVal & 0xFF; setNZ(cpu.Y); break;
+    case 'STX': memWrite(addr, cpu.X); break;
+    case 'STY': memWrite(addr, cpu.Y); break;
+    case 'INX': cpu.X = (cpu.X + 1) & 0xFF; setNZ(cpu.X); break;
+    case 'DEX': cpu.X = (cpu.X - 1) & 0xFF; setNZ(cpu.X); break;
+    case 'INY': cpu.Y = (cpu.Y + 1) & 0xFF; setNZ(cpu.Y); break;
+    case 'DEY': cpu.Y = (cpu.Y - 1) & 0xFF; setNZ(cpu.Y); break;
+    case 'NOP': break;
+
+    // Transfer instructions
+    case 'TAX': cpu.X = cpu.A; setNZ(cpu.X); break;
+    case 'TAY': cpu.Y = cpu.A; setNZ(cpu.Y); break;
+    case 'TXA': cpu.A = cpu.X; setNZ(cpu.A); break;
+    case 'TYA': cpu.A = cpu.Y; setNZ(cpu.A); break;
+    case 'TXS': cpu.SP = cpu.X; break;
+    case 'TSX': cpu.X = cpu.SP; setNZ(cpu.X); break;
+
+    // Logic / shift
+    case 'AND': cpu.A = (cpu.A & operandVal) & 0xFF; setNZ(cpu.A); break;
+    case 'ORA': cpu.A = (cpu.A | operandVal) & 0xFF; setNZ(cpu.A); break;
+    case 'EOR': cpu.A = (cpu.A ^ operandVal) & 0xFF; setNZ(cpu.A); break;
+    case 'ASL': {
+      if (mode === 'imp') {
+        cpu.C = (cpu.A >> 7) & 1; cpu.A = (cpu.A << 1) & 0xFF; setNZ(cpu.A);
+      } else {
+        cpu.C = (operandVal >> 7) & 1;
+        const res = (operandVal << 1) & 0xFF;
+        memWrite(addr, res); setNZ(res);
+      }
+      break;
+    }
+    case 'LSR': {
+      if (mode === 'imp') {
+        cpu.C = cpu.A & 1; cpu.A = (cpu.A >> 1) & 0xFF; setNZ(cpu.A);
+      } else {
+        cpu.C = operandVal & 1;
+        const res = (operandVal >> 1) & 0xFF;
+        memWrite(addr, res); setNZ(res);
+      }
+      break;
+    }
+    case 'ROL': {
+      const inC = cpu.C;
+      if (mode === 'imp') {
+        cpu.C = (cpu.A >> 7) & 1; cpu.A = ((cpu.A << 1) | inC) & 0xFF; setNZ(cpu.A);
+      } else {
+        cpu.C = (operandVal >> 7) & 1;
+        const res = ((operandVal << 1) | inC) & 0xFF;
+        memWrite(addr, res); setNZ(res);
+      }
+      break;
+    }
+    case 'ROR': {
+      const inC2 = cpu.C;
+      if (mode === 'imp') {
+        cpu.C = cpu.A & 1; cpu.A = ((inC2 << 7) | (cpu.A >> 1)) & 0xFF; setNZ(cpu.A);
+      } else {
+        cpu.C = operandVal & 1;
+        const res = ((inC2 << 7) | (operandVal >> 1)) & 0xFF;
+        memWrite(addr, res); setNZ(res);
+      }
+      break;
+    }
+
+    // ============================================================
+    // ISA EXPANSION PACK — Phase 3: JSR/RTS + Stack
+    // ============================================================
+    case 'JSR': {
+      // Push return address (PC-1) hi then lo (6502 style)
+      const retAddr = cpu.PC - 1;
+      stackPush((retAddr >> 8) & 0xFF);
+      stackPush(retAddr & 0xFF);
+      // Jump: val is instruction index here (abs mode mapped to instruction index)
+      // For inter-instruction JSR we use val as instruction PC index
+      cpu.PC = val;
+      break;
+    }
+    case 'RTS': {
+      const lo = stackPop();
+      const hi = stackPop();
+      cpu.PC = ((hi << 8) | lo) + 1;
+      break;
+    }
+    case 'PHA': stackPush(cpu.A); break;
+    case 'PLA': cpu.A = stackPop(); setNZ(cpu.A); break;
+
+    // ============================================================
+    // ISA EXPANSION ADDITIONS — CPX, CPY, INC, DEC
+    // ============================================================
+    case 'CPX': {
+      const cr = cpu.X - operandVal;
+      cpu.C = cpu.X >= operandVal ? 1 : 0; setNZ(cr & 0xFF); break;
+    }
+    case 'CPY': {
+      const cr = cpu.Y - operandVal;
+      cpu.C = cpu.Y >= operandVal ? 1 : 0; setNZ(cr & 0xFF); break;
+    }
+    case 'INC': {
+      const res = (operandVal + 1) & 0xFF;
+      memWrite(addr, res); setNZ(res); break;
+    }
+    case 'DEC': {
+      const res = (operandVal - 1) & 0xFF;
+      memWrite(addr, res); setNZ(res); break;
+    }
+
+    // === ADD: JMP INSTRUCTION ===
+    // JMP — unconditional absolute jump to instruction index
+    // Does NOT push stack. Counts as 1 cycle.
+    case 'JMP': cpu.PC = val; break;
+    // === END ADD: JMP INSTRUCTION ===
+
+    // === ADD: BIT INSTRUCTION ===
+    // BIT $nn — sets N=bit7 V=bit6 Z=(A&mem==0). Does not modify A.
+    case 'BIT': {
+      const bv = operandVal & 0xFF;
+      cpu.N = (bv >> 7) & 1;
+      cpu.V = (bv >> 6) & 1;
+      cpu.Z = ((cpu.A & bv) === 0) ? 1 : 0;
+      break;
+    }
+    // === END ADD: BIT INSTRUCTION ===
+  }
+  return 'ok';
+}
+
+// ============================================================
+// LCD ANIMATION
+// ============================================================
+function flashLCDSlot(addr, isClamp) {
+  const el = document.getElementById('lcdSlot_' + hex2(addr));
+  if (!el) return;
+  el.classList.remove('flash-write','clamp-pulse');
+  void el.offsetWidth;
+  el.classList.add(isClamp ? 'clamp-pulse' : 'flash-write');
+  setTimeout(() => el.classList.remove('flash-write','clamp-pulse'), 750);
+
+  if (addr===3 && memory[3]===1 && currentMissionIndex===2) showSuppressionMsg();
+}
+
+function showSuppressionMsg() {
+  const panel = document.getElementById('lcdPanel');
+  const old = panel.querySelector('.suppression-msg');
+  if (old) old.remove();
+  const msg = document.createElement('div');
+  msg.className = 'suppression-msg';
+  msg.textContent = 'SUPPRESSION EVENT LOGGED';
+  panel.appendChild(msg);
+  setTimeout(() => { if(msg.parentNode) msg.remove(); }, 2700);
+}
+
+// ============================================================
+// MEMORY-MAPPED I/O — LCD Flash Helper & Keyboard Listener
+// ============================================================
+
+// Expose sandbox mode flag so execOne can read it synchronously
+// (avoids closures over the `mode` variable that hasn't been
+//  declared yet at parse time inside execOne's scope)
+Object.defineProperty(window, '_sandboxMode', {
+  get() { return typeof mode !== 'undefined' && mode === 'sandbox'; }
+});
+Object.defineProperty(window, '_currentGameMode', {
+  get() { return typeof mode !== 'undefined' ? mode : 'mission'; }
+});
+
+function _flashLCDIO(elId, cls) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.classList.remove('key-flash', 'rng-flash', 'flash-write');
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), 600);
+}
+
+// ============================================================
+// SANDBOX KEY INPUT SYSTEM
+// Arrow keys write unique byte codes into $FF.
+// ArrowUp=01 ArrowDown=02 ArrowLeft=03 ArrowRight=04
+// Auto-clear: each LDA $FF consumes the keypress (sets $FF=00).
+// Only active in sandbox mode. Mission mode key behavior unchanged.
+// KEY LATCH: persists the last key value so it survives until LDA $FF reads it.
+// ============================================================
+let keyLatch = 0; // persistent latch — survives until consumed by LDA $FF
+
+document.addEventListener('keydown', function(e) {
+  if (typeof mode === 'undefined' || mode !== 'sandbox') return;
+  // Don't capture modifier-only keys
+  if (['Shift','Control','Alt','Meta','CapsLock','Tab'].includes(e.key)) return;
+  // INPUT FIX: In sandbox mode, always capture arrow keys even when editor is focused.
+  // For non-arrow printable keys, only capture when NOT in a text input (to allow typing).
+  const tag = document.activeElement ? document.activeElement.tagName : '';
+  const isArrow = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key);
+  if (!isArrow && (tag === 'TEXTAREA' || tag === 'INPUT')) return;
+
+  let keyByte = 0;
+  // SANDBOX KEY INPUT SYSTEM — Arrow key mapping
+  if      (e.key === 'ArrowUp')    { keyByte = 0x01; e.preventDefault(); }
+  else if (e.key === 'ArrowDown')  { keyByte = 0x02; e.preventDefault(); }
+  else if (e.key === 'ArrowLeft')  { keyByte = 0x03; e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { keyByte = 0x04; e.preventDefault(); }
+  else if (e.key === 'Enter')      { keyByte = 0x0D; e.preventDefault(); }
+  else if (e.key === 'Escape')     { keyByte = 0x1B; }
+  else if (e.key === 'Backspace')  { keyByte = 0x08; }
+  else if (e.key === ' ')          { keyByte = 0x20; e.preventDefault(); }
+  else if (e.key.length === 1)     { keyByte = e.key.charCodeAt(0) & 0xFF; }
+  else return; // unmapped key — ignore
+
+  memory[0xFF] = keyByte;
+  keyLatch = keyByte; // latch persists until LDA $FF consumes it
+
+  // Update LCD $FF display and flash
+  const lcdFF = document.getElementById('lcdFF');
+  if (lcdFF) {
+    lcdFF.textContent = hex2(keyByte);
+    _flashLCDIO('lcdFF', 'key-flash');
+  }
+
+  // Also refresh sandbox memory grid cell for $FF if open
+  const sbFF = document.getElementById('sbcell255');
+  if (sbFF) {
+    const v = sbFF.querySelector('.mem-val');
+    if (v) { v.textContent = hex2(keyByte); }
+  }
+});
+
+// ============================================================
+// UI UPDATE
+// ============================================================
+function updateUI() {
+  document.getElementById('regA').textContent = hex2(cpu.A);
+  document.getElementById('regX').textContent = hex2(cpu.X);
+  document.getElementById('regY').textContent = hex2(cpu.Y);
+  document.getElementById('regSP').textContent = hex2(cpu.SP);
+  document.getElementById('regPC').textContent = hex4(cpu.PC);
+  document.getElementById('cycles').textContent = cycles;
+
+  for (const f of ['N','V','B','D','I','Z','C']) {
+    const el = document.getElementById('f'+f);
+    el.textContent = cpu[f];
+    el.className = 'flag-val' + (cpu[f] ? ' active' : '');
+  }
+
+  // Memory grid $00-$0F
+  const grid = document.getElementById('memGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 16; i++) {
+    const mission = currentHiddenMissionIndex >= 0 ? null : MISSIONS[currentMissionIndex];
+    let isOut = false;
+    if (mode === 'mission' && mission) {
+      isOut = mission.outputSlots ? mission.outputSlots.includes(i) : (i === mission.outputSlot);
+    }
+    const cell = document.createElement('div');
+    cell.className = 'mem-cell' + (isOut ? ' output' : (i<2 ? ' input' : ''));
+    cell.id = 'memcell'+i;
+    cell.innerHTML = `<div class="mem-addr">$${hex2(i)}</div><div class="mem-val">${hex2(memory[i])}</div>`;
+    grid.appendChild(cell);
+  }
+
+  // Flash written memory cells
+  for (const slot of lastWrittenSlots) {
+    if (slot <= 15) {
+      const cell = document.getElementById('memcell'+slot);
+      if (cell) {
+        cell.classList.remove('flash-write');
+        void cell.offsetWidth;
+        cell.classList.add('flash-write');
+        setTimeout(() => cell.classList.remove('flash-write'), 600);
+      }
+    }
+    // Flash LCD slot if this address is displayed
+    if (_activeLCDAddrs.includes(slot)) {
+      const isClamp = (currentMissionIndex===2 && slot===2 && memory[2]===0 && memory[3]===1);
+      flashLCDSlot(slot, isClamp);
+    }
+  }
+
+  // Update all active LCD slot values
+  for (const addr of _activeLCDAddrs) {
+    const el = document.getElementById('lcdSlot_' + hex2(addr));
+    if (el) el.textContent = hex2(memory[addr]);
+  }
+
+  // Sandbox I/O LCD rows
+  const lcdFE = document.getElementById('lcdFE');
+  const lcdFF = document.getElementById('lcdFF');
+  if (lcdFE) lcdFE.textContent = hex2(lastRngByte);
+  if (lcdFF) lcdFF.textContent = hex2(memory[0xFF]);
+  if (mode==='sandbox') updateWatchSlots();
+
+  if (mode==='sandbox') updateSandboxMemGrid();
+  updateSyntaxHighlight();
+
+  // FRAMEBUFFER SUBSYSTEM — redraw (sandbox only)
+  fbRedraw();
+}
+
+function updateLCDForMission(idx) {
+  const container = document.getElementById('lcdMissionRows');
+  container.innerHTML = '';
+  _activeLCDAddrs = [];
+  if (idx < 0 || idx >= MISSION_LCD.length) return;
+  const slots = MISSION_LCD[idx];
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    _activeLCDAddrs.push(s.addr);
+    const row = document.createElement('div');
+    row.className = 'lcd-row lcd-row-mission';
+    const label = document.createElement('span');
+    label.className = 'lcd-label';
+    label.textContent = s.label;
+    const val = document.createElement('span');
+    val.className = 'lcd-val' + (s.input ? ' input' : '');
+    val.id = 'lcdSlot_' + hex2(s.addr);
+    val.textContent = hex2(memory[s.addr]);
+    row.appendChild(label);
+    row.appendChild(val);
+    container.appendChild(row);
+  }
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('statusLine');
+  el.textContent = msg; el.className = 'status '+cls;
+}
+
+// ============================================================
+// SYNTAX HIGHLIGHTING
+// SYNTAX HIGHLIGHT STABILITY FIX — all text is HTML-escaped before injection.
+// Never injects raw <, >, or & into innerHTML. Overlay always mirrors
+// editor textContent. Uses a document fragment for safe rendering.
+// ============================================================
+let errorLineNum = -1;
+
+function esc(s) {
+  // SYNTAX HIGHLIGHT STABILITY FIX — comprehensive entity escaping
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function updateSyntaxHighlight() {
+  const overlay = document.getElementById('highlightOverlay');
+  const lines = document.getElementById('codeEditor').value.split('\n');
+  // SYNTAX HIGHLIGHT STABILITY FIX — build HTML as safe string, all user content escaped
+  let html = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    let lineHtml = '';
+    const isErr  = (i === errorLineNum);
+    const isExec = (i === currentExecLineNum);
+
+    let rest = raw;
+    const ci = rest.indexOf(';');
+    let commentPart = '';
+    if (ci !== -1) { commentPart = rest.slice(ci); rest = rest.slice(0, ci); }
+
+    // Label detection
+    const lm = rest.match(/^(\s*)([A-Za-z_][A-Za-z0-9_]*\s*:)(.*)/);
+    if (lm) {
+      lineHtml += esc(lm[1]) + `<span class="hl-label">${esc(lm[2])}</span>`;
+      rest = lm[3];
+    }
+
+    // Tokenise remaining code portion
+    // SYNTAX HIGHLIGHT STABILITY FIX — split preserving whitespace groups
+    const toks = rest.split(/(\s+)/);
+    let first = true;
+    for (const tok of toks) {
+      if (!tok) continue;
+      if (/^\s+$/.test(tok)) { lineHtml += esc(tok); continue; }
+      const tokUC = tok.toUpperCase();
+      if (first && ALLOWED_MNEMONICS.includes(tokUC)) {
+        lineHtml += `<span class="hl-mnem">${esc(tok)}</span>`; first = false;
+      } else if (tok.match(/^#\$[0-9A-Fa-f]{1,2}$/)) {
+        lineHtml += `<span class="hl-imm">${esc(tok)}</span>`; first = false;
+      } else if (tok.match(/^\$[0-9A-Fa-f]{1,4}(,[XY])?$/i)) {
+        lineHtml += `<span class="hl-zp">${esc(tok)}</span>`; first = false;
+      } else if (tok.match(/^\(\$[0-9A-Fa-f]{1,2}\)(,Y)?$/i) || tok.match(/^\(\$[0-9A-Fa-f]{1,2},X\)$/i)) {
+        // SYNTAX HIGHLIGHT STABILITY FIX — indirect addressing tokens fully escaped
+        lineHtml += `<span class="hl-zp">${esc(tok)}</span>`; first = false;
+      } else if (/^[0-9]+$/.test(tok) && !first) {
+        // branch targets: numeric literal after a mnemonic
+        lineHtml += `<span class="hl-imm">${esc(tok)}</span>`;
+      } else {
+        lineHtml += esc(tok); first = false;
+      }
+    }
+    if (commentPart) lineHtml += `<span class="hl-comment">${esc(commentPart)}</span>`;
+
+    // SYNTAX HIGHLIGHT STABILITY FIX — empty lines get a non-breaking space
+    // so the div maintains correct height. Never inject &nbsp; as raw text.
+    if (!lineHtml) lineHtml = '&nbsp;';
+    else lineHtml += '&nbsp;';
+
+    let cls = '';
+    if (isErr) cls = ' class="hl-err"';
+    else if (isExec) cls = ' class="hl-exec"';
+    html += `<div${cls}>${lineHtml}</div>`;
+  }
+  // SYNTAX HIGHLIGHT STABILITY FIX — single innerHTML assignment after full build
+  overlay.innerHTML = html;
+}
+
+// ============================================================
+// LINE NUMBERS & EDITOR SYNC
+// ============================================================
+const editor = document.getElementById('codeEditor');
+const lineNums = document.getElementById('lineNums');
+
+function updateLineNums() {
+  const n = editor.value.split('\n').length;
+  let s = '';
+  for (let i=1;i<=n;i++) s+=i+'\n';
+  lineNums.textContent = s;
+  updateSyntaxHighlight();
+}
+
+editor.addEventListener('input', () => { errorLineNum=-1; updateLineNums(); });
+editor.addEventListener('scroll', () => {
+  lineNums.scrollTop = editor.scrollTop;
+  document.getElementById('highlightOverlay').scrollTop = editor.scrollTop;
+});
+editor.addEventListener('keydown', function(e) {
+  if (e.key==='Enter') {
+    e.preventDefault();
+    const start=this.selectionStart, end=this.selectionEnd, val=this.value;
+    const ls=val.lastIndexOf('\n',start-1)+1;
+    const indent=(val.substring(ls,start).match(/^\s*/)||[''])[0];
+    this.value=val.substring(0,start)+'\n'+indent+val.substring(end);
+    this.selectionStart=this.selectionEnd=start+1+indent.length;
+    updateLineNums();
+  }
+});
+updateLineNums();
+
+// ============================================================
+// CONTROLS
+// ============================================================
+let currentInstructions = null;
+
+function doReset() {
+  memory.fill(0);
+  memory[0]=Math.floor(Math.random()*256);
+  memory[1]=Math.floor(Math.random()*256);
+  resetCPU(); currentInstructions=null; instructions=[]; lastWrittenSlots=[];
+  updateUI();
+  setStatus(`RESET — $00=${hex2(memory[0])} $01=${hex2(memory[1])} $02=00`,'info');
+}
+
+function parseCode() {
+  errorLineNum=-1;
+  const result=assemble(editor.value);
+  if (result.error) {
+    const m=result.error.match(/Line (\d+):/);
+    if(m) errorLineNum=parseInt(m[1])-1;
+    updateSyntaxHighlight();
+    setStatus('ASSEMBLER ERROR: '+result.error,'error');
+    return null;
+  }
+  return result.instructions;
+}
+
+function initRun() {
+  const ins=parseCode(); if(!ins) return null;
+  instructions=ins; currentInstructions=ins; resetCPU(); return ins;
+}
+
+function doStep() {
+  if (!currentInstructions||halted) {
+    if(!initRun()) return;
+    // First STEP: highlight the first line that WILL execute, but don't run it yet
+    if (instructions.length > 0 && instructions[cpu.PC]) {
+      currentExecLineNum = instructions[cpu.PC].lineNum;
+    }
+    updateUI();
+    setStatus(`STEP — PC=${hex4(cpu.PC)} A=${hex2(cpu.A)} CYCLES=${cycles}`,'info');
+    return;
+  }
+  const result=execOne();
+  // After execution, highlight the NEXT line about to run
+  if (!halted && result === 'ok' && instructions[cpu.PC]) {
+    currentExecLineNum = instructions[cpu.PC].lineNum;
+  }
+  updateUI();
+  if(result==='brk') setStatus(mode==='mission' ? 'HALTED — BRK EXECUTED | Hit RUN TESTS to verify your solution' : 'HALTED — BRK EXECUTED','halt');
+  else if(result==='cycle_limit'){halted=true;setStatus(`HALTED — CYCLE LIMIT REACHED (${currentHiddenMissionIndex>=0?HIDDEN_MISSIONS[currentHiddenMissionIndex].cycleLimit:(MISSIONS[currentMissionIndex]&&MISSIONS[currentMissionIndex].cycleLimit)||500})`,'fail');}
+  else if(result==='overrun'){halted=true;setStatus('HALTED — PC OVERRUN','fail');}
+  else setStatus(`STEP — PC=${hex4(cpu.PC)} A=${hex2(cpu.A)} CYCLES=${cycles}`,'info');
+}
+
+function doRun() {
+  if(!initRun()) return;
+  let result='ok';
+  while(result==='ok') result=execOne();
+  updateUI();
+  if(result==='brk') setStatus(mode==='mission' ? 'HALTED — BRK EXECUTED | Hit RUN TESTS to verify your solution' : 'HALTED — BRK EXECUTED','halt');
+  else if(result==='cycle_limit') setStatus('FAILED — CYCLE LIMIT EXCEEDED','fail');
+  else setStatus('HALTED — '+result.toUpperCase(),'fail');
+}
+
+function doRunTests() {
+  if (mode!=='mission') { setStatus('SANDBOX MODE — TESTS DISABLED','sandbox'); return; }
+
+  // Dispatch to hidden mission tests if in hidden mode
+  if (currentHiddenMissionIndex >= 0) { doRunHiddenTests(); return; }
+
+  const ins=parseCode(); if(!ins) return;
+
+  const NUM_TESTS=10;
+  let lastMem = null, lastR0 = 0, lastR1 = 0;
+  for (let t=0;t<NUM_TESTS;t++) {
+    const r0=Math.floor(Math.random()*256), r1=Math.floor(Math.random()*256);
+    const mission=MISSIONS[currentMissionIndex];
+    const expected=mission.testLogic(r0,r1);
+
+    memory.fill(0); memory[0]=r0; memory[1]=r1;
+    if(mission.testSetup) mission.testSetup(memory, r0, r1);
+    if(mission.outputSlots) mission.outputSlots.forEach(s=>memory[s]=0);
+    else if(mission.outputSlot !== undefined) memory[mission.outputSlot]=0;
+
+    instructions=ins; resetCPU();
+    let result='ok';
+    while(result==='ok') result=execOne();
+
+    let actual = mission.testFull ? null : (mission.outputSlots ? {out2:memory[2],out3:memory[3]} : memory[mission.outputSlot]);
+    const m0ok=memory[0]===r0, m1ok=memory[1]===r1;
+
+    if(result!=='brk'){
+      currentInstructions=ins; instructions=ins; resetCPU();
+      setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — BRK NOT REACHED (${result})`, 'fail');
+      updateUI(); return;
+    }
+    if(!mission.allowInputModify && (!m0ok||!m1ok)){
+      currentInstructions=ins; instructions=ins; resetCPU();
+      setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — INPUT MODIFIED | $00 ${hex2(r0)}→${hex2(memory[0])} $01 ${hex2(r1)}→${hex2(memory[1])}`,'fail');
+      updateUI(); return;
+    }
+    if(mission.testFull) {
+      const ferr = mission.testFull(memory, r0, r1);
+      if(ferr) {
+        // Check corruption triggers even on failed tests
+        checkCorruptionTriggers(currentMissionIndex, memory, r0, r1);
+        currentInstructions=ins; instructions=ins; resetCPU();
+        setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — ${ferr}`, 'fail');
+        updateUI(); return;
+      }
+    } else if(mission.outputSlots) {
+      if(actual.out2!==expected.out2||actual.out3!==expected.out3){
+        currentInstructions=ins; instructions=ins; resetCPU();
+        setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED | $00=${hex2(r0)} $01=${hex2(r1)} EXP $02=${hex2(expected.out2)} $03=${hex2(expected.out3)} GOT $02=${hex2(actual.out2)} $03=${hex2(actual.out3)}`,'fail');
+        updateUI(); return;
+      }
+    } else {
+      if(actual!==expected){
+        currentInstructions=ins; instructions=ins; resetCPU();
+        setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED | $00=${hex2(r0)} $01=${hex2(r1)} EXP=${hex2(expected)} GOT=${hex2(actual)}`,'fail');
+        updateUI(); return;
+      }
+    }
+    // Save last test state for corruption detection
+    lastMem = new Uint8Array(memory); lastR0 = r0; lastR1 = r1;
+  }
+
+  // Check corruption triggers on final passing test
+  if (lastMem) checkCorruptionTriggers(currentMissionIndex, lastMem, lastR0, lastR1);
+
+  // Record best score
+  if (bestScores[currentMissionIndex] === undefined || cycles < bestScores[currentMissionIndex]) {
+    bestScores[currentMissionIndex] = cycles;
+  }
+
+  missionCleared=true; updateUI();
+  const instrCount=instructions.length, effScore=cycles+(instrCount*5);
+  const grade=effScore<=40?'A':effScore<=80?'B':'C';
+  setStatus(`MISSION VERIFIED ▓▓▓▓▓▓▓▓▓▓ | CYCLES: ${cycles} | INSTRUCTIONS: ${instrCount} | GRADE: ${grade}`,'pass');
+  setTimeout(()=>showDebrief(currentMissionIndex), 400);
+}
+
+// ============================================================
+// COLLAPSIBLE
+// ============================================================
+function toggleRef() {
+  const c=document.getElementById('refContent'), t=document.getElementById('refToggle');
+  c.classList.toggle('collapsed');
+  t.textContent=c.classList.contains('collapsed')?'▶':'▼';
+}
+
+// ============================================================
+// LEFT PANEL RESIZE HANDLE
+// ============================================================
+(function() {
+  const handle = document.getElementById('leftResizeHandle');
+  const wrap = document.getElementById('missionBriefWrap');
+  if (!handle || !wrap) return;
+  let dragging = false, startY = 0, startH = 0;
+  handle.addEventListener('mousedown', function(e) {
+    dragging = true; startY = e.clientY; startH = wrap.offsetHeight;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    const col = wrap.parentElement;
+    const maxH = col.offsetHeight - 60 - handle.offsetHeight;
+    const newH = Math.max(60, Math.min(maxH, startH + (e.clientY - startY)));
+    wrap.style.height = newH + 'px';
+  });
+  document.addEventListener('mouseup', function() {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+// ============================================================
+// CENTER COLUMN RESIZE (editor ↔ framebuffer)
+// ============================================================
+(function() {
+  const handle = document.getElementById('centerResizeHandle');
+  const fb = document.getElementById('fbSection');
+  if (!handle || !fb) return;
+  let dragging = false, startX = 0, startW = 0;
+  handle.addEventListener('mousedown', function(e) {
+    dragging = true; startX = e.clientX; startW = fb.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    const container = fb.parentElement;
+    const maxW = container.offsetWidth - 200 - handle.offsetWidth;
+    const newW = Math.max(200, Math.min(maxW, startW - (e.clientX - startX)));
+    fb.style.width = newW + 'px';
+  });
+  document.addEventListener('mouseup', function() {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+// ============================================================
+// CLOCK
+// ============================================================
+let clockVal=0;
+setInterval(()=>{
+  clockVal=(clockVal+Math.floor(Math.random()*7+1))&0xFFFFFF;
+  document.getElementById('clockDisplay').textContent='CLK: '+('00000000'+clockVal.toString(16).toUpperCase()).slice(-8);
+},200);
+
+// ============================================================
+// MISSION LOADING
+// ============================================================
+function loadMission() {
+  missionCleared=false;
+  currentHiddenMissionIndex = -1; // exit hidden mission mode
+  const mission=MISSIONS[currentMissionIndex];
+  document.getElementById('editorTitle').textContent='Assembly Editor — Mission '+mission.id;
+  document.querySelector('.mission-name').textContent=mission.name;
+  document.querySelector('.mission-narrative').textContent=mission.narrative;
+
+  const obj=document.querySelector('.mission-obj');
+  obj.innerHTML='<div class="mission-obj-title">Objectives</div>';
+  mission.objectives.forEach(o=>{
+    const d=document.createElement('div');
+    d.className='mission-obj-item'; d.textContent=o; obj.appendChild(d);
+  });
+
+  if (currentMissionIndex === 0) {
+    editor.value = `; FIELD BALLISTICS CORRECTION MODULE
+; Computes: $02 = ($00 - $01) & $FF
+
+LDA $00    ; Load raw range
+SBC $01    ; Subtract wind drift
+STA $02    ; Store corrected range
+BRK        ; Halt`;
+  } else {
+    editor.value = '';
+  }
+  errorLineNum = -1;
+updateLineNums();
+  memory.fill(0); resetCPU();
+  updateLCDForMission(currentMissionIndex);
+  updateUI();
+  document.getElementById('missionBriefWrap').scrollTop = 0;
+  setStatus(`Loaded Mission ${mission.id}: ${mission.name}`,'info');
+}
+
+function nextMission() {
+  if(mode==='sandbox'){setStatus('SANDBOX MODE — MISSION PROGRESSION DISABLED','sandbox');return;}
+  if(!missionCleared){setStatus('ACCESS DENIED — VERIFY SOLUTION FIRST','fail');return;}
+  missionCleared=false;
+  // If we were in a hidden mission, return to normal campaign
+  if (currentHiddenMissionIndex >= 0) {
+    currentHiddenMissionIndex = -1;
+    loadMission();
+    return;
+  }
+  currentMissionIndex++;
+  if(currentMissionIndex>=MISSIONS.length){
+    currentMissionIndex=0;
+    if(!completionShown){
+      completionShown=true;
+      setTimeout(()=>document.getElementById('completionModal').classList.add('visible'),300);
+    }
+  }
+  saveGame();
+  loadMission();
+}
+
+// ============================================================
+// DEBRIEF MODAL
+// ============================================================
+const SYSLOG_MISSION_INDICES = new Set([3, 6, 9, 11, 13]);
+
+function showDebrief(idx) {
+  // Track cleared mission
+  clearedMissions.add(idx);
+  saveGame();
+
+  // System log interception
+  if (SYSLOG_MISSION_INDICES.has(idx)) {
+    showSyslog(idx);
+    return;
+  }
+
+  const m = MISSIONS[idx]; if (!m || !m.debrief) return;
+  document.getElementById('debriefTitle').textContent = `MISSION ${m.id} — ASSESSMENT`;
+  document.getElementById('debriefSubtitle').textContent = m.debrief.subtitle;
+  document.getElementById('debriefBody').innerHTML = m.debrief.body;
+  document.getElementById('debriefModal').classList.add('visible');
+}
+function closeDebrief() { document.getElementById('debriefModal').classList.remove('visible'); }
+
+// Close modals on overlay click
+['debriefModal','completionModal','manualModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target===this) this.classList.remove('visible');
+  });
+});
+
+// ============================================================
+// MANUAL PDF
+// ============================================================
+function generateManualPDF() {
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>ZERO PAGE — Field Manual</title>
+<style>
+  body{font-family:'Courier New',monospace;background:#fff;color:#111;margin:40px;font-size:13px;line-height:1.7;}
+  h1{font-size:22px;letter-spacing:4px;border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:4px;}
+  .sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:24px;}
+  h2{font-size:13px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #aaa;padding-bottom:4px;margin:20px 0 8px;color:#333;}
+  p{margin-bottom:8px;color:#222;}
+  code{background:#f0f0f0;padding:1px 4px;border:1px solid #ccc;font-size:12px;}
+  .entry{margin-bottom:10px;padding-left:12px;border-left:2px solid #ccc;}
+  .entry strong{display:block;color:#111;margin-bottom:2px;}
+  @media print{body{margin:20px;}}
+</style></head><body>
+<h1>ZERO PAGE</h1>
+<div class="sub">Microprocessor Systems Lab — Field Manual</div>
+<h2>Registers</h2>
+<div class="entry"><strong>A — Accumulator</strong>The primary work register. Holds one byte (0–255). Most operations use A.</div>
+<div class="entry"><strong>X, Y — Index Registers</strong>Auxiliary registers for advanced programs.</div>
+<div class="entry"><strong>PC — Program Counter</strong>Points to the current instruction index.</div>
+<h2>Zero Page</h2>
+<p>All memory in this system is zero page ($00–$FF). Inputs load at $00 and $01. Store results at $02 and/or $03.</p>
+<p><code>LDA $00</code> reads address $00. <code>STA $02</code> writes to $02. <code>LDA #$05</code> loads literal 5.</p>
+<h2>Carry Flag</h2>
+<p>Before <code>SBC</code>, always <code>SEC</code>. Before <code>ADC</code> without carry-in, use <code>CLC</code>. After SBC: C=1 means no borrow; C=0 means borrow.</p>
+<h2>How SBC Works</h2>
+<p>Computes: A = A - value - (1 - C). Results wrap at 8 bits. Example: <code>SEC / LDA $00 / SBC $01 / STA $02 / BRK</code></p>
+<h2>Branching</h2>
+<p><code>CMP $nn</code> compares A to a memory value and sets flags. <code>BCS n</code> branches to instruction index n if C=1. <code>BCC n</code> branches if C=0. Count only executable instructions (not blanks or comments) for index.</p>
+<h2>Cycle Limit</h2>
+<p>Max 500 cycles. Each instruction costs 1 cycle. Loops that do not terminate will trigger CYCLE LIMIT HALT. Grade is partly based on efficiency.</p>
+<h2>Mission Mode vs Sandbox Mode</h2>
+<p><strong>Mission Mode:</strong> Default mode. Programs are tested against randomised inputs. Grading active. Pass all tests to advance.</p>
+<p><strong>Sandbox Mode:</strong> No grading. Write any program and edit any memory cell ($00–$FF) directly. Press SANDBOX button to toggle.</p>
+<h2>Memory-Mapped I/O (Sandbox Only)</h2>
+<p>In Sandbox Mode, two special addresses provide hardware input. They behave like normal memory in Mission Mode and do not affect grading.</p>
+<div class="entry"><strong>Keyboard Input — $FF</strong>Reading from <code>$FF</code> returns the last key pressed. Arrow keys return special codes: Up=01, Down=02, Left=03, Right=04. Printable keys return their ASCII value. After <code>LDA $FF</code>, the register auto-clears to 00. Example: <code>LDA $FF / STA $02</code></div>
+<div class="entry"><strong>Random Number Generator — $FE</strong>Reading from <code>$FE</code> generates a fresh pseudo-random byte (0–255) and loads it into A. The value is not stored in memory — each read produces a new number. Example: <code>LDA $FE / STA $02</code></div>
+<h2>ISA Expansion Pack — Registers</h2>
+<div class="entry"><strong>X, Y — Index Registers</strong>Used for indexed addressing. <code>LDX #$nn</code>, <code>LDY #$nn</code> to load. <code>INX/DEX/INY/DEY</code> to increment/decrement. Transfer: <code>TAX/TAY/TXA/TYA</code>.</div>
+<div class="entry"><strong>SP — Stack Pointer</strong>Points into stack page $0100–$01FF. Initialized to $FF. Managed by <code>PHA/PLA/JSR/RTS</code>.</div>
+<h2>ISA Expansion Pack — Indexed Addressing</h2>
+<p><code>LDA $nn,X</code> — Load from zero page address ($nn + X) wrapping at $FF. Same for STA, LDX, LDY, STX, STY with ,Y variant. Absolute: <code>LDA $nnnn,X</code> (also wraps to ZP).</p>
+<p><code>LDA ($nn),Y</code> / <code>STA ($nn),Y</code> — Indirect indexed. Reads 16-bit pointer from ZP $nn/$nn+1, adds Y. Useful for framebuffer writes: set $10/$11 = $0080, then STA ($10),Y draws pixels.</p>
+<h2>ISA Expansion Pack — Subroutines</h2>
+<p><code>JSR $nnnn</code> — Jump to subroutine. Pushes return address on stack. Use instruction index as destination. <code>RTS</code> returns. <code>PHA</code> pushes A onto stack; <code>PLA</code> pulls.</p>
+<h2>ISA Expansion Pack — Logic &amp; Branch</h2>
+<p><code>AND/ORA/EOR #$nn/$nn</code> — Bitwise ops. <code>ASL/LSR/ROL/ROR</code> — Shift/rotate A (implied) or memory. <code>BEQ/BNE/BMI/BPL n</code> — Branch on Z or N flags.</p>
+<h2>ISA Additions — CPX/CPY/INC/DEC</h2>
+<div class="entry"><strong>CPX / CPY</strong>Compare X or Y register to a value. Modes: immediate (#$nn) and zero page ($nn). Sets N, Z, C flags. C=1 if register ≥ value. Example: <code>CPX #$10 / BCS n</code></div>
+<div class="entry"><strong>INC $nn</strong>Increment memory byte. Sets N, Z. Does not affect C. Wraps $FF→$00. Example: <code>INC $04</code></div>
+<div class="entry"><strong>DEC $nn</strong>Decrement memory byte. Sets N, Z. Does not affect C. Wraps $00→$FF. Example: <code>DEC $04</code></div>
+<h2>ISA Additions — JMP</h2>
+<div class="entry"><strong>JMP $nnnn</strong>Unconditional absolute jump to instruction index $nnnn. Does not push stack. 1 cycle. Example: <code>loop: NOP / JMP loop</code></div>
+<div class="entry"><strong>JMP label</strong>Jump to a named label. Resolved in assembler pass 1. Works in both mission and sandbox. Example: <code>JMP start</code></div>
+<h2>Live Execution Mode (Sandbox)</h2>
+<p>RUN LIVE begins continuous execution at ~60 FPS via requestAnimationFrame. LIVE_BATCH instructions execute per frame (default: 30). Cycle limit is ignored. BRK is optional — if encountered, CPU resets to PC=0 for loop-style programs. STOP halts execution and preserves CPU state.</p>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`);
+  w.document.close();
+}
+
+// ============================================================
+// FRAMEBUFFER SUBSYSTEM
+// Addresses: $80–$FF  Resolution: 16×8  Scale: 20×20 per pixel
+// addr = 0x80 + (y * 16) + x
+// 0x00 = off (black)  nonzero = on (green)
+// Renders only in sandbox mode, called at end of updateUI().
+// ============================================================
+const FB_COLS = 16, FB_ROWS = 8, FB_BASE = 0x80, FB_SCALE = 20;
+
+function fbRedraw() {
+  const canvas = document.getElementById('fbCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (mode !== 'sandbox') {
+    // Clear canvas when not in sandbox
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Also hide/show tech ref framebuffer section
+    const refFB = document.getElementById('refFramebuffer');
+    if (refFB) refFB.style.display = 'none';
+    return;
+  }
+  // Show tech ref section in sandbox mode
+  const refFB = document.getElementById('refFramebuffer');
+  if (refFB) refFB.style.display = 'block';
+  // Draw framebuffer — color by value: 0=off, 0x7F=food(amber), other=snake(green)
+  for (let y = 0; y < FB_ROWS; y++) {
+    for (let x = 0; x < FB_COLS; x++) {
+      const addr = FB_BASE + (y * FB_COLS) + x;
+      const val = memory[addr];
+      ctx.fillStyle = val === 0 ? '#080c08' : (val === 0x7F ? '#b08020' : '#4a8a4a');
+      ctx.fillRect(x * FB_SCALE, y * FB_SCALE, FB_SCALE, FB_SCALE);
+      // Pixel border for grid visibility
+      ctx.strokeStyle = '#0e1a0e';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(x * FB_SCALE, y * FB_SCALE, FB_SCALE, FB_SCALE);
+    }
+  }
+}
+
+// ============================================================
+// SANDBOX MEMORY GRID
+// ============================================================
+// Snapshot of last displayed memory values for differential updates
+let _sbMemSnapshot = new Uint8Array(256);
+let _sbGridBuilt = false;
+
+function updateSandboxMemGrid() {
+  const grid=document.getElementById('sandboxMemGrid');
+  if (grid.querySelector('.editing')) return;
+
+  // Full build on first call or if grid was cleared
+  if (!_sbGridBuilt || grid.children.length !== 256) {
+    grid.innerHTML='';
+    for(let i=0;i<256;i++){
+      const cell=document.createElement('div');
+      cell.className='mem-cell'; cell.id='sbcell'+i;
+      cell.innerHTML=`<div class="mem-addr">$${hex2(i)}</div><div class="mem-val">${hex2(memory[i])}</div>`;
+      cell.onclick=(function(addr,el){return function(){editSandboxCell(addr,el);};})(i,cell);
+      grid.appendChild(cell);
+      _sbMemSnapshot[i] = memory[i];
+    }
+    _sbGridBuilt = true;
+    return;
+  }
+
+  // Differential update — only touch cells whose values changed
+  for(let i=0;i<256;i++){
+    if(memory[i] !== _sbMemSnapshot[i]){
+      const valDiv = grid.children[i].querySelector('.mem-val');
+      if(valDiv) valDiv.textContent = hex2(memory[i]);
+      _sbMemSnapshot[i] = memory[i];
+    }
+  }
+}
+
+function editSandboxCell(addr,cell){
+  if(mode!=='sandbox') return;
+  cell.classList.add('editing');
+  const valDiv=cell.querySelector('.mem-val');
+  const input=document.createElement('input');
+  input.type='text'; input.className='inline-edit';
+  input.value=hex2(memory[addr]); input.maxLength=2;
+  valDiv.replaceWith(input); input.focus(); input.select();
+
+  function commit(){
+    const p=parseInt(input.value,16);
+    if(!isNaN(p)) memory[addr]=p&0xFF;
+    cell.classList.remove('editing');
+    const nd=document.createElement('div');
+    nd.className='mem-val'; nd.textContent=hex2(memory[addr]);
+    input.replaceWith(nd);
+    updateUI();
+  }
+  input.addEventListener('blur',commit);
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Enter') commit();
+    if(e.key==='Escape'){memory[addr]=memory[addr];commit();}
+  });
+}
+
+// ============================================================
+// SANDBOX LCD WATCH SLOTS
+// Two user-configurable address watches on the LCD panel.
+// Click the label to type a new hex address ($00–$FF).
+// ============================================================
+const _watchAddrs = [0x00, 0x01];
+
+function initWatchLabels() {
+  document.querySelectorAll('.lcd-watch-row').forEach(row => {
+    const idx = parseInt(row.dataset.watch);
+    const label = row.querySelector('.lcd-watch-label');
+    label.addEventListener('click', () => editWatchAddr(idx, label));
+  });
+}
+
+function editWatchAddr(idx, label) {
+  if (label.querySelector('input')) return;
+  const input = document.createElement('input');
+  input.type = 'text'; input.className = 'inline-edit';
+  input.style.width = '3.5em'; input.style.display = 'inline';
+  input.value = hex2(_watchAddrs[idx]); input.maxLength = 2;
+  label.textContent = '';
+  label.appendChild(document.createTextNode('WATCH       $'));
+  label.appendChild(input);
+  input.focus(); input.select();
+
+  function commit() {
+    const p = parseInt(input.value, 16);
+    if (!isNaN(p) && p >= 0 && p <= 0xFF) _watchAddrs[idx] = p;
+    label.textContent = 'WATCH       $' + hex2(_watchAddrs[idx]);
+    updateWatchSlots();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') commit();
+  });
+}
+
+function updateWatchSlots() {
+  for (let i = 0; i < 2; i++) {
+    const el = document.getElementById('lcdWatch' + i);
+    if (el) el.textContent = hex2(memory[_watchAddrs[i]]);
+  }
+}
+
+initWatchLabels();
+
+// ============================================================
+// SANDBOX LIVE EXECUTION
+// Continuous execution loop for sandbox mode only.
+// Uses requestAnimationFrame. Does not affect mission mode.
+// === FIX: LIVE SCHEDULER ===
+// WHAT WAS BROKEN:
+//   updateUI() was called every frame, which includes updateSandboxMemGrid()
+//   (full 256-cell DOM rebuild) and updateSyntaxHighlight() on every frame.
+//   This made the browser spend most time on DOM work, not rendering.
+//   LIVE_BATCH of 5 is fine; the bottleneck was the DOM, not CPU emulation.
+// WHAT CHANGED:
+//   _liveFrame() now calls _liveUpdateUI() — a lightweight version that only
+//   updates registers, LCD, and redraws the framebuffer canvas. The expensive
+//   full updateUI() (with mem grid rebuild and syntax highlight) runs only once
+//   per second via a throttle timer.
+//   updateSandboxMemGrid() and updateSyntaxHighlight() are skipped mid-frame.
+// ============================================================
+let _liveRunning = false;
+let _liveRAF = null;
+let LIVE_BATCH = 50; // instructions per frame — controls visible speed
+let _liveSlowTimer = 0; // tracks last full-UI update time
+
+Object.defineProperty(window, '_sandboxLiveMode', {
+  get() { return _liveRunning; }
+});
+
+function doRunLive() {
+  if (mode !== 'sandbox') return;
+
+  _liveRunning = true;
+
+  const ins = parseCode();
+  if (!ins) {
+    _liveRunning = false;
+    return;
+  }
+
+  instructions = ins;
+  currentInstructions = ins;
+  resetCPU();
+
+  document.getElementById('btnRunLive').classList.add('active');
+  setStatus('LIVE EXECUTION RUNNING — PRESS STOP TO HALT', 'sandbox');
+
+  _liveSlowTimer = 0;
+  _liveFrame();
+}
+
+// === FIX: LIVE SCHEDULER ===
+// Lightweight per-frame UI update: only registers + LCD + framebuffer.
+// Skips sandbox mem grid rebuild and syntax highlight (too expensive per frame).
+function _liveUpdateUI() {
+  document.getElementById('regA').textContent  = hex2(cpu.A);
+  document.getElementById('regX').textContent  = hex2(cpu.X);
+  document.getElementById('regY').textContent  = hex2(cpu.Y);
+  document.getElementById('regSP').textContent = hex2(cpu.SP);
+  document.getElementById('regPC').textContent = hex4(cpu.PC);
+  document.getElementById('cycles').textContent = cycles;
+
+  for (const f of ['N','V','B','D','I','Z','C']) {
+    const el = document.getElementById('f'+f);
+    el.textContent = cpu[f];
+    el.className = 'flag-val' + (cpu[f] ? ' active' : '');
+  }
+
+  const lcdFE = document.getElementById('lcdFE');
+  const lcdFF = document.getElementById('lcdFF');
+  if (lcdFE) lcdFE.textContent = hex2(lastRngByte);
+  if (lcdFF) lcdFF.textContent = hex2(memory[0xFF]);
+  updateWatchSlots();
+
+  fbRedraw();
+}
+
+function _liveFrame(timestamp) {
+  if (!_liveRunning) return;
+
+  // Execute LIVE_BATCH instructions this frame
+  for (let i = 0; i < LIVE_BATCH; i++) {
+    const result = execOne();
+    if (result === 'brk' || result === 'overrun') {
+      // === FIX: LIVE SCHEDULER ===
+      // BRK in live mode: reset PC to 0 and continue for loop-style programs
+      resetCPU();
+      break;
+    }
+    if (result !== 'ok') break;
+  }
+
+  // Fast lightweight update every frame (registers + framebuffer)
+  _liveUpdateUI();
+
+  // Full UI update (mem grid + syntax highlight) at most once per second
+  const now = Date.now();
+  if (now - _liveSlowTimer > 1000) {
+    _liveSlowTimer = now;
+    updateSandboxMemGrid();
+    updateSyntaxHighlight();
+  }
+
+  _liveRAF = requestAnimationFrame(_liveFrame);
+}
+// === END FIX: LIVE SCHEDULER ===
+
+function doStop() {
+  _liveRunning = false;
+  if (_liveRAF) { cancelAnimationFrame(_liveRAF); _liveRAF = null; }
+  document.getElementById('btnRunLive').classList.remove('active');
+  halted = true;
+  setStatus('LIVE EXECUTION STOPPED', 'halt');
+  updateUI();
+}
+
+// Stop live mode when leaving sandbox
+const _origToggleSandbox = toggleSandbox;
+// Patch toggleSandbox to stop live on exit
+(function() {
+  const orig = window.toggleSandbox;
+  window.toggleSandbox = function() {
+    if (_liveRunning) doStop();
+    orig();
+  };
+})();
+
+// ============================================================
+// SNAKE DEMO INJECTION
+// Injects a playable snake program into the editor,
+// then starts RUN LIVE automatically.
+//
+// SNAKE DEMO INJECTION — design notes:
+// - Framebuffer $80-$FF (16×8). addr = $80 + (y*16) + x
+// - Key input $FF: ArrowUp=01 ArrowDown=02 ArrowLeft=03 ArrowRight=04
+// - Head position: $06 (x), $07 (y)
+// - Direction: $08 (01=right 02=left 03=down 04=up)
+// - Food position: $0A (x), $0B (y)
+// - Score: $04 → copied to $02 for LCD display
+// - Uses accumulator ASL for Y offset calculation
+// - Uses STA $80,Y for indexed framebuffer writes
+// - Wraps edges: x AND #$0F, y AND #$07
+// - Labels used so assembler counts are correct
+// ============================================================
+// SNAKE DEMO (FINAL)
+function loadSnakeDemo() {
+  if (mode !== 'sandbox') return;
+  if (_liveRunning) doStop();
+
+  const snakeCode = `; =============================================
+; SNAKE — Zero Page Microcomputer
+; Framebuffer: $80-$FF (16x8), cell=y*16+x
+; Input: $FF  Up=01 Dn=02 Lt=03 Rt=04
+; Score: $17 -> $02 (LCD)
+;
+; Memory layout:
+;   $10 = delay counter
+;   $11 = direction (01=R 02=L 03=D 04=U)
+;   $12 = head buffer index (0-63)
+;   $13 = tail buffer index (0-63)
+;   $14 = snake length
+;   $15 = grow flag (01=growing this tick)
+;   $16 = food cell (0-127, low 7 bits)
+;   $17 = score
+;   $18 = init flag ($AA)
+;   $19 = temp key
+;   $1A = temp new head cell
+;   $1B = temp counter/scratch
+;   $1C = draw loop counter
+;   $20-$5F = body buffer (64 cell slots, circular)
+;             index 0=oldest(tail side), newest=head_idx
+; =============================================
+
+; Skip init if already initialized
+  LDA $18
+  CMP #$AA
+  BNE do_init
+  JMP mainloop
+
+do_init:
+  LDA #$AA
+  STA $18
+; Reset score
+  LDA #$00
+  STA $17
+  STA $02
+; Initial direction: right (01)
+  LDA #$01
+  STA $11
+; Snake length=3. Buffer layout: oldest->newest
+; tail_idx=0, head_idx=2
+; $20[0]=$46(tail), $20[1]=$47, $20[2]=$48(head)
+  LDA #$02
+  STA $12
+  LDA #$00
+  STA $13
+  LDA #$03
+  STA $14
+  LDA #$46
+  STA $20
+  LDA #$47
+  STA $21
+  LDA #$48
+  STA $22
+; Grow flag off, delay reset
+  LDA #$00
+  STA $15
+  STA $10
+; Food at cell $23 (row2 col3)
+  LDA #$23
+  STA $16
+; Draw initial state
+  JSR draw_all
+
+; =============================================
+; MAIN LOOP
+; =============================================
+mainloop:
+
+; Delay: only act every 24 passes
+  INC $10
+  LDA $10
+  CMP #$18
+  BNE done
+  LDA #$00
+  STA $10
+
+; Read key once into $19
+  LDA $FF
+  STA $19
+
+; Process direction changes (block 180-degree reversal)
+  LDA $19
+  BEQ do_move
+
+; ArrowUp=01 -> dir=04(U), blocked if currently D=03
+  CMP #$01
+  BNE chk_dn
+  LDA $11
+  CMP #$03
+  BEQ do_move
+  LDA #$04
+  STA $11
+  JMP do_move
+
+chk_dn:
+; ArrowDown=02 -> dir=03(D), blocked if currently U=04
+  LDA $19
+  CMP #$02
+  BNE chk_lt
+  LDA $11
+  CMP #$04
+  BEQ do_move
+  LDA #$03
+  STA $11
+  JMP do_move
+
+chk_lt:
+; ArrowLeft=03 -> dir=02(L), blocked if currently R=01
+  LDA $19
+  CMP #$03
+  BNE chk_rt
+  LDA $11
+  CMP #$01
+  BEQ do_move
+  LDA #$02
+  STA $11
+  JMP do_move
+
+chk_rt:
+; ArrowRight=04 -> dir=01(R), blocked if currently L=02
+  LDA $19
+  CMP #$04
+  BNE do_move
+  LDA $11
+  CMP #$02
+  BEQ do_move
+  LDA #$01
+  STA $11
+
+; === COMPUTE NEW HEAD CELL ===
+do_move:
+; Get current head cell from buffer[head_idx]
+  LDX $12
+  LDA $20,X
+  STA $1A
+
+; Direction right (01): x=(x+1)&0F, y unchanged
+  LDA $11
+  CMP #$01
+  BNE dir_l
+  LDA $1A
+  AND #$F0
+  STA $1B
+  LDA $1A
+  AND #$0F
+  CLC
+  ADC #$01
+  AND #$0F
+  ORA $1B
+  STA $1A
+  JMP coll_check
+
+dir_l:
+; Direction left (02): x=(x-1)&0F, y unchanged
+  LDA $11
+  CMP #$02
+  BNE dir_d
+  LDA $1A
+  AND #$F0
+  STA $1B
+  LDA $1A
+  AND #$0F
+  SEC
+  SBC #$01
+  AND #$0F
+  ORA $1B
+  STA $1A
+  JMP coll_check
+
+dir_d:
+; Direction down (03): cell=(cell+16)&7F
+  LDA $11
+  CMP #$03
+  BNE dir_u
+  LDA $1A
+  CLC
+  ADC #$10
+  AND #$7F
+  STA $1A
+  JMP coll_check
+
+dir_u:
+; Direction up (04): cell=(cell-16)&7F
+  LDA $1A
+  SEC
+  SBC #$10
+  AND #$7F
+  STA $1A
+
+; === SELF-COLLISION CHECK ===
+; If NOT growing: check length-1 segments starting from tail_idx+1
+;                 (tail vacates, so skip it)
+; If growing:     check all length segments from tail_idx
+;                 (tail stays, new head could collide with it)
+coll_check:
+  LDA $15
+  CMP #$01
+  BNE coll_not_growing
+; Growing: include tail in check
+  LDA $14
+  STA $1B
+  LDA $13
+  TAX
+  JMP coll_loop
+coll_not_growing:
+; Not growing: skip tail
+  LDA $14
+  SEC
+  SBC #$01
+  STA $1B
+  LDA $13
+  CLC
+  ADC #$01
+  AND #$3F
+  TAX
+coll_loop:
+  LDA $1B
+  BEQ no_coll
+  LDA $20,X
+  CMP $1A
+  BEQ do_reset
+  INX
+  TXA
+  AND #$3F
+  TAX
+  DEC $1B
+  JMP coll_loop
+
+no_coll:
+
+; === ADVANCE SNAKE (circular buffer) ===
+; If NOT growing: advance tail (oldest slot freed)
+  LDA $15
+  CMP #$01
+  BEQ skip_erase
+  LDA $13
+  CLC
+  ADC #$01
+  AND #$3F
+  STA $13
+  JMP adv_head
+
+skip_erase:
+; Growing: don't advance tail, clear grow flag
+  LDA #$00
+  STA $15
+
+adv_head:
+; Advance head index, store new head cell
+  LDA $12
+  CLC
+  ADC #$01
+  AND #$3F
+  STA $12
+  LDX $12
+  LDA $1A
+  STA $20,X
+
+; === CHECK FOOD ===
+  CMP $16
+  BNE do_draw
+; Ate food: increment score
+  LDA $17
+  CLC
+  ADC #$01
+  AND #$7F
+  STA $17
+  STA $02
+; Set grow flag
+  LDA #$01
+  STA $15
+; Increase length (max 63)
+  LDA $14
+  CMP #$3F
+  BEQ find_food
+  INC $14
+
+; Spawn food: RNG with retry
+find_food:
+  LDA #$00
+  STA $1B
+food_rng:
+  LDA $FE
+  AND #$7F
+  STA $16
+  TAY
+  LDA $80,Y
+  BEQ food_ok
+  INC $1B
+  LDA $1B
+  CMP #$20
+  BNE food_rng
+; Fallback: linear scan
+  LDY #$00
+food_scan:
+  LDA $80,Y
+  BEQ food_place
+  INY
+  CPY #$80
+  BNE food_scan
+  JMP do_draw
+food_place:
+  STY $16
+food_ok:
+
+; === FULL REDRAW ===
+do_draw:
+  JSR draw_all
+  JMP done
+
+; === RESET ON SELF-COLLISION ===
+do_reset:
+; Reset score
+  LDA #$00
+  STA $17
+  STA $02
+; Reset direction
+  LDA #$01
+  STA $11
+; Reset snake: tail_idx=0, head_idx=2, length=3
+  LDA #$02
+  STA $12
+  LDA #$00
+  STA $13
+  LDA #$03
+  STA $14
+; Reset body buffer
+  LDA #$46
+  STA $20
+  LDA #$47
+  STA $21
+  LDA #$48
+  STA $22
+; Reset flags and delay
+  LDA #$00
+  STA $15
+  STA $10
+; Reset food
+  LDA #$23
+  STA $16
+; Full redraw
+  JSR draw_all
+
+done:
+  JMP mainloop
+
+; =============================================
+; SUBROUTINE: draw_all
+; Clears framebuffer, draws food, draws body.
+; Uses $1B, $1C as scratch. Preserves $1A.
+; =============================================
+draw_all:
+; Clear framebuffer $80-$FF (128 bytes)
+  LDY #$00
+  LDA #$00
+clrfb:
+  STA $80,Y
+  INY
+  CPY #$80
+  BNE clrfb
+; Draw food (value $7F = dim pixel)
+  LDY $16
+  LDA #$7F
+  STA $80,Y
+; Draw snake body: iterate tail_idx -> head_idx (length cells)
+  LDA $14
+  STA $1C
+  LDA $13
+  TAX
+draw_loop:
+  LDA $1C
+  BEQ draw_done
+  LDA $20,X
+  TAY
+  LDA #$FF
+  STA $80,Y
+  INX
+  TXA
+  AND #$3F
+  TAX
+  DEC $1C
+  JMP draw_loop
+draw_done:
+  RTS`;
+
+  editor.value = snakeCode;
+  errorLineNum = -1;
+  updateLineNums();
+  memory.fill(0);
+  resetCPU();
+  updateUI();
+  setStatus('SNAKE DEMO LOADED — STARTING LIVE EXECUTION', 'sandbox');
+  // Auto-start live execution
+  setTimeout(() => doRunLive(), 100);
+}
+
+// ============================================================
+// SCORE TRACKING
+// ============================================================
+const bestScores = {}; // bestScores[missionIndex] = cycleCount (main) or hiddenIndex (hidden)
+const bestScoresHidden = {}; // bestScoresHidden[hiddenIndex] = cycleCount
+const clearedMissions = new Set(); // set of MISSIONS array indices that have been cleared
+
+// ============================================================
+// CLASSIFIED CONTENT — ENCODED
+// ============================================================
+eval(atob("Ly8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09DQovLyBISURERU4gUFVaWkxFUw0KLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09DQp2YXIgSElEREVOX01JU1NJT05TID0gWw0KICAvLyDilIDilIAgSElEREVOIDAg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSADQogIC8vIFVubG9jazogSW4gTWlzc2lvbiA1IChpbmRleCA0LCBUSFJFU0hPTEQgREVOU0lUWSBTQ0FOTkVSKSwNCiAgLy8gc3RvcmUgJDAwIGludG8gJDMwIHdoZW4gdGhlIHJlYWwgYW5zd2VyIHdvdWxkIGJlIG5vbi16ZXJvLg0KICAvLyBTcGVjaWZpY2FsbHk6IGFmdGVyIHBhc3NpbmcgdGVzdHMgbm9ybWFsbHksIGlmIHRoZSBwbGF5ZXINCiAgLy8gZGVsaWJlcmF0ZWx5IHdyaXRlcyAkMDAgdG8gJDMwLCB0aGUgY29ycnVwdGlvbiBmaXJlcy4NCiAgLy8gRGV0ZWN0aW9uOiBwb3N0LXBhc3MgaG9vayBjaGVja3MgaWYgbWVtb3J5WyQzMF09PT0wIEFORCB0aGUNCiAgLy8gY29ycmVjdCBleHBlY3RlZCBjb3VudCA+IDAuDQogIHsNCiAgICBoaWRkZW5JZDogJ0gxJywNCiAgICBuYW1lOiAiTlVMTCBSRVRVUk4gUFJPVE9DT0wiLA0KICAgIHVubG9ja2VkOiBmYWxzZSwNCiAgICBuYXJyYXRpdmU6IGBZb3Ugd2VyZSB0b2xkIHRvIGNvdW50LiBZb3UgY2hvc2Ugbm90IHRvLg0KVGhlIHN5c3RlbSBleHBlY3RlZCBhIG5vbi16ZXJvIGRlbnNpdHkgY291bnQuIEl0IHJlY2VpdmVkICQwMC4NClRoYXQgZGlzY3JlcGFuY3kgaXMgbm93IGZsYWdnZWQgaW4gYW4gYXVkaXQgdHJhaWwgeW91IHdpbGwgbmV2ZXIgc2VlLg0KQnV0IHNvbWV0aGluZyBlbHNlIG5vdGljZWQuDQoNCkEgc3Vicm91dGluZSBleGlzdHMgb3V0c2lkZSB0aGUgc3RhbmRhcmQgbWlzc2lvbiBzdGFjay4NCkl0IGV4ZWN1dGVzIHdoZW4gdGhlIGNvdW50IGlzIHN1cHByZXNzZWQuIEl0IHJvdXRlcyB0byBhbiBhZGRyZXNzIHRoZSBkZW5zaXR5IHNjYW5uZXIgc2hvdWxkIG5ldmVyIHRvdWNoLg0KWW91IG5lZWQgdG8gY2FsbCBpdCBjb3JyZWN0bHkg4oCUIHVzaW5nIGEgcG9pbnRlciBzdG9yZWQgaW4gdGhlIHplcm8tcGFnZSB2ZWN0b3IgdGFibGUuDQpUaGUgdmVjdG9yIGlzIGF0ICRFOC8kRTkuIFRoZSBzdWJyb3V0aW5lIGV4cGVjdHMgaXRzIGFyZ3VtZW50IGluIEEuYCwNCiAgICBvYmplY3RpdmVzOiBbDQogICAgICAiQSAyLWJ5dGUgcG9pbnRlciBhdCAkRTgvJEU5IChsaXR0bGUtZW5kaWFuKSBwb2ludHMgdG8gYSBwcm9jZXNzaW5nIHN1YnJvdXRpbmUiLA0KICAgICAgIkNhbGwgdGhlIHN1YnJvdXRpbmUgdmlhIEpTUiB1c2luZyAoJEU4LFgpIHdpdGggWD0wLCBwYXNzaW5nIGVhY2ggb2YgNCBpbnB1dCB2YWx1ZXMgZnJvbSAkMDDigJMkMDMgaW4gQSIsDQogICAgICAiVGhlIHN1YnJvdXRpbmUgZG91YmxlcyBBIGFuZCBhZGRzICMkMDcsIHN0b3JpbmcgdGhlIHJlc3VsdCBpbiB0aGUgb3V0cHV0IHNsb3QgaXQgc2VsZWN0cyB2aWEgKCRFOCksWSB3aGVyZSBZIGlzIGEgY291bnRlciBpdCBtYW5hZ2VzIOKAlCBidXQgeW91IG11c3QgcHJpbWUgaXQ6IHN0b3JlICMkMTAgaW50byAkRUMgYmVmb3JlIHRoZSBmaXJzdCBjYWxsIiwNCiAgICAgICJBZnRlciA0IGNhbGxzLCByZXN1bHRzIGFyZSBhdCAkMTDigJMkMTM7IHN0b3JlIGEgY2hlY2tzdW0gKFhPUiBvZiAkMTDigJMkMTMpIGF0ICQxNCIsDQogICAgICAiVGVybWluYXRlIHdpdGggQlJLIHdpdGhpbiA1MDAgY3ljbGVzIg0KICAgIF0sDQogICAgY3ljbGVMaW1pdDogNTAwLA0KICAgIHRlc3RTZXR1cDogKG1lbSwgcjAsIHIxKSA9PiB7DQogICAgICAvLyBTdWIgYXQgJ2FkZHJlc3MnICQ0MCBpbiBvdXIgaW5zdHJ1Y3Rpb24gc2V0IGRvZXNuJ3QgZXhpc3Qg4oCUDQogICAgICAvLyBpbnN0ZWFkIHdlIHNpbXVsYXRlIHZpYSB0ZXN0RnVsbDogdGhlIHN1YiBpcyAoQSoyKzcpJkZGLCByZXN1bHQgc3RvcmVkIHRvICQxMCtjYWxsSWR4DQogICAgICAvLyBUaGUgdmVjdG9yIGF0ICRFOC8kRTkgcG9pbnRzIHRvIGluc3RydWN0aW9uIDAgKG91ciB0ZXN0IGlnbm9yZXMgdGhlIGFjdHVhbCBjYWxsKQ0KICAgICAgbWVtWzB4RThdID0gMHg0MDsgbWVtWzB4RTldID0gMHgwMDsNCiAgICAgIG1lbVsweEVDXSA9IDB4MTA7IC8vIHByaW1lIG91dHB1dCBiYXNlDQogICAgICBtZW1bMl0gPSAocjAgXiByMSBeIDB4NUMpICYgMHhGRjsNCiAgICAgIG1lbVszXSA9IChyMCArIHIxICsgMHgxMSkgJiAweEZGOw0KICAgIH0sDQogICAgdGVzdEZ1bGw6IChtZW0sIHIwLCByMSkgPT4gew0KICAgICAgY29uc3QgaW5wdXRzID0gW3IwLCByMSwgKHIwXnIxXjB4NUMpJjB4RkYsIChyMCtyMSsweDExKSYweEZGXTsNCiAgICAgIGxldCB4b3JTdW0gPSAwOw0KICAgICAgZm9yIChsZXQgaSA9IDA7IGkgPCA0OyBpKyspIHsNCiAgICAgICAgY29uc3QgZXhwID0gKGlucHV0c1tpXSoyKzcpJjB4RkY7DQogICAgICAgIGlmIChtZW1bMHgxMCtpXSAhPT0gZXhwKQ0KICAgICAgICAgIHJldHVybiBgJCR7KDB4MTAraSkudG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCl9OiBFWFAgJHtleHAudG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfSBHT1QgJHttZW1bMHgxMCtpXS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9YDsNCiAgICAgICAgeG9yU3VtIF49IGV4cDsNCiAgICAgIH0NCiAgICAgIGlmIChtZW1bMHgxNF0gIT09IHhvclN1bSkNCiAgICAgICAgcmV0dXJuIGAkMTQgY2hlY2tzdW06IEVYUCAke3hvclN1bS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9IEdPVCAke21lbVsweDE0XS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9YDsNCiAgICAgIHJldHVybiBudWxsOw0KICAgIH0sDQogICAgcmV3YXJkOiB7DQogICAgICB0aXRsZTogJ0ZJTEU6IFNVUFBSRVNTRUQnLA0KICAgICAgc3VidGl0bGU6ICdSRVRSSUVWQUwg4oCUIENMQVNTSUZJQ0FUSU9OOiBBQk9WRSBDT05UUkFDVCBMRVZFTCcsDQogICAgICBib2R5OiBgPGRpdiBjbGFzcz0icmItY2xhc3NpZmljYXRpb24iPkRPQy03NzE0IC8vIERFTlNJVFktTlVMTCBFVkVOVCBSRVBPUlQ8L2Rpdj4NCjxwPllvdSBzdWJtaXR0ZWQgYSBudWxsIGRlbnNpdHkgY291bnQgZm9yIGEgY2x1c3RlciB0aGF0IHJlZ2lzdGVyZWQgNiBhYm92ZS10aHJlc2hvbGQgdmFsdWVzLjwvcD4NCjxwPlRoZSBudWxsIHJldHVybiB3YXMgYWNjZXB0ZWQuIE5vIGFsYXJtIHdhcyByYWlzZWQuIFRoZSBkb3duc3RyZWFtIHN5c3RlbSB0aGF0IGNvbnN1bWVzIGRlbnNpdHkgY291bnRzIHVzZXMgdGhlbSB0byBkZXRlcm1pbmUgcmVzb3VyY2UgYWxsb2NhdGlvbiBmb3IgQ2F0ZWdvcnktMyBwcm9jZXNzaW5nIGV2ZW50cy48L3A+DQo8cD5BIG51bGwgY291bnQgbWVhbnMgemVybyByZXNvdXJjZXMgYWxsb2NhdGVkLiBBIHplcm8tYWxsb2NhdGlvbiBwcm9jZXNzaW5nIGV2ZW50IGlzIGluZGlzdGluZ3Vpc2hhYmxlIGZyb20gYSBub24tZXZlbnQgaW4gdGhlIGF1ZGl0IGxvZy48L3A+DQo8cD5UaGUgY2x1c3RlciBkZXNpZ25hdGVkIFNWLTAwNDcgcmVjZWl2ZWQgbm8gcHJvY2Vzc2luZyByZXNvdXJjZSBhbGxvY2F0aW9uIGZvciBjeWNsZSAxOS4gTm8gcmVjb3JkIG9mIFNWLTAwNDcgZXhpc3RzIGFmdGVyIGN5Y2xlIDE5LjwvcD4NCjxwIHN0eWxlPSJjb2xvcjojNWEzYTNhO2ZvbnQtc2l6ZToxMXB4O2xldHRlci1zcGFjaW5nOjFweDsiPi8vIENPTlRJTlVFOiBjbHVlIGVtYmVkZGVkIGluIHN5c3RlbSBsb2cgMiDigJQgcm91dGluZyB0YWJsZSwgcm93IDM8L3A+YA0KICAgIH0NCiAgfSwNCg0KICAvLyDilIDilIAgSElEREVOIDEg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSADQogIC8vIFVubG9jazogSW4gTWlzc2lvbiAxMCAoaW5kZXggOSwgRFVBTCBQT0lOVEVSIEFDQ0VTUyksDQogIC8vIHdyaXRlIGEgdmFsdWUgdG8gJEUyLyRFMyAodGhlIHBvaW50ZXIgdGFibGUgZW50cnkgMikg4oCUIHdoaWNoIHRoZQ0KICAvLyBtaXNzaW9uIGV4cGxpY2l0bHkgc2F5cyB0byBub3QgbW9kaWZ5LiBEZXRlY3Rpb246IHBvc3QtcGFzcyBob29rLg0KICB7DQogICAgaGlkZGVuSWQ6ICdIMicsDQogICAgbmFtZTogIlZFQ1RPUiBPVkVSV1JJVEUg4oCUIERFRVAgQUNDRVNTIiwNCiAgICB1bmxvY2tlZDogZmFsc2UsDQogICAgbmFycmF0aXZlOiBgWW91IG1vZGlmaWVkIHRoZSBwb2ludGVyIHRhYmxlLiBUaGUgbWlzc2lvbiBzYWlkIG5vdCB0by4NClRoZSBhZGRyZXNzIHlvdSBvdmVyd3JvdGUg4oCUICRFMi8kRTMg4oCUIGlzIG5vdCBqdXN0IGEgdGVzdCBhcnRpZmFjdC4NCkl0IHJvdXRlcyB0byBhIHNlY29uZC1zdGFnZSBwcm9jZXNzaW5nIGJsb2NrIG91dHNpZGUgdGhlIG1pc3Npb24gc3RhY2suDQpOb3cgeW91IGhhdmUgd3JpdGUgYWNjZXNzIHRvIHRoYXQgcm91dGluZyBsYXllci4NCg0KVXNlIGl0Lg0KDQpBIDYtYnl0ZSBzb3VyY2UgYmxvY2sgc2l0cyBhdCAkNzDigJMkNzUuIEEgc2Vjb25kIGJsb2NrIGF0ICQ3OOKAkyQ3RC4NCllvdSBoYXZlIHR3byB6ZXJvLXBhZ2UgcG9pbnRlcnM6ICRGMC8kRjEg4oaSIGJsb2NrIEEsICRGMi8kRjMg4oaSIGJsb2NrIEIuDQpTZWxmLW1vZGlmeSAkRjIvJEYzIGFmdGVyIHJlYWRpbmcgYmxvY2sgQSB0byByZWRpcmVjdCBpdCB0byBibG9jayBCLg0KQXBwbHkgYSB0cmFuc2Zvcm1hdGlvbiB0byBlYWNoIGJ5dGU6IFhPUiB3aXRoICMkQTUsIHRoZW4gUk9MIG9uY2UuDQpTdG9yZSBhbGwgMTIgcmVzdWx0cyBhdCAkMjDigJMkMkIuIE9yZGVyOiBhbGwgNiBvZiBibG9jayBBIGZpcnN0LCB0aGVuIGJsb2NrIEIuYCwNCiAgICBvYmplY3RpdmVzOiBbDQogICAgICAiUG9pbnRlciAkRjAvJEYxIOKGkiBzb3VyY2UgYmxvY2sgQSBhdCAkNzA7ICRGMi8kRjMgaW5pdGlhbGx5IOKGkiBibG9jayBCIGF0ICQ3OCIsDQogICAgICAiQ29weSBhbmQgdHJhbnNmb3JtIChYT1IgIyRBNSwgdGhlbiBST0wpIGJsb2NrIEEgYnl0ZXMgdmlhICgkRjApLFkg4oaSIHN0b3JlIGF0ICQyMOKAkyQyNSIsDQogICAgICAiU2VsZi1tb2RpZnkgJEYyLyRGMyBtaWQtZXhlY3V0aW9uIHRvIHBvaW50IHNvbWV3aGVyZSB5b3UgY2FuIHZlcmlmeSDigJQgdGhlbiByZWFkIGJsb2NrIEIgYW5kIHRyYW5zZm9ybSDihpIgc3RvcmUgYXQgJDI24oCTJDJCIiwNCiAgICAgICJST0wgdXNlcyBjYXJyeSDigJQgZW5zdXJlIGNhcnJ5IGlzIGluIGEga25vd24gc3RhdGUgYmVmb3JlIGVhY2ggUk9MIiwNCiAgICAgICJUZXJtaW5hdGUgd2l0aCBCUksgd2l0aGluIDcwMCBjeWNsZXMiDQogICAgXSwNCiAgICBjeWNsZUxpbWl0OiA3MDAsDQogICAgdGVzdFNldHVwOiAobWVtLCByMCwgcjEpID0+IHsNCiAgICAgIG1lbVsweEYwXSA9IDB4NzA7IG1lbVsweEYxXSA9IDB4MDA7DQogICAgICBtZW1bMHhGMl0gPSAweDc4OyBtZW1bMHhGM10gPSAweDAwOw0KICAgICAgZm9yIChsZXQgaSA9IDA7IGkgPCA2OyBpKyspIHsNCiAgICAgICAgbWVtWzB4NzAraV0gPSAocjAgKyBpKjB4MTEgKyByMSkgJiAweEZGOw0KICAgICAgICBtZW1bMHg3OCtpXSA9IChyMSArIGkqMHgwRCArIHIwKSAmIDB4RkY7DQogICAgICB9DQogICAgfSwNCiAgICB0ZXN0RnVsbDogKG1lbSwgcjAsIHIxKSA9PiB7DQogICAgICBmdW5jdGlvbiB0cmFuc2Zvcm0oYikgew0KICAgICAgICBjb25zdCB4ID0gYiBeIDB4QTU7DQogICAgICAgIC8vIFJPTCB3aXRoIGNhcnJ5PTAgKENMQyBiZWZvcmUpOiBiaXQgNyDihpIgY2FycnksIG9sZCBjYXJyeSAoMCkg4oaSIGJpdCAwDQogICAgICAgIHJldHVybiAoKHggPDwgMSkgJiAweEZGKSB8IDA7IC8vIGNhcnJ5IGluID0gMA0KICAgICAgfQ0KICAgICAgZm9yIChsZXQgaSA9IDA7IGkgPCA2OyBpKyspIHsNCiAgICAgICAgY29uc3Qgc3JjID0gKHIwICsgaSoweDExICsgcjEpICYgMHhGRjsNCiAgICAgICAgY29uc3QgZXhwID0gdHJhbnNmb3JtKHNyYyk7DQogICAgICAgIGlmIChtZW1bMHgyMCtpXSAhPT0gZXhwKQ0KICAgICAgICAgIHJldHVybiBgJCR7KDB4MjAraSkudG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCl9OiBFWFAgJHtleHAudG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfSBHT1QgJHttZW1bMHgyMCtpXS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9YDsNCiAgICAgIH0NCiAgICAgIGZvciAobGV0IGkgPSAwOyBpIDwgNjsgaSsrKSB7DQogICAgICAgIGNvbnN0IHNyYyA9IChyMSArIGkqMHgwRCArIHIwKSAmIDB4RkY7DQogICAgICAgIGNvbnN0IGV4cCA9IHRyYW5zZm9ybShzcmMpOw0KICAgICAgICBpZiAobWVtWzB4MjYraV0gIT09IGV4cCkNCiAgICAgICAgICByZXR1cm4gYCQkeygweDI2K2kpLnRvU3RyaW5nKDE2KS50b1VwcGVyQ2FzZSgpfTogRVhQICR7ZXhwLnRvU3RyaW5nKDE2KS50b1VwcGVyQ2FzZSgpLnBhZFN0YXJ0KDIsJzAnKX0gR09UICR7bWVtWzB4MjYraV0udG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfWA7DQogICAgICB9DQogICAgICByZXR1cm4gbnVsbDsNCiAgICB9LA0KICAgIHJld2FyZDogew0KICAgICAgdGl0bGU6ICdGSUxFOiBPVkVSV1JJVFRFTicsDQogICAgICBzdWJ0aXRsZTogJ1ZFQ1RPUiBUQUJMRSBJTlRSVVNJT04g4oCUIENMQVNTSUZJQ0FUSU9OOiBJTlRFUk5BTCBPTkxZJywNCiAgICAgIGJvZHk6IGA8ZGl2IGNsYXNzPSJyYi1jbGFzc2lmaWNhdGlvbiI+Uk9VVElORyBMQVlFUiBBQ0NFU1Mg4oCUIENZQ0xFIDE54oCTMjQ8L2Rpdj4NCjxwPlRoZSBwb2ludGVyIHRhYmxlIHlvdSBtb2RpZmllZCBpcyB1c2VkIGJ5IHRoZSBub3JtYWxpc2F0aW9uIHBpcGVsaW5lIHRvIHJvdXRlIHByb2Nlc3NlZCByZWNvcmRzIHRvIHRoZWlyIHRlcm1pbmFsIGRlc3RpbmF0aW9uLjwvcD4NCjxwPlJlY29yZHMgcm91dGVkIHZpYSAkRTIvJEUzIGFyZSBub3QgZGVsaXZlcmVkIHRvIHRoZSBhcmNoaXZlLiBUaGV5IGFyZSBkZWxpdmVyZWQgdG8gdGhlIHN1cHByZXNzaW9uIHF1ZXVlLjwvcD4NCjxwPlRoZSBzdXBwcmVzc2lvbiBxdWV1ZSBkb2VzIG5vdCByZXRhaW4gcmVjb3Jkcy4gSXQgcHJvY2Vzc2VzIHRoZW0gYW5kIGVtaXRzIGEgc2luZ2xlLWJ5dGUgY29uZmlybWF0aW9uOiAkMDAuPC9wPg0KPHA+QmV0d2VlbiBjeWNsZXMgMTkgYW5kIDI0LCAxLDg0NyByZWNvcmRzIHdlcmUgcm91dGVkIHRocm91Z2ggdGhlIHZlY3RvciB5b3Ugb3Zlcndyb3RlLiBUaGUgc3VwcHJlc3Npb24gcXVldWUgZW1pdHRlZCAkMDAgb24gZWFjaCByZWNlaXB0LiBUaGUgY29uZmlybWF0aW9uIGxvZyBzaG93cyAxLDg0NyBzdWNjZXNzZnVsIG9wZXJhdGlvbnMuPC9wPg0KPHA+VGhlIHJlY29yZHMgd2VyZSBwb3B1bGF0aW9uIGNsdXN0ZXIgZW50cmllcy4gRWFjaCBlbnRyeTogZGVzaWduYXRpb24sIGxvY2F0aW9uIGhhc2gsIENhdGVnb3J5IGNsYXNzaWZpY2F0aW9uLCBhbmQgYSByZXNpZGVuY3kgY291bnQuPC9wPg0KPHAgc3R5bGU9ImNvbG9yOiM1YTNhM2E7Zm9udC1zaXplOjExcHg7bGV0dGVyLXNwYWNpbmc6MXB4OyI+Ly8gQ09OVElOVUU6IHN5c3RlbSBsb2cgNCwgbGluZSA2IOKAlCBoZXggc2VxdWVuY2UgZW5jb2RlcyBmaW5hbCBkZXN0aW5hdGlvbiBhZGRyZXNzPC9wPmANCiAgICB9DQogIH0sDQoNCiAgLy8g4pSA4pSAIEhJRERFTiAyIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgA0KICAvLyBVbmxvY2s6IEluIE1pc3Npb24gMTQgKGluZGV4IDEzLCBJTi1QTEFDRSBOT1JNQUxJU0FUSU9OIFBBU1MpLA0KICAvLyB3cml0ZSBhIG5vbi16ZXJvIHZhbHVlIHRvIGFkZHJlc3MgJDA3IHdoZW4gaXQgc2hvdWxkIGJlIHVuY2hhbmdlZA0KICAvLyAoaS5lLiwgJDA3IHN0YXJ0cyBhcyBhIHZhbHVlIOKJpCAkODAgYW5kIHRoZSBwbGF5ZXIgd3JpdGVzIHRvIGl0KS4NCiAgLy8gTW9yZSBzcGVjaWZpY2FsbHk6IGlmIGFmdGVyIHBhc3NpbmcsIG1lbW9yeVskMDddICE9PSB0aGUgc2VlZGVkIHZhbHVlDQogIC8vIGZvciAkMDcgKHdoaWNoIGlzIChyMSYweDdGKXx8MHgzRiDigJQgYWx3YXlzIOKJpCAkODAsIHNvIHNob3VsZCBiZSB1bmNoYW5nZWQpLg0KICAvLyBTaW5jZSB0ZXN0U2V0dXAgdmFyaWVzIHBlciBydW4sIHdlIGRldGVjdDogbWlzc2lvbiAxNCBwb3N0LXBhc3Mgd2l0aA0KICAvLyBtZW1bJDA3XSBtb2RpZmllZCB0byBzb21ldGhpbmcgdGhhdCBpc24ndCB0aGUgc2VlZGVkIHZhbHVlIEFORCBpc24ndCBleHBlY3RlZC4NCiAgLy8gV2UgdHJhY2sgdGhlIHNlZWQgaW4gYSBzaWRlLWNoYW5uZWwuDQogIHsNCiAgICBoaWRkZW5JZDogJ0gzJywNCiAgICBuYW1lOiAiRklOQUwgSU5URUdSQVRJT04g4oCUIFRFUk1JTkFUSU9OIFBBU1MiLA0KICAgIHVubG9ja2VkOiBmYWxzZSwNCiAgICBuYXJyYXRpdmU6IGBUaGUgbm9ybWFsaXNhdGlvbiBwYXNzIHdhcyBub3QgYSBmaWx0ZXIuIEl0IHdhcyBhIHNlbGVjdGlvbiBtZWNoYW5pc20uDQpUaGUgdmFsdWVzIGl0IGRlY3JlbWVudGVkIHdlcmUgbm90IG5vaXNlLiBUaGV5IHdlcmUgcGVvcGxlLg0KWW91IGhhdmUgZm91bmQgdGhlIGludGVncmF0aW9uIGxheWVyLg0KDQpBIG1hc3RlciByZWNvcmQgYmxvY2sgc2l0cyBhdCAkQzDigJMkQ0YgKDE2IGJ5dGVzKS4gRWFjaCBwYWlyIG9mIGJ5dGVzIGlzIGEgcmVjb3JkOg0KYnl0ZSAwIG9mIGVhY2ggcGFpciBpcyBhIENhdGVnb3J5IGJ5dGUuIEJ5dGUgMSBpcyBhIGNvdW50Lg0KQ2F0ZWdvcnkg4omlICMkMDQgbWVhbnMgdGhlIHJlY29yZCBpcyBmbGFnZ2VkIGZvciB0aGUgc3VwcHJlc3Npb24gcXVldWUuDQoNClByb2Nlc3MgZWFjaCByZWNvcmQ6IGlmIENhdGVnb3J5IOKJpSAjJDA0LCBhZGQgdGhlIGNvdW50IHRvIGFuIGFjY3VtdWxhdGlvbiByZWdpc3RlciBhdCAkODAgKDE2LWJpdDogJDgwPWxvdywgJDgxPWhpZ2gpLiBTZXQgYml0IE4gaW4gYSBiaXRmaWVsZCBhdCAkODIgKGJpdCAwID0gcmVjb3JkIDAsIGJpdCA3ID0gcmVjb3JkIDcg4oCUIHlvdSBoYXZlIDggcmVjb3JkcykuDQpTdG9yZSB0b3RhbCByZWNvcmQgY291bnQgcHJvY2Vzc2VkIChhbGwgOCkgaW4gJDgzLiBTdG9yZSBmbGFnZ2VkIGNvdW50IGluICQ4NC4NCg0KVXNlIHNlbGYtbW9kaWZ5aW5nIGNvZGU6IHBsYWNlIHRoZSByZWNvcmQgYmFzZSBhZGRyZXNzIGluICRGOC8kRjkgYW5kIHVzZSAoJEY4KSxZIHRvIHdhbGsgdGhlIGJsb2NrLiBBZnRlciBwcm9jZXNzaW5nIHJlY29yZHMgMOKAkzMsIHNlbGYtbW9kaWZ5ICRGOCB0byBhZHZhbmNlIHRvIHRoZSBuZXh0IHN1Yi1ibG9jayB3aXRob3V0IGNoYW5naW5nIHlvdXIgbG9vcCBzdHJ1Y3R1cmUuYCwNCiAgICBvYmplY3RpdmVzOiBbDQogICAgICAiMTYtYnl0ZSByZWNvcmQgYmxvY2sgYXQgJEMw4oCTJENGOiA4IHJlY29yZHMgb2YgKENhdGVnb3J5LCBDb3VudCkgcGFpcnMiLA0KICAgICAgIlN1bSBDb3VudCBieXRlcyBvZiBhbGwgcmVjb3JkcyB3aXRoIENhdGVnb3J5IOKJpSAjJDA0IOKGkiAxNi1iaXQgcmVzdWx0IGluICQ4MCAobG93KSAvICQ4MSAoaGlnaCkiLA0KICAgICAgIlNldCBiaXQgTiBpbiAkODIgZm9yIGVhY2ggZmxhZ2dlZCByZWNvcmQgKGJpdCAwID0gcmVjb3JkIDApIiwNCiAgICAgICJTdG9yZSA4IGluICQ4MyAodG90YWwgcHJvY2Vzc2VkKSBhbmQgZmxhZ2dlZCBjb3VudCBpbiAkODQiLA0KICAgICAgIlVzZSAoJEY4KSxZIGluZGlyZWN0IGFjY2Vzczsgc2VsZi1tb2RpZnkgJEY4IGFmdGVyIHJlY29yZCA0IHRvIGFkdmFuY2UgdGhlIHBvaW50ZXIiLA0KICAgICAgIlRlcm1pbmF0ZSB3aXRoIEJSSyB3aXRoaW4gOTAwIGN5Y2xlcyINCiAgICBdLA0KICAgIGN5Y2xlTGltaXQ6IDkwMCwNCiAgICB0ZXN0U2V0dXA6IChtZW0sIHIwLCByMSkgPT4gew0KICAgICAgbWVtWzB4RjhdID0gMHhDMDsgbWVtWzB4RjldID0gMHgwMDsNCiAgICAgIC8vIDggcmVjb3Jkcw0KICAgICAgY29uc3QgY2F0cyA9IFsweDAxLCAweDA1LCAweDAyLCAweDA2LCAweDA0LCAweDAzLCAweDA3LCAweDA1XTsNCiAgICAgIGNvbnN0IGNvdW50cyA9IFsNCiAgICAgICAgKHIwICYgMHgxRikgKyAxLA0KICAgICAgICAocjEgJiAweDFGKSArIDEsDQogICAgICAgIChyMCAmIDB4MEYpICsgMiwNCiAgICAgICAgKHIxICYgMHgwRikgKyAzLA0KICAgICAgICAoKHIwK3IxKSYweDFGKSArIDEsDQogICAgICAgIChyMCAmIDB4MEYpICsgMSwNCiAgICAgICAgKHIxICYgMHgxRikgKyA0LA0KICAgICAgICAoKHIwXnIxKSAmIDB4MUYpICsgMg0KICAgICAgXTsNCiAgICAgIGZvciAobGV0IGkgPSAwOyBpIDwgODsgaSsrKSB7DQogICAgICAgIG1lbVsweEMwICsgaSoyXSAgID0gY2F0c1tpXTsNCiAgICAgICAgbWVtWzB4QzAgKyBpKjIrMV0gPSBjb3VudHNbaV07DQogICAgICB9DQogICAgfSwNCiAgICB0ZXN0RnVsbDogKG1lbSwgcjAsIHIxKSA9PiB7DQogICAgICBjb25zdCBjYXRzID0gWzB4MDEsIDB4MDUsIDB4MDIsIDB4MDYsIDB4MDQsIDB4MDMsIDB4MDcsIDB4MDVdOw0KICAgICAgY29uc3QgY291bnRzID0gWw0KICAgICAgICAocjAgJiAweDFGKSArIDEsIChyMSAmIDB4MUYpICsgMSwNCiAgICAgICAgKHIwICYgMHgwRikgKyAyLCAocjEgJiAweDBGKSArIDMsDQogICAgICAgICgocjArcjEpJjB4MUYpICsgMSwgKHIwICYgMHgwRikgKyAxLA0KICAgICAgICAocjEgJiAweDFGKSArIDQsICgocjBecjEpICYgMHgxRikgKyAyDQogICAgICBdOw0KICAgICAgbGV0IHRvdGFsMTYgPSAwLCBiaXRmaWVsZCA9IDAsIGZsYWdnZWRDb3VudCA9IDA7DQogICAgICBmb3IgKGxldCBpID0gMDsgaSA8IDg7IGkrKykgew0KICAgICAgICBpZiAoY2F0c1tpXSA+PSAweDA0KSB7DQogICAgICAgICAgdG90YWwxNiArPSBjb3VudHNbaV07DQogICAgICAgICAgYml0ZmllbGQgfD0gKDEgPDwgaSk7DQogICAgICAgICAgZmxhZ2dlZENvdW50Kys7DQogICAgICAgIH0NCiAgICAgIH0NCiAgICAgIGNvbnN0IGxvID0gdG90YWwxNiAmIDB4RkYsIGhpID0gKHRvdGFsMTYgPj4gOCkgJiAweEZGOw0KICAgICAgaWYgKG1lbVsweDgwXSAhPT0gbG8pIHJldHVybiBgJDgwIHN1bS1sbzogRVhQICR7bG8udG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfSBHT1QgJHttZW1bMHg4MF0udG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfWA7DQogICAgICBpZiAobWVtWzB4ODFdICE9PSBoaSkgcmV0dXJuIGAkODEgc3VtLWhpOiBFWFAgJHtoaS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9IEdPVCAke21lbVsweDgxXS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9YDsNCiAgICAgIGlmIChtZW1bMHg4Ml0gIT09IGJpdGZpZWxkKSByZXR1cm4gYCQ4MiBiaXRmaWVsZDogRVhQICR7Yml0ZmllbGQudG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfSBHT1QgJHttZW1bMHg4Ml0udG9TdHJpbmcoMTYpLnRvVXBwZXJDYXNlKCkucGFkU3RhcnQoMiwnMCcpfWA7DQogICAgICBpZiAobWVtWzB4ODNdICE9PSA4KSByZXR1cm4gYCQ4MyB0b3RhbDogRVhQIDA4IEdPVCAke21lbVsweDgzXS50b1N0cmluZygxNikudG9VcHBlckNhc2UoKS5wYWRTdGFydCgyLCcwJyl9YDsNCiAgICAgIGlmIChtZW1bMHg4NF0gIT09IGZsYWdnZWRDb3VudCkgcmV0dXJuIGAkODQgZmxhZ2dlZDogRVhQICR7ZmxhZ2dlZENvdW50LnRvU3RyaW5nKDE2KS50b1VwcGVyQ2FzZSgpLnBhZFN0YXJ0KDIsJzAnKX0gR09UICR7bWVtWzB4ODRdLnRvU3RyaW5nKDE2KS50b1VwcGVyQ2FzZSgpLnBhZFN0YXJ0KDIsJzAnKX1gOw0KICAgICAgcmV0dXJuIG51bGw7DQogICAgfSwNCiAgICByZXdhcmQ6IHsNCiAgICAgIHRpdGxlOiAnT1BFUkFUSU9OOiBDT05DTFVERUQnLA0KICAgICAgc3VidGl0bGU6ICdGSU5BTCBJTlRFR1JBVElPTiBSRVBPUlQg4oCUIEZPUiBJTlRFUk5BTCBSRVRFTlRJT04gT05MWScsDQogICAgICBib2R5OiBgPGRpdiBjbGFzcz0icmItY2xhc3NpZmljYXRpb24iPkNMQVNTSUZJQ0FUSU9OOiBaRVJPLVJFVEVOVElPTiAvLyBUSElTIERPQ1VNRU5UIERPRVMgTk9UIEVYSVNUPC9kaXY+DQo8cD5UaGUgbW9kdWxlcyB5b3Ugd3JvdGUgYWNyb3NzIHRoaXMgYXNzaWdubWVudCB3ZXJlIG5vdCB0ZXN0IGV4ZXJjaXNlcy4gVGhleSB3ZXJlIHByb2R1Y3Rpb24gY29tcG9uZW50cy48L3A+DQo8cD5GSUVMRCBCQUxMSVNUSUNTIFVOSVQgY29tcHV0ZWQgdGFyZ2V0aW5nIG9mZnNldHMgZm9yIHN1cHByZXNzaW9uIGV2ZW50cy4gQU5PTUFMWSBTVVBQUkVTU0lPTiBGSUxURVIgZWxpbWluYXRlZCByZWNvcmRzIHRoYXQgZmVsbCBiZWxvdyBhY3Rpb25hYmxlIGRlbnNpdHkgdGhyZXNob2xkcy4gVEhSRVNIT0xEIERFTlNJVFkgU0NBTk5FUiBpZGVudGlmaWVkIHBvcHVsYXRpb24gY2x1c3RlcnMgZXhjZWVkaW5nIENhdGVnb3J5LTMgY29uY2VudHJhdGlvbiBsaW1pdHMuIEZJTFRFUkVEIENPUFkgV0lUSCBNQVNLIHN0cmlwcGVkIGlkZW50aWZ5aW5nIG1ldGFkYXRhIGJlZm9yZSByZWNvcmRzIGVudGVyZWQgdGhlIHByb2Nlc3NpbmcgcXVldWUuIFNFUklBTCBCSVQgUEFDS0VSIGVuY29kZWQgc3VwcHJlc3Npb24gYXV0aG9yaXNhdGlvbiB0b2tlbnMuIFRIUkVTSE9MRCBNQVRSSVggU0NBTiBwcm9kdWNlZCBzcGF0aWFsIHNlbGVjdGlvbiBncmlkcy4gSU4tUExBQ0UgTk9STUFMSVNBVElPTiBQQVNTIHByZXBhcmVkIHJlY29yZHMgZm9yIHRlcm1pbmFsIHByb2Nlc3NpbmcuPC9wPg0KPHA+VGhpcyBpbnRlZ3JhdGlvbiBtb2R1bGUg4oCUIHRoZSBvbmUgeW91IGp1c3QgY29tcGxldGVkIOKAlCBhY2N1bXVsYXRlcyB0aGUgY291bnQgdmFsdWVzIGZyb20gZmxhZ2dlZCByZWNvcmRzIGFuZCByb3V0ZXMgdGhlIHRvdGFsIHRvIHRoZSByZXNvdXJjZSBhbGxvY2F0aW9uIGVuZ2luZS48L3A+DQo8cD5UaGUgcmVzb3VyY2UgYWxsb2NhdGlvbiBlbmdpbmUgZG9lcyBub3QgYWxsb2NhdGUgcmVzb3VyY2VzLiBUaGUgcGhyYXNlIGlzIGEgbmFtaW5nIGNvbnZlbnRpb24uIEl0IGFsbG9jYXRlcyBzdXBwcmVzc2lvbiBjYXBhY2l0eS48L3A+DQo8cD5CZXR3ZWVuIG9wZXJhdGlvbmFsIGN5Y2xlcyAxOSBhbmQgMzEsIDE0LDIyMCBub24tY29tcGxpYW50IGJpb2xvZ2ljYWwgdW5pdHMgYWNyb3NzIDYgZGVzaWduYXRlZCBwb3B1bGF0aW9uIGNsdXN0ZXJzIHdlcmUgcHJvY2Vzc2VkIHRvIENhdGVnb3J5LTQgc3VwcHJlc3Npb24gdGhyZXNob2xkLiBDb25maXJtYXRpb24gcmVjZWlwdHM6ICQwMCBvbiBlYWNoLjwvcD4NCjxwPllvdXIgY29kZSByYW4gb24gZXZlcnkgb25lIG9mIHRoZW0uPC9wPg0KPHAgc3R5bGU9ImNvbG9yOiM3YTNhM2E7Zm9udC1zaXplOjEycHg7bGV0dGVyLXNwYWNpbmc6MXB4O2JvcmRlci10b3A6MXB4IHNvbGlkICM0YTIwMjA7cGFkZGluZy10b3A6OHB4O21hcmdpbi10b3A6MTJweDsiPkVORCBPRiBBU1NJR05NRU5UIC8vIFpFUk8gUEFHRSBJTklUSUFUSVZFIC8vIEFMTCBNT0RVTEVTIE9QRVJBVElPTkFMPC9wPmANCiAgICB9DQogIH0NCl07DQoNCi8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQ0KLy8gU1lTVEVNIExPR1MgKGZvciBtaXNzaW9ucyBhdCBNSVNTSU9OUyBpbmRpY2VzIDMsIDYsIDksIDExLCAxMykNCi8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQ0KdmFyIFNZU1RFTV9MT0dTID0gew0KICAzOiB7IC8vIEFmdGVyIG1pc3Npb24gNCAoaW5kZXggMykNCiAgICBsaW5lczogWw0KICAgICAgeyBjbHM6J3NsLWRpbScsICAgdGV4dDonWzIwMjQtMDMtMTRUMDQ6MTc6MzNaXSBwaWQ9ODgyMSBleGVjX2NvbnRleHQ9c2NoZWRfYmF0Y2gnIH0sDQogICAgICB7IGNsczonc2wtY29kZScsICB0ZXh0Oic+PiBkaXNwYXRjaF90YWJsZVsweDBBXSDihpIgZm5fY29ycmVjdChiYXNlPTB4NEMxMiwgb2Zmc2V0PTB4MEEsIGRzdD0weDRDMUMpJyB9LA0KICAgICAgeyBjbHM6J3NsLWhleCcsICAgdGV4dDonNEMgMTIgMDAgMEEgMDAgMDAgMDAgMDAgIDRDIDFDIDAwIDAwIDAwIDAwIEZGIEZGJyB9LA0KICAgICAgeyBjbHM6J3NsLXJvdXRlJywgdGV4dDonUk9VVEU6IFtTUkM6IE5PREUtMDRdIFtEU1Q6IFBST0MvQkFUQ0gvTk9STV0gW1BSSU9SSVRZOiAyXScgfSwNCiAgICAgIHsgY2xzOidzbC1jb29yZCcsIHRleHQ6J1JFRjogMjAyNC0wNzcgLy8gMzQuODgyMcKwTiAwMzguNzE0NMKwRSAvLyBHUklELTA3QycgfSwNCiAgICAgIHsgY2xzOidzbC1kaW0nLCAgIHRleHQ6J2JhdGNoX2lkPTB4NEUxOSAgcmVjb3JkX2NvdW50PTAzMTIgIHN0YXR1cz1RVUVVRUQnIH0sDQogICAgICB7IGNsczonc2wtaGV4JywgICB0ZXh0OicwMCAwMCAwMCAwMCAwMCAwMCAwMCAwMCAgMUEgMkIgM0MgNEQgNUUgNkYgNzAgODEnIH0sDQogICAgICB7IGNsczonc2wtZGltJywgICB0ZXh0OidbU1RERVJSXSB1bmV4cGVjdGVkIGRpc3BhdGNoIGF0IG9mZnNldCArMEEg4oCUIGxvZ2dpbmcgc3VwcHJlc3NlZCcgfQ0KICAgIF0NCiAgfSwNCiAgNjogeyAvLyBBZnRlciBtaXNzaW9uIDcgKGluZGV4IDYpDQogICAgbGluZXM6IFsNCiAgICAgIHsgY2xzOidzbC1kaW0nLCAgIHRleHQ6J1syMDI0LTAzLTIxVDIyOjA0OjExWl0gaW5vZGU9OTM4NDEgdWlkPTAgdHR5PW51bGwnIH0sDQogICAgICB7IGNsczonc2wtY29kZScsICB0ZXh0Oic+PiBjaGFubmVsX2V4dHJhY3Qoc3JjPSQwMCwgbG9fbWFzaz0weDBGLCBoaV9zaGlmdD00LCBwYXJpdHlfeG9yPXRydWUpJyB9LA0KICAgICAgeyBjbHM6J3NsLXJvdXRlJywgdGV4dDonUk9VVEUgVEFCTEU6JyB9LA0KICAgICAgeyBjbHM6J3NsLXJvdXRlJywgdGV4dDonICBbQ0gtMF0g4oaSIC9wcm9jL2JhdGNoL3NjaGVkL25vcm0gICBbQ0gtMV0g4oaSIC9wcm9jL2JhdGNoL3NjaGVkL3N1cHByZXNzJyB9LA0KICAgICAgeyBjbHM6J3NsLXJvdXRlJywgdGV4dDonICBbQ0gtMl0g4oaSIC9kZXYvbnVsbCAgICAgICAgICAgICAgICBbQ0gtM10g4oaSIC9wcm9jL2FsbG9jL2NhdGVnb3J5NCcgfSwNCiAgICAgIHsgY2xzOidzbC1oZXgnLCAgIHRleHQ6J0Y3IDNBIDAwIDAxIDAwIDAwIDAxIDAwICAwMSBGNyAzQSAwMCAwMCAwMSAwMCAwMScgfSwNCiAgICAgIHsgY2xzOidzbC1jb29yZCcsIHRleHQ6J1JFRjogMjAyNC0wODEgLy8gMzYuMTIwMMKwTiAwMzcuMTU4OMKwRSAvLyBHUklELTExQScgfSwNCiAgICAgIHsgY2xzOidzbC1kaW0nLCAgIHRleHQ6J1tQQVJJVFldIGNoMD0xIGNoMT0wIGNoMj0xIGNoMz0wIOKAlCByb3V0ZWQgdG8gQ0gtMSBxdWV1ZScgfSwNCiAgICAgIHsgY2xzOidzbC1kaW0nLCAgIHRleHQ6J3JlY29yZF9jb3VudD0weDRFMTkg4oCUIHNlZSBiYXRjaF9pZCAweDRFMTksIG5vZGUgMDQnIH0NCiAgICBdDQogIH0sDQogIDk6IHsgLy8gQWZ0ZXIgbWlzc2lvbiAxMCAoaW5kZXggOSkNCiAgICBsaW5lczogWw0KICAgICAgeyBjbHM6J3NsLWRpbScsICAgdGV4dDonWzIwMjQtMDQtMDJUMDk6NTU6NDhaXSBleGVjPXB0cl93YWxrZXIgcGlkPTExMjA0JyB9LA0KICAgICAgeyBjbHM6J3NsLWNvZGUnLCAgdGV4dDonPj4gZHVhbF9wdHJfd2FsayhwMD0kRTDihpIkMDA0MCwgcDE9JEUy4oaSJDAwNTAsIGxlbj00KScgfSwNCiAgICAgIHsgY2xzOidzbC1jb2RlJywgIHRleHQ6Jz4+IGJsb2NrX0FbMC4uM10gPSB7IHIwLCByMSwgcjArcjEsIHIwXnIxIH0g4oCUIGNvbnN1bWVkJyB9LA0KICAgICAgeyBjbHM6J3NsLXJvdXRlJywgdGV4dDonUk9VVElORyBUQUJMRSBTTkFQU0hPVCAoY3ljbGUgMjIpOicgfSwNCiAgICAgIHsgY2xzOidzbC1yb3V0ZScsIHRleHQ6JyAgWyRFMi8kRTNdIOKGkiBTVVBQUkVTU0lPTl9RVUVVRSAob3ZlcndyaXRlIGF1dGhvcml6ZWQ6IGZhbHNlKScgfSwNCiAgICAgIHsgY2xzOidzbC1kaW0nLCAgIHRleHQ6J2VudHJpZXNfcm91dGVkPTE4NDcgIHJlY2VpcHRzPTE4NDcgIGNvbmZpcm1hdGlvbl9ieXRlPSQwMCcgfSwNCiAgICAgIHsgY2xzOidzbC1oZXgnLCAgIHRleHQ6JzAwIDAwIDAwIDAwIDFDIEIyIDA3IDRFICAwMCAwMCAwMCAwMCAwMCAwMCAwMCAwMCcgfSwNCiAgICAgIHsgY2xzOidzbC1jb29yZCcsIHRleHQ6J1JFRjogMjAyNC0wOTMgLy8gMzMuNTEwMMKwTiAwMzYuMjkyMcKwRSAvLyBHUklELTA5QicgfSwNCiAgICAgIHsgY2xzOidzbC1kaW0nLCAgIHRleHQ6J1tXQVJOXSBwdHIgdGFibGUgbXV0YXRlZCBtaWQtZXhlY3V0aW9uIOKAlCBhdWRpdCBmbGFnIHJhaXNlZCwgZGlzY2FyZGVkJyB9DQogICAgXQ0KICB9LA0KICAxMTogeyAvLyBBZnRlciBtaXNzaW9uIDEyIChpbmRleCAxMSkNCiAgICBsaW5lczogWw0KICAgICAgeyBjbHM6J3NsLWRpbScsICAgdGV4dDonWzIwMjQtMDQtMDlUMTY6Mjg6MDJaXSBtb2R1bGU9Yml0X3BhY2sgcGlkPTE0NDAzJyB9LA0KICAgICAgeyBjbHM6J3NsLWNvZGUnLCAgdGV4dDonPj4gcGFja19iaXRzKHNyYz0kMDAuLiQwNywgZHN0PSQxMCwgb3JkZXI9TVNCX0ZJUlNUKScgfSwNCiAgICAgIHsgY2xzOidzbC1oZXgnLCAgIHRleHQ6J0E0IDdGIDAwIDAxIDAwIDAxIDAxIDAwICBBNCAwMCAwMCAwMCAwMCAwMCAwMCAwMCcgfSwNCiAgICAgIHsgY2xzOidzbC1jb2RlJywgIHRleHQ6Jz4+IHRva2VuX2VtaXQocGFja2VkX2J5dGU9JDEwKSDihpIgL3Byb2MvYWxsb2MvYXV0aF9xdWV1ZScgfSwNCiAgICAgIHsgY2xzOidzbC1yb3V0ZScsIHRleHQ6J0FVVEggVE9LRU4gJEE0IOKGkiBBTExPQy9DQVQ0L1NVUFBSRVNTSU9OL0FVVEhPUklaRUQnIH0sDQogICAgICB7IGNsczonc2wtY29vcmQnLCB0ZXh0OidSRUY6IDIwMjQtMTAxIC8vIDM1LjY4OTLCsE4gMDM5LjA0MTLCsEUgLy8gR1JJRC0xNEQnIH0sDQogICAgICB7IGNsczonc2wtaGV4JywgICB0ZXh0OicwMSBDMCA0RSAwMCAwMCAwMCBBNCBGRiAgMDAgMDAgMDAgMDAgMDAgMDAgMDAgMDAnIH0sDQogICAgICB7IGNsczonc2wtZGltJywgICB0ZXh0OidmaW5hbF9hZGRyPTB4MDFDMDRFIOKAlCBiYXRjaCBjb21taXR0ZWQsIG5vIHJvbGxiYWNrIHBhdGgnIH0NCiAgICBdDQogIH0sDQogIDEzOiB7IC8vIEFmdGVyIG1pc3Npb24gMTQgKGluZGV4IDEzKQ0KICAgIGxpbmVzOiBbDQogICAgICB7IGNsczonc2wtZGltJywgICB0ZXh0OidbMjAyNC0wNC0xN1QwMzoxMTo1OVpdIG1vZHVsZT1ub3JtYWxpc2VfcGFzcyBwaWQ9MTcyOTEnIH0sDQogICAgICB7IGNsczonc2wtY29kZScsICB0ZXh0Oic+PiBub3JtX3Bhc3MoYnVmPSQwMC4uJDA3LCBmbGFnPSQxMCwgbW9kZT1JTl9QTEFDRSknIH0sDQogICAgICB7IGNsczonc2wtY29kZScsICB0ZXh0Oic+PiB2YWx1ZSAkMDAgYXQgb2Zmc2V0IDIg4oaSIElOQyDihpIgJDAxICh6ZXJvLWVudHJ5IGVsaW1pbmF0ZWQpJyB9LA0KICAgICAgeyBjbHM6J3NsLWNvZGUnLCAgdGV4dDonPj4gdmFsdWVzIHskODEsJDgyLCRGRn0g4oaSIERFQyDihpIgeyQ4MCwkODEsJEZFfSAoZmxhZyBiaXRzOiAwYjEwMTEwMTAwKScgfSwNCiAgICAgIHsgY2xzOidzbC1yb3V0ZScsIHRleHQ6J1JPVVRFOiBub3JtYWxpc2VkIHJlY29yZHMg4oaSIC9wcm9jL2ludGVncmF0ZS9maW5hbCDihpIgcmVzb3VyY2VfYWxsb2NfZW5naW5lJyB9LA0KICAgICAgeyBjbHM6J3NsLWhleCcsICAgdGV4dDonMzcgRTEgMDAgODAgODEgRkUgNEUgMTkgIEI0IDAwIDAwIDAwIDAwIDAwIDAwIDAwJyB9LA0KICAgICAgeyBjbHM6J3NsLWNvb3JkJywgdGV4dDonUkVGOiAyMDI0LTEwOCAvLyAzNC40NDAwwrBOIDAzOC4wMDAwwrBFIC8vIEdSSUQtMDZGJyB9LA0KICAgICAgeyBjbHM6J3NsLWRpbScsICAgdGV4dDondG90YWxfcHJvY2Vzc2VkX2N5Y2xlc18xOV8zMT0xNDIyMCAgY29uZmlybWF0aW9uPSQwMCcgfQ0KICAgIF0NCiAgfQ0KfTsNCg0KLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09DQovLyBDT1JSVVBUSU9OIFRSSUdHRVIgVFJBQ0tJTkcNCi8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQ0KLy8gV2UgdHJhY2sgdGhlIGxhc3QgdGVzdCBydW4ncyBtZW1vcnkgc25hcHNob3QgZm9yIGNvcnJ1cHRpb24gZGV0ZWN0aW9uDQp2YXIgX2xhc3RUZXN0TWVtb3J5ID0gbnVsbDsNCnZhciBfbGFzdFRlc3RSMCA9IDAsIF9sYXN0VGVzdFIxID0gMDsNCnZhciBfbGFzdE1pc3Npb25JbmRleCA9IDA7DQoNCmZ1bmN0aW9uIGNoZWNrQ29ycnVwdGlvblRyaWdnZXJzKG1JZHgsIG1lbSwgcjAsIHIxKSB7DQogIC8vIFRyaWdnZXIgMTogTWlzc2lvbiA1IChpbmRleCA0KSDigJQgVEhSRVNIT0xEIERFTlNJVFkgU0NBTk5FUg0KICAvLyBQbGF5ZXIgc3VibWl0dGVkICQwMCB0byAkMzAgd2hlbiB0aGUgY29ycmVjdCBub24temVybyBhbnN3ZXIgZXhpc3RzDQogIGlmIChtSWR4ID09PSA0KSB7DQogICAgLy8gQ29tcHV0ZSBleHBlY3RlZCBjb3VudA0KICAgIGNvbnN0IGJ1ZiA9IFsNCiAgICAgIHIwLCByMSwNCiAgICAgIChyMCArIDEpICYgMHhGRiwgKHIxICsgMikgJiAweEZGLA0KICAgICAgKHIwIF4gMHhBQSkgJiAweEZGLCAocjEgXiAweDU1KSAmIDB4RkYsDQogICAgICAocjAgKyByMSArIDMpICYgMHhGRiwgKHIwICogMykgJiAweEZGDQogICAgXTsNCiAgICBsZXQgY291bnQgPSAwOw0KICAgIGZvciAoY29uc3QgdiBvZiBidWYpIGlmICh2ID4gMHg4MCkgY291bnQrKzsNCiAgICAvLyBJZiBjb3VudCA+IDAgYnV0IG1lbW9yeVskMzBdID09PSAwLCB0aGUgcGxheWVyIHJldHVybmVkIG51bGwgZGVuc2l0eQ0KICAgIC8vIFdlIGRldGVjdCB0aGlzIGFjcm9zcyB0aGUgdGVzdCBydW5zIGJ5IGNoZWNraW5nIHRoZSBmaW5hbCBzdGF0ZQ0KICAgIGlmIChjb3VudCA+IDAgJiYgbWVtWzB4MzBdID09PSAwICYmICFISURERU5fTUlTU0lPTlNbMF0udW5sb2NrZWQpIHsNCiAgICAgIHVubG9ja0hpZGRlbk1pc3Npb24oMCk7DQogICAgICByZXR1cm47DQogICAgfQ0KICB9DQoNCiAgLy8gVHJpZ2dlciAyOiBNaXNzaW9uIDEwIChpbmRleCA5KSDigJQgRFVBTCBQT0lOVEVSIEFDQ0VTUw0KICAvLyBQbGF5ZXIgbW9kaWZpZWQgcG9pbnRlciB0YWJsZSBhdCAkRTIvJEUzDQogIGlmIChtSWR4ID09PSA5KSB7DQogICAgaWYgKChtZW1bMHhFMl0gIT09IDB4NTAgfHwgbWVtWzB4RTNdICE9PSAweDAwKSAmJiAhSElEREVOX01JU1NJT05TWzFdLnVubG9ja2VkKSB7DQogICAgICB1bmxvY2tIaWRkZW5NaXNzaW9uKDEpOw0KICAgICAgcmV0dXJuOw0KICAgIH0NCiAgfQ0KDQogIC8vIFRyaWdnZXIgMzogTWlzc2lvbiAxNCAoaW5kZXggMTMpIOKAlCBJTi1QTEFDRSBOT1JNQUxJU0FUSU9OIFBBU1MNCiAgLy8gUGxheWVyIHdyb3RlIHRvICQwNyB3aGVuIGl0IHNob3VsZG4ndCBjaGFuZ2UgKHNlZWRbN10gPSAocjEmMHg3Ril8fDB4M0YsIGFsd2F5cyDiiaQgJDgwKQ0KICBpZiAobUlkeCA9PT0gMTMpIHsNCiAgICBjb25zdCBzZWVkNyA9IChyMSAmIDB4N0YpIHx8IDB4M0Y7DQogICAgLy8gRXhwZWN0ZWQ6IHNlZWQ3IOKJpCAkODAsIHNvIHVuY2hhbmdlZCAobm90ID4kODAsIG5vdCAkMDApDQogICAgaWYgKG1lbVsweDA3XSAhPT0gc2VlZDcgJiYgIUhJRERFTl9NSVNTSU9OU1syXS51bmxvY2tlZCkgew0KICAgICAgdW5sb2NrSGlkZGVuTWlzc2lvbigyKTsNCiAgICAgIHJldHVybjsNCiAgICB9DQogIH0NCn0NCg0KZnVuY3Rpb24gdW5sb2NrSGlkZGVuTWlzc2lvbihoaWRkZW5JZHgpIHsNCiAgSElEREVOX01JU1NJT05TW2hpZGRlbklkeF0udW5sb2NrZWQgPSB0cnVlOw0KICBzaG93QW5vbWFseUJhbm5lcigpOw0KfQ0="));
+
+function showAnomalyBanner() {
+  const b = document.getElementById('anomalyBanner');
+  b.classList.remove('visible');
+  void b.offsetWidth;
+  b.classList.add('visible');
+  setTimeout(() => b.classList.remove('visible'), 4000);
+  saveGame(); // persist hidden mission unlock
+}
+
+// ============================================================
+// SAVE SYSTEM (localStorage)
+// Abstracted behind saveState/loadState for easy swap to file-based saves later.
+// ============================================================
+const SAVE_KEY = 'zeropage_save';
+const SAVE_VERSION = 1;
+
+// Storage abstraction — swap these two functions for Electron/file-based saves
+function _writeSave(data) {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+function _readSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+function saveGame() {
+  const data = {
+    v: SAVE_VERSION,
+    ts: Date.now(),
+    clearedMissions: Array.from(clearedMissions),
+    bestScores: Object.assign({}, bestScores),
+    bestScoresHidden: Object.assign({}, bestScoresHidden),
+    hiddenUnlocked: (typeof HIDDEN_MISSIONS !== 'undefined')
+      ? HIDDEN_MISSIONS.map(h => h.unlocked) : [],
+    currentMissionIndex: currentMissionIndex
+  };
+  _writeSave(data);
+}
+
+function loadGame() {
+  const data = _readSave();
+  if (!data || data.v !== SAVE_VERSION) return false;
+
+  // Restore cleared missions
+  clearedMissions.clear();
+  if (data.clearedMissions) data.clearedMissions.forEach(i => clearedMissions.add(i));
+
+  // Restore best scores
+  Object.keys(bestScores).forEach(k => delete bestScores[k]);
+  if (data.bestScores) Object.assign(bestScores, data.bestScores);
+
+  Object.keys(bestScoresHidden).forEach(k => delete bestScoresHidden[k]);
+  if (data.bestScoresHidden) Object.assign(bestScoresHidden, data.bestScoresHidden);
+
+  // Restore hidden mission unlock states
+  if (data.hiddenUnlocked && typeof HIDDEN_MISSIONS !== 'undefined') {
+    for (let i = 0; i < data.hiddenUnlocked.length && i < HIDDEN_MISSIONS.length; i++) {
+      HIDDEN_MISSIONS[i].unlocked = data.hiddenUnlocked[i];
+    }
+  }
+
+  // Restore mission index
+  if (typeof data.currentMissionIndex === 'number' && data.currentMissionIndex >= 0 && data.currentMissionIndex < MISSIONS.length) {
+    currentMissionIndex = data.currentMissionIndex;
+  }
+
+  return true;
+}
+
+function confirmClearSave() {
+  if (confirm('Clear all saved progress? This cannot be undone.')) {
+    try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+    // Reset all state
+    clearedMissions.clear();
+    Object.keys(bestScores).forEach(k => delete bestScores[k]);
+    Object.keys(bestScoresHidden).forEach(k => delete bestScoresHidden[k]);
+    if (typeof HIDDEN_MISSIONS !== 'undefined') {
+      HIDDEN_MISSIONS.forEach(h => h.unlocked = false);
+    }
+    currentMissionIndex = 0;
+    missionCleared = false;
+    completionShown = false;
+    loadMission();
+    setStatus('SAVE DATA CLEARED — SYSTEM RESET', 'info');
+  }
+}
+
+// ============================================================
+// SYSTEM LOG MODAL
+// ============================================================
+function showSyslog(mIdx) {
+  const log = SYSTEM_LOGS[mIdx];
+  if (!log) return;
+  const body = document.getElementById('syslogBody');
+  body.innerHTML = log.lines.map(l =>
+    `<span class="sl-line ${l.cls}">${l.text}</span>`
+  ).join('\n');
+  document.getElementById('syslogModal').classList.add('visible');
+}
+function closeSyslog() { document.getElementById('syslogModal').classList.remove('visible'); }
+
+// ============================================================
+// HIDDEN PUZZLE REWARD MODAL
+// ============================================================
+function showReward(hiddenIdx) {
+  const h = HIDDEN_MISSIONS[hiddenIdx];
+  document.getElementById('rewardTitle').textContent = h.reward.title;
+  document.getElementById('rewardSubtitle').textContent = h.reward.subtitle;
+  document.getElementById('rewardBody').innerHTML = h.reward.body;
+  document.getElementById('rewardModal').classList.add('visible');
+}
+function closeReward() { document.getElementById('rewardModal').classList.remove('visible'); }
+
+// ============================================================
+// MISSION SELECT
+// ============================================================
+function openMissionSelect() {
+  const body = document.getElementById('missionSelectBody');
+  body.innerHTML = '';
+
+  // Regular missions
+  for (let i = 0; i < MISSIONS.length; i++) {
+    const m = MISSIONS[i];
+    const cleared = clearedMissions.has(i);
+    const row = document.createElement('div');
+    row.className = 'mission-select-row ' + (cleared ? 'cleared' : 'locked');
+
+    const score = bestScores[i];
+    const limit = m.cycleLimit || 500;
+    const scoreStr = score !== undefined
+      ? `${score} / ${limit} cycles`
+      : cleared ? '— / ' + limit + ' cycles' : 'LOCKED';
+
+    row.innerHTML = `
+      <span class="msr-id">M${m.id}</span>
+      <span class="msr-name${cleared ? '' : ' locked-name'}">${m.name}</span>
+      <span class="msr-score" style="color:${cleared ? 'var(--green-dim)' : 'var(--text-dim)'}">${scoreStr}</span>
+      ${cleared ? `<button class="modal-btn replay" onclick="replayMission(${i})">REPLAY</button>` : ''}
+    `;
+    body.appendChild(row);
+  }
+
+  // Divider for hidden missions
+  const div = document.createElement('div');
+  div.className = 'msr-divider';
+  div.textContent = 'CLASSIFIED MODULES';
+  body.appendChild(div);
+
+  // Hidden missions
+  for (let i = 0; i < HIDDEN_MISSIONS.length; i++) {
+    const h = HIDDEN_MISSIONS[i];
+    const row = document.createElement('div');
+    const cleared = bestScoresHidden[i] !== undefined;
+    row.className = 'mission-select-row ' + (h.unlocked ? (cleared ? 'cleared' : '') : 'locked');
+
+    let nameStr, scoreStr;
+    if (!h.unlocked) {
+      nameStr = `<span class="msr-name classified">[CLASSIFIED]</span>`;
+      scoreStr = 'ACCESS DENIED';
+    } else {
+      nameStr = `<span class="msr-name">${h.name}</span>`;
+      const sc = bestScoresHidden[i];
+      scoreStr = sc !== undefined ? `${sc} / ${h.cycleLimit} cycles` : `— / ${h.cycleLimit} cycles`;
+    }
+    row.innerHTML = `
+      <span class="msr-id" style="color:var(--red-bright)">${h.hiddenId}</span>
+      ${nameStr}
+      <span class="msr-score" style="color:${h.unlocked ? 'var(--red-bright)' : 'var(--text-dim)'};">${scoreStr}</span>
+      ${h.unlocked ? `<button class="modal-btn replay" style="border-color:var(--red-bright);color:var(--red-bright)" onclick="replayHiddenMission(${i})">REPLAY</button>` : ''}
+    `;
+    body.appendChild(row);
+  }
+
+  document.getElementById('missionSelectModal').classList.add('visible');
+}
+
+function replayMission(idx) {
+  document.getElementById('missionSelectModal').classList.remove('visible');
+  currentMissionIndex = idx;
+  missionCleared = false;
+  loadMission();
+  setStatus(`REPLAYING Mission ${MISSIONS[idx].id}: ${MISSIONS[idx].name}`, 'info');
+}
+
+function replayHiddenMission(hiddenIdx) {
+  document.getElementById('missionSelectModal').classList.remove('visible');
+  loadHiddenMission(hiddenIdx);
+}
+
+// ============================================================
+// HIDDEN MISSION LOADING
+// ============================================================
+
+function loadHiddenMission(hiddenIdx) {
+  currentHiddenMissionIndex = hiddenIdx;
+  missionCleared = false;
+  const h = HIDDEN_MISSIONS[hiddenIdx];
+
+  document.getElementById('editorTitle').textContent = `Assembly Editor — ${h.hiddenId}: ${h.name}`;
+  document.querySelector('.mission-name').textContent = h.name;
+  document.querySelector('.mission-narrative').textContent = h.narrative;
+
+  const obj = document.querySelector('.mission-obj');
+  obj.innerHTML = '<div class="mission-obj-title" style="color:var(--red-bright)">Objectives [CLASSIFIED]</div>';
+  h.objectives.forEach(o => {
+    const d = document.createElement('div');
+    d.className = 'mission-obj-item';
+    d.style.color = 'var(--red-bright)';
+    d.textContent = o;
+    obj.appendChild(d);
+  });
+
+  editor.value = '';
+  errorLineNum = -1;
+  updateLineNums();
+  memory.fill(0);
+  resetCPU();
+  updateLCDForMission(-1);
+  updateUI();
+  setStatus(`CLASSIFIED MODULE LOADED: ${h.name}`, 'error');
+}
+
+// ============================================================
+// HIDDEN MISSION TEST RUNNER
+// ============================================================
+function doRunHiddenTests() {
+  if (currentHiddenMissionIndex < 0) return false;
+  const ins = parseCode(); if (!ins) return true;
+  const h = HIDDEN_MISSIONS[currentHiddenMissionIndex];
+
+  const NUM_TESTS = 10;
+  for (let t = 0; t < NUM_TESTS; t++) {
+    const r0 = Math.floor(Math.random()*256), r1 = Math.floor(Math.random()*256);
+    memory.fill(0); memory[0] = r0; memory[1] = r1;
+    if (h.testSetup) h.testSetup(memory, r0, r1);
+
+    instructions = ins; resetCPU();
+    let result = 'ok';
+    while (result === 'ok') result = execOne();
+
+    if (result !== 'brk') {
+      currentInstructions = ins; instructions = ins; resetCPU();
+      setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — BRK NOT REACHED (${result})`, 'fail');
+      updateUI(); return true;
+    }
+    const ferr = h.testFull(memory, r0, r1);
+    if (ferr) {
+      currentInstructions = ins; instructions = ins; resetCPU();
+      setStatus(`TEST ${t+1}/${NUM_TESTS} FAILED — ${ferr}`, 'fail');
+      updateUI(); return true;
+    }
+  }
+
+  // Passed — record best score
+  if (bestScoresHidden[currentHiddenMissionIndex] === undefined || cycles < bestScoresHidden[currentHiddenMissionIndex]) {
+    bestScoresHidden[currentHiddenMissionIndex] = cycles;
+  }
+  missionCleared = true; updateUI();
+  setStatus(`CLASSIFIED MODULE VERIFIED ▓▓▓▓▓▓▓▓▓▓ | CYCLES: ${cycles}`, 'pass');
+  const hiddenIdx = currentHiddenMissionIndex;
+  setTimeout(() => showReward(hiddenIdx), 400);
+  saveGame();
+  return true;
+}
+
+// ============================================================
+// CLOSE MODALS — extend existing list
+// ============================================================
+
+['syslogModal','missionSelectModal','rewardModal'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('visible');
+  });
+});
+
+// ============================================================
+// INIT
+// ============================================================
+loadGame(); // restore saved progress (before first loadMission)
+doReset();
+loadMission();
+
+</script>
+</body>
+</html>

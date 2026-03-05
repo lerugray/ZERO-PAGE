@@ -1,5 +1,27 @@
 # ZERO PAGE — Changelog
 
+## 2026-03-05
+
+### Bug Fixes
+
+- **Mission brief overflow**: Mission briefing text no longer falls under the footer on smaller screens. Changed flex layout to allow the brief panel to shrink with a max-height cap.
+
+- **LCD display for all output slots**: Replaced 4 hardcoded LCD rows with a dynamic configuration supporting all 15 missions. LCD rows now update automatically based on the active mission's output slots.
+
+- **Snake game memory flicker**: Fixed the full memory grid in sandbox mode flickering during Snake gameplay by switching from full DOM rebuilds to differential cell updates.
+
+- **Save progress bug**: Fixed save system not persisting the correct mission index — completing a mission and refreshing would drop the player back one mission. Save now fires after the index advances.
+
+### New Features
+
+- **localStorage save system**: Game progress now persists across browser sessions. Saves cleared missions, best cycle scores, hidden mission unlocks, and current mission index. "CLEAR SAVE" button in header with confirmation prompt. Save/load abstracted behind `_writeSave()`/`_readSave()` for future Electron compatibility.
+
+### UI Improvements
+
+- **Mission brief scroll reset**: The mission briefing panel now scrolls to the top when advancing to a new mission, instead of retaining the previous mission's scroll position.
+
+---
+
 ## 2026-03-04
 
 ### Bug Fixes
