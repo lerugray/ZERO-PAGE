@@ -16,6 +16,12 @@
 
 - **localStorage save system**: Game progress now persists across browser sessions. Saves cleared missions, best cycle scores, hidden mission unlocks, and current mission index. "CLEAR SAVE" button in header with confirmation prompt. Save/load abstracted behind `_writeSave()`/`_readSave()` for future Electron compatibility.
 
+- **Editor draft persistence**: In-progress code survives browser refresh. Draft is cleared on mission advance or replay so new missions start fresh.
+
+- **Mission select: classified section pinned**: Classified modules section is now always visible at the bottom of the mission select modal, independent of scroll position.
+
+- **Mission select: subtle routing hints**: Certain missions now provide subliminal visual feedback in the classified section on hover. Encoded.
+
 ### UI Improvements
 
 - **Mission brief scroll reset**: The mission briefing panel now scrolls to the top when advancing to a new mission, instead of retaining the previous mission's scroll position.

@@ -699,6 +699,15 @@
     text-transform: uppercase;
   }
 
+  @keyframes hiddenHint {
+    0%   { opacity: 0.35; }
+    50%  { opacity: 0.42; }
+    100% { opacity: 0.35; }
+  }
+  .mission-select-row.hint-flicker {
+    animation: hiddenHint 0.2s ease-in-out;
+  }
+
   /* ===== HIDDEN PUZZLE REWARD MODAL ===== */
   @keyframes corruptGlitch {
     0%   { filter: none; }
@@ -779,7 +788,8 @@
   <div class="modal-box wide">
     <div class="modal-title">MISSION SELECT</div>
     <div class="modal-subtitle">REPLAY CLEARED MISSIONS — BEST SCORES TRACKED</div>
-    <div class="modal-body" id="missionSelectBody" style="padding:0;max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-body" id="missionSelectBody" style="padding:0;max-height:45vh;overflow-y:auto;"></div>
+    <div id="missionSelectHidden" style="padding:0;border-top:none;"></div>
     <div class="modal-footer">
       <button class="modal-btn amber" onclick="document.getElementById('missionSelectModal').classList.remove('visible')">CLOSE</button>
     </div>
@@ -2651,7 +2661,12 @@ function updateLineNums() {
   updateSyntaxHighlight();
 }
 
-editor.addEventListener('input', () => { errorLineNum=-1; updateLineNums(); });
+editor.addEventListener('input', () => {
+  errorLineNum=-1; updateLineNums();
+  // Debounced editor save
+  clearTimeout(editor._saveTm);
+  editor._saveTm = setTimeout(_saveEditorDraft, 800);
+});
 editor.addEventListener('scroll', () => {
   lineNums.scrollTop = editor.scrollTop;
   document.getElementById('highlightOverlay').scrollTop = editor.scrollTop;
@@ -2948,6 +2963,7 @@ function nextMission() {
       setTimeout(()=>document.getElementById('completionModal').classList.add('visible'),300);
     }
   }
+  _clearEditorDraft();
   saveGame();
   loadMission();
 }
@@ -3824,9 +3840,37 @@ function loadGame() {
   return true;
 }
 
+// Editor draft persistence — survives refresh, cleared on mission advance
+const DRAFT_KEY = 'zeropage_draft';
+function _saveEditorDraft() {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      mi: currentMissionIndex,
+      hi: currentHiddenMissionIndex,
+      code: editor.value
+    }));
+  } catch(e) {}
+}
+function _restoreEditorDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.hi >= 0) return; // don't restore hidden mission drafts on normal load
+    if (d.mi === currentMissionIndex && d.code) {
+      editor.value = d.code;
+      updateLineNums();
+    }
+  } catch(e) {}
+}
+function _clearEditorDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
+}
+
 function confirmClearSave() {
   if (confirm('Clear all saved progress? This cannot be undone.')) {
     try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+    _clearEditorDraft();
     // Reset all state
     clearedMissions.clear();
     Object.keys(bestScores).forEach(k => delete bestScores[k]);
@@ -3871,9 +3915,14 @@ function closeReward() { document.getElementById('rewardModal').classList.remove
 // ============================================================
 // MISSION SELECT
 // ============================================================
+// Encoded routing table
+eval(atob("dmFyIEhJRERFTl9ISU5UX01BUCA9IHsgNDogMCwgOTogMSwgMTM6IDIgfTs="));
+
 function openMissionSelect() {
   const body = document.getElementById('missionSelectBody');
+  const hiddenBody = document.getElementById('missionSelectHidden');
   body.innerHTML = '';
+  hiddenBody.innerHTML = '';
 
   // Regular missions
   for (let i = 0; i < MISSIONS.length; i++) {
@@ -3894,19 +3943,33 @@ function openMissionSelect() {
       <span class="msr-score" style="color:${cleared ? 'var(--green-dim)' : 'var(--text-dim)'}">${scoreStr}</span>
       ${cleared ? `<button class="modal-btn replay" onclick="replayMission(${i})">REPLAY</button>` : ''}
     `;
+
+    // Hover hint: trigger subtle flicker on linked hidden mission
+    if (HIDDEN_HINT_MAP[i] !== undefined) {
+      const hIdx = HIDDEN_HINT_MAP[i];
+      row.addEventListener('mouseenter', () => {
+        const target = document.getElementById('hiddenRow_' + hIdx);
+        if (target && !target.classList.contains('hint-flicker')) {
+          target.classList.add('hint-flicker');
+          target.addEventListener('animationend', () => target.classList.remove('hint-flicker'), { once: true });
+        }
+      });
+    }
+
     body.appendChild(row);
   }
 
-  // Divider for hidden missions
+  // Divider for hidden missions (pinned below scroll)
   const div = document.createElement('div');
   div.className = 'msr-divider';
   div.textContent = 'CLASSIFIED MODULES';
-  body.appendChild(div);
+  hiddenBody.appendChild(div);
 
-  // Hidden missions
+  // Hidden missions (pinned, always visible)
   for (let i = 0; i < HIDDEN_MISSIONS.length; i++) {
     const h = HIDDEN_MISSIONS[i];
     const row = document.createElement('div');
+    row.id = 'hiddenRow_' + i;
     const cleared = bestScoresHidden[i] !== undefined;
     row.className = 'mission-select-row ' + (h.unlocked ? (cleared ? 'cleared' : '') : 'locked');
 
@@ -3925,7 +3988,7 @@ function openMissionSelect() {
       <span class="msr-score" style="color:${h.unlocked ? 'var(--red-bright)' : 'var(--text-dim)'};">${scoreStr}</span>
       ${h.unlocked ? `<button class="modal-btn replay" style="border-color:var(--red-bright);color:var(--red-bright)" onclick="replayHiddenMission(${i})">REPLAY</button>` : ''}
     `;
-    body.appendChild(row);
+    hiddenBody.appendChild(row);
   }
 
   document.getElementById('missionSelectModal').classList.add('visible');
@@ -3933,6 +3996,7 @@ function openMissionSelect() {
 
 function replayMission(idx) {
   document.getElementById('missionSelectModal').classList.remove('visible');
+  _clearEditorDraft();
   currentMissionIndex = idx;
   missionCleared = false;
   loadMission();
@@ -3941,6 +4005,7 @@ function replayMission(idx) {
 
 function replayHiddenMission(hiddenIdx) {
   document.getElementById('missionSelectModal').classList.remove('visible');
+  _clearEditorDraft();
   loadHiddenMission(hiddenIdx);
 }
 
@@ -4037,6 +4102,8 @@ function doRunHiddenTests() {
 loadGame(); // restore saved progress (before first loadMission)
 doReset();
 loadMission();
+_restoreEditorDraft(); // restore in-progress code after loadMission sets defaults
+window.addEventListener('beforeunload', _saveEditorDraft);
 
 </script>
 </body>
