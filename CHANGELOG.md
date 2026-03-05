@@ -1,5 +1,13 @@
 # ZERO PAGE — Changelog
 
+## 2026-03-05 (c)
+
+### Bug Fixes
+
+- **Email link fix**: The contact email at the end of the game was broken — Cloudflare's email obfuscation had encoded the address into an unreadable blob that required an external script to decode. Replaced with a plain mailto link. Removed the orphaned Cloudflare script reference that was causing console errors.
+
+---
+
 ## 2026-03-05 (b)
 
 ### New Features

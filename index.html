@@ -29,6 +29,92 @@
     --sandbox-color: #4a6a9a;
     --sandbox-bright: #6a8aba;
     --sandbox-dim: #0e1824;
+    --hl-mnem: #a8f5a8;
+    --hl-mnem-shadow: rgba(106,176,106,0.6);
+    --hl-imm: #ffd166;
+    --hl-imm-shadow: rgba(208,160,48,0.6);
+    --hl-zp: #7ec8ff;
+    --hl-zp-shadow: rgba(122,176,208,0.6);
+    --hl-comment: #4d7a4d;
+    --hl-label: #ffb347;
+    --hl-label-shadow: rgba(200,150,42,0.6);
+    --hl-err-bg: rgba(192,80,80,0.35);
+    --hl-err-border: #ff6666;
+    --hl-exec-bg: rgba(106,176,106,0.25);
+    --hl-exec-border: #6ab06a;
+    --scanline: rgba(0,0,0,0.08);
+    --classified-text: #3a3a2a;
+    --lcd-bg: #0a120a;
+  }
+
+  /* ===== LIGHT THEME — Government form under fluorescent lighting ===== */
+  body.light-theme {
+    --bg: #ede8dd;
+    --bg2: #e4ddd0;
+    --bg3: #d9d0c2;
+    --border: #b8ad98;
+    --border-bright: #9a8e78;
+    --green: #2a6a2a;
+    --green-bright: #1a5a1a;
+    --green-dim: #6a8a62;
+    --amber: #6a4a00;
+    --amber-bright: #5a3a00;
+    --amber-dim: #9a8a58;
+    --red: #8a3030;
+    --red-bright: #a03030;
+    --text: #2a4a2a;
+    --text-bright: #1a3a1a;
+    --text-dim: #4a5a42;
+    --pass: #2a6a2a;
+    --fail: #8a3a3a;
+    --sandbox-color: #3a5a7a;
+    --sandbox-bright: #2a4a6a;
+    --sandbox-dim: #c8d4e0;
+    --hl-mnem: #1a6a1a;
+    --hl-mnem-shadow: rgba(40,100,40,0.2);
+    --hl-imm: #7a5a00;
+    --hl-imm-shadow: rgba(120,90,0,0.2);
+    --hl-zp: #2a5a8a;
+    --hl-zp-shadow: rgba(42,90,138,0.2);
+    --hl-comment: #4a5a42;
+    --hl-label: #8a5a10;
+    --hl-label-shadow: rgba(138,90,16,0.2);
+    --hl-err-bg: rgba(180,60,60,0.12);
+    --hl-err-border: #b04040;
+    --hl-exec-bg: rgba(40,100,40,0.12);
+    --hl-exec-border: #3a7a3a;
+    --scanline: rgba(0,0,0,0.03);
+    --classified-text: #c8c0b0;
+    --lcd-bg: #d0c8b8;
+  }
+  body.light-theme::after {
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      var(--scanline) 2px, var(--scanline) 4px
+    );
+  }
+  body.light-theme .title {
+    text-shadow: none;
+  }
+  /* Light theme: keep corruption/reward/syslog modals dark */
+  body.light-theme .modal-box.reward,
+  body.light-theme .modal-box.syslog {
+    --bg2: #0c110c;
+    --bg3: #111811;
+    --border: #1e2e1e;
+    --border-bright: #2a4a2a;
+    --text-dim: #2a5a2a;
+    --text: #5a9a5a;
+    --green-bright: #6ab06a;
+    --amber: #b08020;
+    --amber-dim: #604810;
+    --red-bright: #c05050;
+  }
+  /* Anomaly banner always dark-themed */
+  body.light-theme #anomalyBanner {
+    background: #1a0808;
+    color: #c05050;
+    border-color: #c05050;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -51,7 +137,7 @@
     top: 0; left: 0; right: 0; bottom: 0;
     background: repeating-linear-gradient(
       0deg, transparent, transparent 2px,
-      rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
+      var(--scanline) 2px, var(--scanline) 4px
     );
     pointer-events: none;
     z-index: 9999;
@@ -93,8 +179,8 @@
 
   .btn-header {
     background: var(--bg3);
-    border: 1px solid var(--border-bright);
-    color: var(--text-dim);
+    border: 1px solid var(--amber-dim);
+    color: var(--amber);
     font-family: 'Share Tech Mono', 'Courier New', monospace;
     font-size: 11px;
     padding: 3px 10px;
@@ -104,7 +190,7 @@
     transition: all 0.1s;
   }
 
-  .btn-header:hover { border-color: var(--amber); color: var(--amber); }
+  .btn-header:hover { border-color: var(--amber-bright); color: var(--amber-bright); }
 
   .blink { animation: blink 1.2s step-end infinite; }
   @keyframes blink { 50% { opacity: 0; } }
@@ -228,8 +314,9 @@
 
   .mission-brief-wrap {
     overflow-y: auto;
-    flex-shrink: 0;
+    flex: 0 1 auto;
     min-height: 60px;
+    max-height: 50%;
   }
 
   .left-resize-handle {
@@ -288,40 +375,40 @@
 
   /* Syntax token colours — boosted contrast */
 .hl-mnem {
-  color: #a8f5a8;
+  color: var(--hl-mnem);
   font-weight: 600;
-  text-shadow: 0 0 10px rgba(106,176,106,0.6);
+  text-shadow: 0 0 10px var(--hl-mnem-shadow);
 }
 
 .hl-imm {
-  color: #ffd166;
-  text-shadow: 0 0 6px rgba(208,160,48,0.6);
+  color: var(--hl-imm);
+  text-shadow: 0 0 6px var(--hl-imm-shadow);
 }
 
 .hl-zp {
-  color: #7ec8ff;
-  text-shadow: 0 0 6px rgba(122,176,208,0.6);
+  color: var(--hl-zp);
+  text-shadow: 0 0 6px var(--hl-zp-shadow);
 }
 
 .hl-comment {
-  color: #4d7a4d;
+  color: var(--hl-comment);
   opacity: 0.75;
 }
 
 .hl-label {
-  color: #ffb347;
-  text-shadow: 0 0 6px rgba(200,150,42,0.6);
+  color: var(--hl-label);
+  text-shadow: 0 0 6px var(--hl-label-shadow);
 }
 
 .hl-err {
-  background: rgba(192,80,80,0.35);
-  border-left: 3px solid #ff6666;
+  background: var(--hl-err-bg);
+  border-left: 3px solid var(--hl-err-border);
   padding-left: 3px;
 }
 
 .hl-exec {
-  background: rgba(106,176,106,0.25);
-  border-left: 3px solid #6ab06a;
+  background: var(--hl-exec-bg);
+  border-left: 3px solid var(--hl-exec-border);
   padding-left: 3px;
 }
 
@@ -364,7 +451,7 @@
 
   /* LCD */
   .lcd-panel {
-    background: #0a120a; border: 1px solid var(--border-bright);
+    background: var(--lcd-bg); border: 1px solid var(--border-bright);
     padding: 8px; font-family: 'VT323', monospace; position: relative;
   }
   .lcd-row {
@@ -643,25 +730,29 @@
 
   /* ===== ANOMALY FLASH ===== */
   @keyframes anomalyFlash {
-    0%   { opacity: 0; transform: translateY(-8px) scaleX(0.95); }
-    10%  { opacity: 1; transform: translateY(0) scaleX(1); }
-    70%  { opacity: 1; }
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+    8%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    75%  { opacity: 1; }
     100% { opacity: 0; }
+  }
+  @keyframes anomalyPulse {
+    0%   { border-color: var(--red-bright); box-shadow: 0 0 12px rgba(192,80,80,0.3); }
+    50%  { border-color: #ff6060; box-shadow: 0 0 24px rgba(192,80,80,0.6); }
+    100% { border-color: var(--red-bright); box-shadow: 0 0 12px rgba(192,80,80,0.3); }
   }
   #anomalyBanner {
     display: none;
     position: fixed;
-    top: 40px;
+    top: 32%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     background: #1a0808;
-    border: 1px solid var(--red-bright);
-    border-top: 2px solid var(--red-bright);
+    border: 2px solid var(--red-bright);
     color: var(--red-bright);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 2px;
-    padding: 8px 24px;
+    font-size: 15px;
+    letter-spacing: 3px;
+    padding: 14px 36px;
     text-align: center;
     z-index: 20000;
     pointer-events: none;
@@ -669,7 +760,7 @@
   }
   #anomalyBanner.visible {
     display: block;
-    animation: anomalyFlash 3.5s ease-out forwards;
+    animation: anomalyFlash 6.5s ease-out forwards, anomalyPulse 0.8s ease-in-out 0.5s 6;
   }
 
   /* ===== MISSION SELECT MODAL ===== */
@@ -685,7 +776,7 @@
   .msr-name { flex: 1; color: var(--text); font-size: 12px; }
   .msr-score { color: var(--green-dim); font-size: 11px; min-width: 140px; text-align: right; }
   .msr-name.locked-name { color: var(--text-dim); font-style: italic; }
-  .msr-name.classified { color: #3a3a2a; letter-spacing: 1px; }
+  .msr-name.classified { color: var(--classified-text); letter-spacing: 1px; }
   .modal-btn.replay { border-color: var(--green-dim); color: var(--green-dim); padding: 3px 10px; font-size: 10px; }
   .modal-btn.replay:hover { border-color: var(--green-bright); color: var(--green-bright); }
   .msr-divider {
@@ -696,6 +787,15 @@
     border-top: 1px solid var(--amber-dim);
     padding-top: 6px;
     text-transform: uppercase;
+  }
+
+  @keyframes hiddenHint {
+    0%   { opacity: 0.35; }
+    50%  { opacity: 0.42; }
+    100% { opacity: 0.35; }
+  }
+  .mission-select-row.hint-flicker {
+    animation: hiddenHint 0.2s ease-in-out;
   }
 
   /* ===== HIDDEN PUZZLE REWARD MODAL ===== */
@@ -732,7 +832,7 @@
   }
 
   /* SANDBOX LIVE EXECUTION — sandbox-only button styles */
-  .btn.live-btn { display: none; border-color: #4a8a4a; color: #4a8a4a; }
+  .btn.live-btn { display: none; border-color: var(--green); color: var(--green); }
   body.sandbox-mode .btn.live-btn { display: inline-block; }
   .btn.live-btn:hover { background: rgba(74,138,74,0.15); border-color: var(--green-bright); color: var(--green-bright); }
   .btn.live-btn.active { background: rgba(74,138,74,0.2); border-color: var(--green-bright); color: var(--green-bright); box-shadow: 0 0 8px rgba(74,138,74,0.4); }
@@ -778,7 +878,8 @@
   <div class="modal-box wide">
     <div class="modal-title">MISSION SELECT</div>
     <div class="modal-subtitle">REPLAY CLEARED MISSIONS — BEST SCORES TRACKED</div>
-    <div class="modal-body" id="missionSelectBody" style="padding:0;max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-body" id="missionSelectBody" style="padding:0;max-height:45vh;overflow-y:auto;"></div>
+    <div id="missionSelectHidden" style="padding:0;border-top:none;"></div>
     <div class="modal-footer">
       <button class="modal-btn amber" onclick="document.getElementById('missionSelectModal').classList.remove('visible')">CLOSE</button>
     </div>
@@ -806,7 +907,7 @@
       <p>All assigned modules have been verified. Your contributions to the ZERO PAGE initiative have been recorded and filed under operational archives.</p>
       <p>The systems team acknowledges your work on the anomaly suppression filter. Whether the data logged during suppression events will be reviewed by command is, as always, a matter of protocol.</p>
       <p>This simulation was developed for educational and demonstrational purposes. If you encountered issues, discovered edge cases, or have feedback:</p>
-      <div class="completion-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b4c6c3d1ddc7c7f4d7dbdac7ddd9c7d8c0d09ad7dbd9">[email&#160;protected]</a></div>
+      <div class="completion-email"><a href="mailto:rweiss@consimsltd.com">rweiss@consimsltd.com</a></div>
       <p style="font-size:12px;color:var(--text-dim);">Bug reports, suggestions, and observations welcome. All correspondence reviewed.</p>
     </div>
     <div class="modal-footer">
@@ -865,6 +966,11 @@
       </div>
 
       <div class="manual-sec">
+        <div class="manual-sec-title">Display Mode</div>
+        <p>Press <strong style="color:var(--amber)">LCD</strong> in the header to switch to light mode for improved readability. Press <strong style="color:var(--amber)">CRT</strong> to return to the default dark display. Your preference is saved automatically.</p>
+      </div>
+
+      <div class="manual-sec">
         <div class="manual-sec-title">Memory-Mapped I/O (Sandbox Only)</div>
         <p>In Sandbox Mode, two special addresses provide hardware input. They behave like normal memory in Mission Mode and do not affect grading.</p>
         <div class="manual-entry">
@@ -893,8 +999,10 @@
   <span class="title">ZERO PAGE</span>
   <span class="subtitle">Microprocessor Systems Lab</span>
   <div class="header-right">
+    <button class="btn-header" onclick="confirmClearSave()">CLEAR SAVE</button>
     <button class="btn-header" onclick="openMissionSelect()">MISSION SELECT</button>
     <button class="btn-header" onclick="document.getElementById('manualModal').classList.add('visible')">MANUAL</button>
+    <button class="btn-header" id="themeToggle" onclick="toggleTheme()">LCD</button>
     <span id="clockDisplay">CLK: 00000000</span>
     <span class="blink">█</span>
   </div>
@@ -1109,23 +1217,8 @@
     <div class="panel" style="flex:1">
       <div class="panel-title">LCD Display</div>
       <div class="lcd-panel" id="lcdPanel">
-        <!-- Mission-mode rows (hidden in sandbox) -->
-        <div class="lcd-row lcd-row-mission">
-          <span class="lcd-label" id="lcdLabel00">RAW RANGE  $00</span>
-          <span class="lcd-val input" id="lcd00">00</span>
-        </div>
-        <div class="lcd-row lcd-row-mission">
-          <span class="lcd-label" id="lcdLabel01">WIND DRIFT $01</span>
-          <span class="lcd-val input" id="lcd01">00</span>
-        </div>
-        <div class="lcd-row lcd-row-mission">
-          <span class="lcd-label" id="lcdLabel02">CORRECTED  $02</span>
-          <span class="lcd-val" id="lcd02">00</span>
-        </div>
-        <div class="lcd-row lcd-row-mission" id="lcdRow03" style="display:none">
-          <span class="lcd-label" id="lcdLabel03">FLAG       $03</span>
-          <span class="lcd-val" id="lcd03">00</span>
-        </div>
+        <!-- Mission-mode LCD rows (generated dynamically by updateLCDForMission) -->
+        <div id="lcdMissionRows"></div>
         <!-- Sandbox-only rows -->
         <div class="lcd-row lcd-row-sandbox">
           <span class="lcd-label">RANDOM      $FE</span>
@@ -1163,7 +1256,7 @@
   <div class="status info" id="statusLine">READY — SYSTEM INITIALIZED</div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // ============================================================
 // MODE
 // ============================================================
@@ -1172,6 +1265,7 @@ let mode = 'mission'; // 'mission' | 'sandbox'
 function toggleSandbox() {
   const btn = document.getElementById('btnSandbox');
   if (mode === 'sandbox') {
+    saveGame();
     mode = 'mission';
     btn.classList.remove('active');
     document.body.classList.remove('sandbox-mode');
@@ -1179,9 +1273,11 @@ function toggleSandbox() {
     memory[0xFF] = 0;
     memory[0xFE] = 0;
     lastRngByte = 0;
+    _sbGridBuilt = false; // force full rebuild next time
     loadMission();
     setStatus('SANDBOX MODE DEACTIVATED — MISSION MODE RESTORED', 'info');
   } else {
+    saveGame();
     mode = 'sandbox';
     btn.classList.add('active');
     document.body.classList.add('sandbox-mode');
@@ -1191,6 +1287,31 @@ function toggleSandbox() {
     setStatus('SANDBOX MODE ACTIVE — GRADING DISABLED — DIRECT MEMORY ACCESS ENABLED', 'sandbox');
   }
 }
+
+// ============================================================
+// DISPLAY THEME (CRT / LCD)
+// ============================================================
+function initTheme() {
+  const saved = localStorage.getItem('zp_theme');
+  if (saved === 'light') {
+    document.body.classList.add('light-theme');
+  }
+  // Dark mode is always the default for first-time visitors
+  updateThemeButton();
+}
+function toggleTheme() {
+  document.body.classList.toggle('light-theme');
+  const isLight = document.body.classList.contains('light-theme');
+  localStorage.setItem('zp_theme', isLight ? 'light' : 'dark');
+  updateThemeButton();
+}
+function updateThemeButton() {
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  const isLight = document.body.classList.contains('light-theme');
+  btn.textContent = isLight ? 'CRT' : 'LCD';
+}
+initTheme();
 
 // ============================================================
 // ASSEMBLER
@@ -1852,6 +1973,47 @@ let completionShown = false;
 let currentHiddenMissionIndex = -1; // -1 = not in hidden mission mode
 
 // ============================================================
+// LCD DISPLAY CONFIG PER MISSION
+// Each mission defines which addresses to show on the LCD panel.
+// addr = memory address, label = display text, input = green (true) or amber (false)
+// ============================================================
+const MISSION_LCD = [
+  // idx 0: FIELD BALLISTICS
+  [{addr:0x00,label:'RAW RANGE  $00',input:true},{addr:0x01,label:'WIND DRIFT $01',input:true},{addr:0x02,label:'CORRECTED  $02'}],
+  // idx 1: ANOMALY SUPPRESSION FILTER
+  [{addr:0x00,label:'RAW RANGE  $00',input:true},{addr:0x01,label:'WIND DRIFT $01',input:true},{addr:0x02,label:'OUTPUT     $02'},{addr:0x03,label:'CLASSIFY   $03'}],
+  // idx 2: ANOMALY SUPPRESSION — NEGATIVE HANDLER
+  [{addr:0x00,label:'PRIMARY    $00',input:true},{addr:0x01,label:'OFFSET     $01',input:true},{addr:0x02,label:'RESULT     $02'},{addr:0x03,label:'SUPPRESS   $03'}],
+  // idx 3: FILTERED INTERCEPT BUFFER
+  [{addr:0x00,label:'$00',input:true},{addr:0x01,label:'$01',input:true},{addr:0x02,label:'$02'},{addr:0x03,label:'OUTPUT     $03'}],
+  // idx 4: THRESHOLD DENSITY SCANNER
+  [{addr:0x00,label:'$00',input:true},{addr:0x01,label:'$01',input:true},{addr:0x20,label:'BUF LEN    $20',input:true},{addr:0x30,label:'COUNT      $30'}],
+  // idx 5: SIGNAL INTEGRITY — CHECKSUM MODULE
+  [{addr:0x00,label:'$00',input:true},{addr:0x01,label:'$01',input:true},{addr:0x10,label:'CHECKSUM   $10'},{addr:0x11,label:'SENTINEL   $11'}],
+  // idx 6: PRIORITY ENCODER — CHANNEL EXTRACTION
+  [{addr:0x00,label:'INPUT      $00',input:true},{addr:0x10,label:'LO NIBBLE  $10'},{addr:0x11,label:'HI NIBBLE  $11'},{addr:0x12,label:'PARITY     $12'}],
+  // idx 7: CLAMP SUBROUTINE — REFACTOR
+  [{addr:0x10,label:'RESULT 1   $10'},{addr:0x11,label:'RESULT 2   $11'},{addr:0x12,label:'RESULT 3   $12'}],
+  // idx 8: SEQUENCE REVERSAL — STACK METHOD
+  [{addr:0x10,label:'$10'},{addr:0x11,label:'$11'},{addr:0x12,label:'$12'},{addr:0x13,label:'$13'}],
+  // idx 9: DUAL POINTER ACCESS — INDIRECT MODES
+  [{addr:0x10,label:'A[0]       $10'},{addr:0x13,label:'A[3]       $13'},{addr:0x14,label:'B[0]       $14'},{addr:0x17,label:'B[3]       $17'}],
+  // idx 10: FILTERED COPY WITH MASK
+  [{addr:0x10,label:'OUT[0]     $10'},{addr:0x17,label:'OUT[7]     $17'},{addr:0x18,label:'SUPPRESS   $18'},{addr:0x20,label:'MASK       $20',input:true}],
+  // idx 11: SERIAL BIT PACKER
+  [{addr:0x00,label:'BIT 0      $00',input:true},{addr:0x07,label:'BIT 7      $07',input:true},{addr:0x10,label:'PACKED     $10'}],
+  // idx 12: THRESHOLD MATRIX SCAN
+  [{addr:0x20,label:'ROW THRESH $20',input:true},{addr:0x21,label:'COL THRESH $21',input:true},{addr:0x30,label:'BITFIELD   $30'}],
+  // idx 13: IN-PLACE NORMALISATION PASS
+  [{addr:0x00,label:'$00',input:true},{addr:0x01,label:'$01',input:true},{addr:0x10,label:'FLAG BYTE  $10'}],
+  // idx 14: DEAD RECKONING — POSITION INTEGRATOR
+  [{addr:0x20,label:'FINAL X    $20'},{addr:0x21,label:'FINAL Y    $21'},{addr:0x22,label:'CLAMP CNT  $22'}],
+];
+
+// Tracks which LCD addresses are currently displayed (set by updateLCDForMission)
+let _activeLCDAddrs = [];
+
+// ============================================================
 // MEMORY-MAPPED I/O (Sandbox only)
 // $FE = RNG register   $FF = Keyboard input register
 // ============================================================
@@ -2328,15 +2490,15 @@ function execOne() {
 // ============================================================
 // LCD ANIMATION
 // ============================================================
-function flashLCDSlot(slot, isClamp) {
-  const el = document.getElementById('lcd0'+slot);
+function flashLCDSlot(addr, isClamp) {
+  const el = document.getElementById('lcdSlot_' + hex2(addr));
   if (!el) return;
   el.classList.remove('flash-write','clamp-pulse');
   void el.offsetWidth;
   el.classList.add(isClamp ? 'clamp-pulse' : 'flash-write');
   setTimeout(() => el.classList.remove('flash-write','clamp-pulse'), 750);
 
-  if (slot===3 && memory[3]===1 && currentMissionIndex===2) showSuppressionMsg();
+  if (addr===3 && memory[3]===1 && currentMissionIndex===2) showSuppressionMsg();
 }
 
 function showSuppressionMsg() {
@@ -2468,16 +2630,18 @@ function updateUI() {
         setTimeout(() => cell.classList.remove('flash-write'), 600);
       }
     }
-    if (slot===2 || slot===3) {
+    // Flash LCD slot if this address is displayed
+    if (_activeLCDAddrs.includes(slot)) {
       const isClamp = (currentMissionIndex===2 && slot===2 && memory[2]===0 && memory[3]===1);
       flashLCDSlot(slot, isClamp);
     }
   }
 
-  document.getElementById('lcd00').textContent = hex2(memory[0]);
-  document.getElementById('lcd01').textContent = hex2(memory[1]);
-  document.getElementById('lcd02').textContent = hex2(memory[2]);
-  document.getElementById('lcd03').textContent = hex2(memory[3]);
+  // Update all active LCD slot values
+  for (const addr of _activeLCDAddrs) {
+    const el = document.getElementById('lcdSlot_' + hex2(addr));
+    if (el) el.textContent = hex2(memory[addr]);
+  }
 
   // Sandbox I/O LCD rows
   const lcdFE = document.getElementById('lcdFE');
@@ -2494,23 +2658,26 @@ function updateUI() {
 }
 
 function updateLCDForMission(idx) {
-  const row03 = document.getElementById('lcdRow03');
-  const l00 = document.getElementById('lcdLabel00');
-  const l01 = document.getElementById('lcdLabel01');
-  const l02 = document.getElementById('lcdLabel02');
-  const l03 = document.getElementById('lcdLabel03');
-  if (idx===0) {
-    l00.textContent='RAW RANGE  $00'; l01.textContent='WIND DRIFT $01';
-    l02.textContent='CORRECTED  $02'; row03.style.display='none';
-  } else if (idx===1) {
-    l00.textContent='RAW RANGE  $00'; l01.textContent='WIND DRIFT $01';
-    l02.textContent='OUTPUT     $02'; row03.style.display='flex'; l03.textContent='CLASSIFY   $03';
-  } else if (idx===2) {
-    l00.textContent='PRIMARY    $00'; l01.textContent='OFFSET     $01';
-    l02.textContent='RESULT     $02'; row03.style.display='flex'; l03.textContent='SUPPRESS   $03';
-  } else {
-    l00.textContent='$00'; l01.textContent='$01';
-    l02.textContent='$02'; row03.style.display='flex'; l03.textContent='$03';
+  const container = document.getElementById('lcdMissionRows');
+  container.innerHTML = '';
+  _activeLCDAddrs = [];
+  if (idx < 0 || idx >= MISSION_LCD.length) return;
+  const slots = MISSION_LCD[idx];
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    _activeLCDAddrs.push(s.addr);
+    const row = document.createElement('div');
+    row.className = 'lcd-row lcd-row-mission';
+    const label = document.createElement('span');
+    label.className = 'lcd-label';
+    label.textContent = s.label;
+    const val = document.createElement('span');
+    val.className = 'lcd-val' + (s.input ? ' input' : '');
+    val.id = 'lcdSlot_' + hex2(s.addr);
+    val.textContent = hex2(memory[s.addr]);
+    row.appendChild(label);
+    row.appendChild(val);
+    container.appendChild(row);
   }
 }
 
@@ -2615,7 +2782,12 @@ function updateLineNums() {
   updateSyntaxHighlight();
 }
 
-editor.addEventListener('input', () => { errorLineNum=-1; updateLineNums(); });
+editor.addEventListener('input', () => {
+  errorLineNum=-1; updateLineNums();
+  // Debounced editor save
+  clearTimeout(editor._saveTm);
+  editor._saveTm = setTimeout(_saveEditorDraft, 800);
+});
 editor.addEventListener('scroll', () => {
   lineNums.scrollTop = editor.scrollTop;
   document.getElementById('highlightOverlay').scrollTop = editor.scrollTop;
@@ -2890,6 +3062,7 @@ updateLineNums();
   memory.fill(0); resetCPU();
   updateLCDForMission(currentMissionIndex);
   updateUI();
+  document.getElementById('missionBriefWrap').scrollTop = 0;
   setStatus(`Loaded Mission ${mission.id}: ${mission.name}`,'info');
 }
 
@@ -2911,6 +3084,8 @@ function nextMission() {
       setTimeout(()=>document.getElementById('completionModal').classList.add('visible'),300);
     }
   }
+  _clearEditorDraft();
+  saveGame();
   loadMission();
 }
 
@@ -2922,6 +3097,7 @@ const SYSLOG_MISSION_INDICES = new Set([3, 6, 9, 11, 13]);
 function showDebrief(idx) {
   // Track cleared mission
   clearedMissions.add(idx);
+  saveGame();
 
   // System log interception
   if (SYSLOG_MISSION_INDICES.has(idx)) {
@@ -3052,17 +3228,36 @@ function fbRedraw() {
 // ============================================================
 // SANDBOX MEMORY GRID
 // ============================================================
+// Snapshot of last displayed memory values for differential updates
+let _sbMemSnapshot = new Uint8Array(256);
+let _sbGridBuilt = false;
+
 function updateSandboxMemGrid() {
   const grid=document.getElementById('sandboxMemGrid');
-  // If editing cell active, don't clobber it
   if (grid.querySelector('.editing')) return;
-  grid.innerHTML='';
+
+  // Full build on first call or if grid was cleared
+  if (!_sbGridBuilt || grid.children.length !== 256) {
+    grid.innerHTML='';
+    for(let i=0;i<256;i++){
+      const cell=document.createElement('div');
+      cell.className='mem-cell'; cell.id='sbcell'+i;
+      cell.innerHTML=`<div class="mem-addr">$${hex2(i)}</div><div class="mem-val">${hex2(memory[i])}</div>`;
+      cell.onclick=(function(addr,el){return function(){editSandboxCell(addr,el);};})(i,cell);
+      grid.appendChild(cell);
+      _sbMemSnapshot[i] = memory[i];
+    }
+    _sbGridBuilt = true;
+    return;
+  }
+
+  // Differential update — only touch cells whose values changed
   for(let i=0;i<256;i++){
-    const cell=document.createElement('div');
-    cell.className='mem-cell'; cell.id='sbcell'+i;
-    cell.innerHTML=`<div class="mem-addr">$${hex2(i)}</div><div class="mem-val">${hex2(memory[i])}</div>`;
-    cell.onclick=()=>editSandboxCell(i,cell);
-    grid.appendChild(cell);
+    if(memory[i] !== _sbMemSnapshot[i]){
+      const valDiv = grid.children[i].querySelector('.mem-val');
+      if(valDiv) valDiv.textContent = hex2(memory[i]);
+      _sbMemSnapshot[i] = memory[i];
+    }
   }
 }
 
@@ -3209,11 +3404,6 @@ function _liveUpdateUI() {
   if (lcdFE) lcdFE.textContent = hex2(lastRngByte);
   if (lcdFF) lcdFF.textContent = hex2(memory[0xFF]);
   updateWatchSlots();
-
-  document.getElementById('lcd00').textContent = hex2(memory[0]);
-  document.getElementById('lcd01').textContent = hex2(memory[1]);
-  document.getElementById('lcd02').textContent = hex2(memory[2]);
-  document.getElementById('lcd03').textContent = hex2(memory[3]);
 
   fbRedraw();
 }
@@ -3705,7 +3895,116 @@ function showAnomalyBanner() {
   b.classList.remove('visible');
   void b.offsetWidth;
   b.classList.add('visible');
-  setTimeout(() => b.classList.remove('visible'), 4000);
+  setTimeout(() => b.classList.remove('visible'), 7000);
+  saveGame(); // persist hidden mission unlock
+}
+
+// ============================================================
+// SAVE SYSTEM (localStorage)
+// Abstracted behind saveState/loadState for easy swap to file-based saves later.
+// ============================================================
+const SAVE_KEY = 'zeropage_save';
+const SAVE_VERSION = 1;
+
+// Storage abstraction — swap these two functions for Electron/file-based saves
+function _writeSave(data) {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+function _readSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+function saveGame() {
+  const data = {
+    v: SAVE_VERSION,
+    ts: Date.now(),
+    clearedMissions: Array.from(clearedMissions),
+    bestScores: Object.assign({}, bestScores),
+    bestScoresHidden: Object.assign({}, bestScoresHidden),
+    hiddenUnlocked: (typeof HIDDEN_MISSIONS !== 'undefined')
+      ? HIDDEN_MISSIONS.map(h => h.unlocked) : [],
+    currentMissionIndex: currentMissionIndex
+  };
+  _writeSave(data);
+}
+
+function loadGame() {
+  const data = _readSave();
+  if (!data || data.v !== SAVE_VERSION) return false;
+
+  // Restore cleared missions
+  clearedMissions.clear();
+  if (data.clearedMissions) data.clearedMissions.forEach(i => clearedMissions.add(i));
+
+  // Restore best scores
+  Object.keys(bestScores).forEach(k => delete bestScores[k]);
+  if (data.bestScores) Object.assign(bestScores, data.bestScores);
+
+  Object.keys(bestScoresHidden).forEach(k => delete bestScoresHidden[k]);
+  if (data.bestScoresHidden) Object.assign(bestScoresHidden, data.bestScoresHidden);
+
+  // Restore hidden mission unlock states
+  if (data.hiddenUnlocked && typeof HIDDEN_MISSIONS !== 'undefined') {
+    for (let i = 0; i < data.hiddenUnlocked.length && i < HIDDEN_MISSIONS.length; i++) {
+      HIDDEN_MISSIONS[i].unlocked = data.hiddenUnlocked[i];
+    }
+  }
+
+  // Restore mission index
+  if (typeof data.currentMissionIndex === 'number' && data.currentMissionIndex >= 0 && data.currentMissionIndex < MISSIONS.length) {
+    currentMissionIndex = data.currentMissionIndex;
+  }
+
+  return true;
+}
+
+// Editor draft persistence — survives refresh, cleared on mission advance
+const DRAFT_KEY = 'zeropage_draft';
+function _saveEditorDraft() {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      mi: currentMissionIndex,
+      hi: currentHiddenMissionIndex,
+      code: editor.value
+    }));
+  } catch(e) {}
+}
+function _restoreEditorDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.hi >= 0) return; // don't restore hidden mission drafts on normal load
+    if (d.mi === currentMissionIndex && d.code) {
+      editor.value = d.code;
+      updateLineNums();
+    }
+  } catch(e) {}
+}
+function _clearEditorDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
+}
+
+function confirmClearSave() {
+  if (confirm('Clear all saved progress? This cannot be undone.')) {
+    try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+    _clearEditorDraft();
+    // Reset all state
+    clearedMissions.clear();
+    Object.keys(bestScores).forEach(k => delete bestScores[k]);
+    Object.keys(bestScoresHidden).forEach(k => delete bestScoresHidden[k]);
+    if (typeof HIDDEN_MISSIONS !== 'undefined') {
+      HIDDEN_MISSIONS.forEach(h => h.unlocked = false);
+    }
+    currentMissionIndex = 0;
+    missionCleared = false;
+    completionShown = false;
+    loadMission();
+    setStatus('SAVE DATA CLEARED — SYSTEM RESET', 'info');
+  }
 }
 
 // ============================================================
@@ -3737,9 +4036,14 @@ function closeReward() { document.getElementById('rewardModal').classList.remove
 // ============================================================
 // MISSION SELECT
 // ============================================================
+// Encoded routing table
+eval(atob("dmFyIEhJRERFTl9ISU5UX01BUCA9IHsgNDogMCwgOTogMSwgMTM6IDIgfTs="));
+
 function openMissionSelect() {
   const body = document.getElementById('missionSelectBody');
+  const hiddenBody = document.getElementById('missionSelectHidden');
   body.innerHTML = '';
+  hiddenBody.innerHTML = '';
 
   // Regular missions
   for (let i = 0; i < MISSIONS.length; i++) {
@@ -3760,19 +4064,33 @@ function openMissionSelect() {
       <span class="msr-score" style="color:${cleared ? 'var(--green-dim)' : 'var(--text-dim)'}">${scoreStr}</span>
       ${cleared ? `<button class="modal-btn replay" onclick="replayMission(${i})">REPLAY</button>` : ''}
     `;
+
+    // Hover hint: trigger subtle flicker on linked hidden mission
+    if (HIDDEN_HINT_MAP[i] !== undefined) {
+      const hIdx = HIDDEN_HINT_MAP[i];
+      row.addEventListener('mouseenter', () => {
+        const target = document.getElementById('hiddenRow_' + hIdx);
+        if (target && !target.classList.contains('hint-flicker')) {
+          target.classList.add('hint-flicker');
+          target.addEventListener('animationend', () => target.classList.remove('hint-flicker'), { once: true });
+        }
+      });
+    }
+
     body.appendChild(row);
   }
 
-  // Divider for hidden missions
+  // Divider for hidden missions (pinned below scroll)
   const div = document.createElement('div');
   div.className = 'msr-divider';
   div.textContent = 'CLASSIFIED MODULES';
-  body.appendChild(div);
+  hiddenBody.appendChild(div);
 
-  // Hidden missions
+  // Hidden missions (pinned, always visible)
   for (let i = 0; i < HIDDEN_MISSIONS.length; i++) {
     const h = HIDDEN_MISSIONS[i];
     const row = document.createElement('div');
+    row.id = 'hiddenRow_' + i;
     const cleared = bestScoresHidden[i] !== undefined;
     row.className = 'mission-select-row ' + (h.unlocked ? (cleared ? 'cleared' : '') : 'locked');
 
@@ -3791,7 +4109,7 @@ function openMissionSelect() {
       <span class="msr-score" style="color:${h.unlocked ? 'var(--red-bright)' : 'var(--text-dim)'};">${scoreStr}</span>
       ${h.unlocked ? `<button class="modal-btn replay" style="border-color:var(--red-bright);color:var(--red-bright)" onclick="replayHiddenMission(${i})">REPLAY</button>` : ''}
     `;
-    body.appendChild(row);
+    hiddenBody.appendChild(row);
   }
 
   document.getElementById('missionSelectModal').classList.add('visible');
@@ -3799,6 +4117,7 @@ function openMissionSelect() {
 
 function replayMission(idx) {
   document.getElementById('missionSelectModal').classList.remove('visible');
+  _clearEditorDraft();
   currentMissionIndex = idx;
   missionCleared = false;
   loadMission();
@@ -3807,6 +4126,7 @@ function replayMission(idx) {
 
 function replayHiddenMission(hiddenIdx) {
   document.getElementById('missionSelectModal').classList.remove('visible');
+  _clearEditorDraft();
   loadHiddenMission(hiddenIdx);
 }
 
@@ -3882,6 +4202,7 @@ function doRunHiddenTests() {
   setStatus(`CLASSIFIED MODULE VERIFIED ▓▓▓▓▓▓▓▓▓▓ | CYCLES: ${cycles}`, 'pass');
   const hiddenIdx = currentHiddenMissionIndex;
   setTimeout(() => showReward(hiddenIdx), 400);
+  saveGame();
   return true;
 }
 
@@ -3899,8 +4220,11 @@ function doRunHiddenTests() {
 // ============================================================
 // INIT
 // ============================================================
+loadGame(); // restore saved progress (before first loadMission)
 doReset();
 loadMission();
+_restoreEditorDraft(); // restore in-progress code after loadMission sets defaults
+window.addEventListener('beforeunload', _saveEditorDraft);
 
 </script>
 </body>
