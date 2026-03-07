@@ -1,3 +1,4 @@
 # Session Notes
 
-No in-progress work. Last session completed successfully.
+Discussed light mode accessibility and player feedback (Austin) about difficulty curve.
+All plans documented in `planning.md`. Start there next session.
