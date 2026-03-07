@@ -296,10 +296,11 @@
     margin-bottom: 4px;
   }
   .mission-narrative { color: var(--text-dim); font-size: 16px; line-height: 1.6; margin-bottom: 8px; }
-  .mission-obj { margin-top: 6px; }
+  .mission-obj { margin-top: 6px; counter-reset: obj-step; }
   .mission-obj-title { color: var(--amber); font-size: 11px; letter-spacing: 2px; margin-bottom: 4px; }
   .mission-obj-item { color: var(--text); font-size: 16px; margin-bottom: 3px; padding-left: 8px; }
-  .mission-obj-item::before { content: '> '; color: var(--green-dim); }
+  .mission-obj-item { counter-increment: obj-step; }
+  .mission-obj-item::before { content: counter(obj-step) '. '; color: var(--green-dim); }
 
   .collapsible-content { overflow: hidden; transition: max-height 0.2s ease; }
   .collapsible-content.collapsed { max-height: 0 !important; }
@@ -1424,12 +1425,12 @@ Do not alter source registers.`,
     name: "RANGE TABLE CORRECTION UNIT",
     narrative: `A 4-byte input table has been loaded at $00–$03.
 Each entry is a raw field reading. A fixed correction constant of $0A has been determined from prior calibration.
-Apply the constant to each entry. Write the corrected values to $10–$13.
+Apply the constant to each entry. Write the corrected values to $04–$07.
 Use a counted loop. Do not unroll.`,
     objectives: [
       "Read 4 values from $00–$03",
       "Add correction constant #$0A to each (result wraps at $FF)",
-      "Store corrected values to $10–$13 in order",
+      "Store corrected values to $04–$07 in order",
       "Use a loop with X or Y as counter — do not unroll",
       "Terminate with BRK within 300 cycles"
     ],
@@ -1443,13 +1444,13 @@ Use a counted loop. Do not unroll.`,
       const inputs = [r0, r1, (r0 + r1) & 0xFF, (r0 ^ r1) & 0xFF];
       for (let i = 0; i < 4; i++) {
         const exp = (inputs[i] + 0x0A) & 0xFF;
-        if (mem[0x10 + i] !== exp)
-          return `$${(0x10+i).toString(16).toUpperCase()}: EXP ${exp.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10+i].toString(16).toUpperCase().padStart(2,'0')}`;
+        if (mem[0x04 + i] !== exp)
+          return `$${(0x04+i).toString(16).toUpperCase()}: EXP ${exp.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x04+i].toString(16).toUpperCase().padStart(2,'0')}`;
       }
       return null;
     },
     testLogic: () => 0, // unused when testFull present
-    outputSlot: 0x10,   // shown in UI as primary output
+    outputSlot: 0x04,   // shown in UI as primary output
     allowInputModify: false,
     debrief: {
       subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: ROUTINE',
@@ -1461,14 +1462,14 @@ Use a counted loop. Do not unroll.`,
     id: 5,
     name: "THRESHOLD DENSITY SCANNER",
     narrative: `An 8-byte data buffer has been loaded at $00–$07.
-The buffer length is fixed at $08 and stored at $20.
+The buffer length is fixed at $08 and stored at $08.
 Scan the buffer using indexed addressing. Count how many values exceed $80.
-Store the count in $30.`,
+Store the count in $09.`,
     objectives: [
-      "Read buffer length from $20 (will be $08)",
+      "Read buffer length from $08 (will be $08)",
       "Scan $00–$07 using LDA $00,X indexed addressing",
       "Count entries where value > $80",
-      "Store final count in $30",
+      "Store final count in $09",
       "Terminate with BRK within 500 cycles"
     ],
     cycleLimit: 500,
@@ -1480,7 +1481,7 @@ Store the count in $30.`,
       mem[5] = (r1 ^ 0x55) & 0xFF;
       mem[6] = (r0 + r1 + 3) & 0xFF;
       mem[7] = (r0 * 3) & 0xFF;
-      mem[0x20] = 8; // buffer length
+      mem[0x08] = 8; // buffer length
     },
     testFull: (mem, r0, r1) => {
       const buf = [
@@ -1491,12 +1492,12 @@ Store the count in $30.`,
       ];
       let count = 0;
       for (const v of buf) if (v > 0x80) count++;
-      if (mem[0x30] !== count)
-        return `$30: EXP ${count.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x30].toString(16).toUpperCase().padStart(2,'0')}`;
+      if (mem[0x09] !== count)
+        return `$09: EXP ${count.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x09].toString(16).toUpperCase().padStart(2,'0')}`;
       return null;
     },
     testLogic: () => 0,
-    outputSlot: 0x30,
+    outputSlot: 0x09,
     allowInputModify: false,
     debrief: {
       subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: FILED',
@@ -1508,12 +1509,12 @@ Store the count in $30.`,
     id: 6,
     name: "SIGNAL INTEGRITY — CHECKSUM MODULE",
     narrative: `A 6-byte signal packet occupies $00–$05.
-Compute an integrity checksum: sum all six bytes, retaining only the low byte. Store in $10.
-Additionally, if any byte in the packet equals $FF — a reserved sentinel value — store $01 in $11. Otherwise store $00.
+Compute an integrity checksum: sum all six bytes, retaining only the low byte. Store in $06.
+Additionally, if any byte in the packet equals $FF — a reserved sentinel value — store $01 in $07. Otherwise store $00.
 The sentinel flag must be set even if only one byte triggers it.`,
     objectives: [
-      "Sum bytes at $00–$05 (low byte only) → store in $10",
-      "If any byte equals #$FF → store #$01 in $11, else #$00",
+      "Sum bytes at $00–$05 (low byte only) → store in $06",
+      "If any byte equals #$FF → store #$01 in $07, else #$00",
       "Terminate with BRK within 600 cycles"
     ],
     cycleLimit: 600,
@@ -1531,14 +1532,14 @@ The sentinel flag must be set even if only one byte triggers it.`,
       ];
       let sum = 0, sentinel = 0;
       for (const v of buf) { sum = (sum + v) & 0xFF; if (v === 0xFF) sentinel = 1; }
-      if (mem[0x10] !== sum)
-        return `$10 checksum: EXP ${sum.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10].toString(16).toUpperCase().padStart(2,'0')}`;
-      if (mem[0x11] !== sentinel)
-        return `$11 sentinel flag: EXP ${sentinel.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x11].toString(16).toUpperCase().padStart(2,'0')}`;
+      if (mem[0x06] !== sum)
+        return `$06 checksum: EXP ${sum.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x06].toString(16).toUpperCase().padStart(2,'0')}`;
+      if (mem[0x07] !== sentinel)
+        return `$07 sentinel flag: EXP ${sentinel.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x07].toString(16).toUpperCase().padStart(2,'0')}`;
       return null;
     },
     testLogic: () => 0,
-    outputSlot: 0x10,
+    outputSlot: 0x06,
     allowInputModify: false,
     debrief: {
       subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: FILED',
@@ -1550,13 +1551,13 @@ The sentinel flag must be set even if only one byte triggers it.`,
     name: "PRIORITY ENCODER — CHANNEL EXTRACTION",
     narrative: `A packed status byte is loaded at $00.
 Bits 0–3 encode four sensor channels. Bits 4–7 encode system flags.
-Extract each nibble into separate output locations.
-Compute the parity of the low nibble — XOR all four bits together — and store the result.
+Extract each nibble into separate output locations ($08, $09).
+Compute the parity of the low nibble — XOR all four bits together — and store the result in $0A.
 Do not alter $00.`,
     objectives: [
-      "Store low nibble of $00 (bits 0–3) in $10",
-      "Store high nibble of $00 (bits 4–7, shifted right 4) in $11",
-      "Compute parity of low nibble (XOR of bits 0–3) → store in $12 (#$00 or #$01)",
+      "Store low nibble of $00 (bits 0–3) in $08",
+      "Store high nibble of $00 (bits 4–7, shifted right 4) in $09",
+      "Compute parity of low nibble (XOR of bits 0–3) → store in $0A (#$00 or #$01)",
       "Do not modify $00",
       "Terminate with BRK within 400 cycles"
     ],
@@ -1565,14 +1566,14 @@ Do not alter $00.`,
       const lo = r0 & 0x0F;
       const hi = (r0 >> 4) & 0x0F;
       const parity = ((r0 ^ (r0 >> 1) ^ (r0 >> 2) ^ (r0 >> 3)) & 1);
-      if (mem[0x10] !== lo) return `$10 low nibble: EXP ${lo.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x10].toString(16).toUpperCase().padStart(2,'0')}`;
-      if (mem[0x11] !== hi) return `$11 high nibble: EXP ${hi.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x11].toString(16).toUpperCase().padStart(2,'0')}`;
-      if (mem[0x12] !== parity) return `$12 parity: EXP ${parity} GOT ${mem[0x12]}`;
+      if (mem[0x08] !== lo) return `$08 low nibble: EXP ${lo.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x08].toString(16).toUpperCase().padStart(2,'0')}`;
+      if (mem[0x09] !== hi) return `$09 high nibble: EXP ${hi.toString(16).toUpperCase().padStart(2,'0')} GOT ${mem[0x09].toString(16).toUpperCase().padStart(2,'0')}`;
+      if (mem[0x0A] !== parity) return `$0A parity: EXP ${parity} GOT ${mem[0x0A]}`;
       if (mem[0x00] !== r0) return `$00 was modified`;
       return null;
     },
     testLogic: () => 0,
-    outputSlot: 0x10,
+    outputSlot: 0x08,
     allowInputModify: false,
     debrief: {
       subtitle: 'POST-OPERATION ASSESSMENT — CLASSIFICATION: FILED',
@@ -2885,7 +2886,8 @@ function doRunTests() {
     const mission=MISSIONS[currentMissionIndex];
     const expected=mission.testLogic(r0,r1);
 
-    memory.fill(0); memory[0]=r0; memory[1]=r1;
+    for(let i=0;i<256;i++) memory[i]=Math.floor(Math.random()*256);
+    memory[0]=r0; memory[1]=r1;
     if(mission.testSetup) mission.testSetup(memory, r0, r1);
     if(mission.outputSlots) mission.outputSlots.forEach(s=>memory[s]=0);
     else if(mission.outputSlot !== undefined) memory[mission.outputSlot]=0;
@@ -4174,7 +4176,8 @@ function doRunHiddenTests() {
   const NUM_TESTS = 10;
   for (let t = 0; t < NUM_TESTS; t++) {
     const r0 = Math.floor(Math.random()*256), r1 = Math.floor(Math.random()*256);
-    memory.fill(0); memory[0] = r0; memory[1] = r1;
+    for(let i=0;i<256;i++) memory[i]=Math.floor(Math.random()*256);
+    memory[0] = r0; memory[1] = r1;
     if (h.testSetup) h.testSetup(memory, r0, r1);
 
     instructions = ins; resetCPU();

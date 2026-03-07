@@ -1,4 +1,4 @@
 # Session Notes
 
-Light mode accessibility overhaul complete. All plans documented in `planning.md`.
-Next up: Quick UI/UX improvements (#2 in planning.md).
+Light mode and quick UI/UX fixes complete. Next up: bridge puzzles (#3 in planning.md).
+Waiting on Austin's detailed input for bridge puzzle design.

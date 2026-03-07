@@ -87,5 +87,5 @@ Waiting for Austin's more detailed input. Will design specific puzzles once scop
 
 ## Priority Order
 1. ~~Light mode accessibility~~ — **DONE** (near-black on white, all WCAG AAA)
-2. Quick UI/UX improvements (small changes, big impact)
+2. ~~Quick UI/UX improvements~~ — **DONE** (random-fill ZP, numbered objectives, early I/O constrained to $00-$0F)
 3. Bridge puzzles (larger effort, design work needed first)
