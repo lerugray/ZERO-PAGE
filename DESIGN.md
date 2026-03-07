@@ -78,14 +78,13 @@ Freeform 6502 programming environment with no grading or narrative framing. Feat
 | Range | Purpose |
 |---|---|
 | `$00–$01` | Primary inputs (r0, r1) |
-| `$02–$0A` | Outputs for Clusters 0–1 (all within visible top 16 bytes) |
+| `$02–$0A` | Outputs for Clusters 0–1 (all within top 16 bytes) |
+| `$10–$17` | Outputs for Clusters 2–3 (Puzzles 8–12, 14) |
 | `$18` | Suppression counter (Puzzle 11) |
-| `$20–$2F` | Thresholds, control values, late outputs |
-| `$30–$3F` | Counters, flags, bitfields |
-| `$40–$5F` | Data block A (Puzzle 10) |
-| `$50–$5F` | Data block B (Puzzle 10) |
-| `$60–$7F` | Data blocks (Puzzle 11) |
-| `$70–$7D` | Data blocks (Hidden H2) |
+| `$20–$21` | Thresholds (Puzzle 13) |
+| `$30` | Bit flag output (Puzzle 13) |
+| `$40–$5F` | Data blocks (Puzzle 10) |
+| `$60–$7F` | Data blocks (Puzzle 11) / Hidden H2 |
 | `$80–$FF` | Framebuffer (sandbox) / record blocks (Hidden H3) |
 | `$C0–$CF` | Record block (Hidden H3) |
 | `$E0–$E3` | Pointer tables (Puzzles 10–11) |
