@@ -8,7 +8,7 @@ Think TIS-100 meets moral complicity. The mechanics are the hook; the narrative 
 
 ## Technical Architecture
 
-- **Active working file**: `zero-page-v19.html` is the current working version of the game. Other HTML files in the repo (index.html, earlier versions) are outdated snapshots — do NOT edit them.
+- **Active working file**: `zero-page-v20.html` is the current working version of the game. `index.html` is kept in sync. Other HTML files (earlier versions) are outdated snapshots — do NOT edit them.
 - **Single-file**: The entire game — HTML, CSS, JavaScript, assembler, simulator, puzzle definitions, narrative, UI — lives in one HTML file (~172 KB, ~4,000 lines).
 - **Zero dependencies**: No build step, no frameworks, no server. Open in any modern browser.
 - **Custom 6502 assembler**: Two-pass assembler with label resolution, supporting 45 instructions and 8 addressing modes.
@@ -78,8 +78,7 @@ Freeform 6502 programming environment with no grading or narrative framing. Feat
 | Range | Purpose |
 |---|---|
 | `$00–$01` | Primary inputs (r0, r1) |
-| `$02–$03` | Common output slots (early puzzles) |
-| `$10–$17` | Common output region |
+| `$02–$0A` | Outputs for Clusters 0–1 (all within visible top 16 bytes) |
 | `$18` | Suppression counter (Puzzle 11) |
 | `$20–$2F` | Thresholds, control values, late outputs |
 | `$30–$3F` | Counters, flags, bitfields |
@@ -292,4 +291,4 @@ No persistence currently exists. All progress (cleared missions, best scores, hi
 - [ ] Sound design via Web Audio API
 - [ ] Electron wrapper for Steam packaging
 - [ ] Trailer production
-- [ ] Update `zero-page-puzzle-roadmap.docx` to reflect all 18 puzzles
+- [x] ~~Update puzzle roadmap~~ — replaced `zero-page-puzzle-roadmap.docx` with `puzzle-roadmap.md` (all 18 current + 6 proposed bridges)

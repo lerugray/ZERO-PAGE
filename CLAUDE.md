@@ -12,7 +12,7 @@ Open `zero-page-v20.html` in a web browser. This is the **active working file** 
 - **Single-file architecture**: The entire game (HTML, CSS, JavaScript, puzzle definitions, assembler, simulator, UI) lives in one HTML file.
 - **Puzzle definitions**: Located in a `MISSIONS` array in the JS. Each entry has: `id`, `name`, `narrative`, `objectives` array, `outputSlot`/`outputSlots`, `testLogic` function, and `debrief` object.
 - **Design document**: See `DESIGN.md` for the full design document covering architecture, all puzzles, sandbox mode, narrative design, known issues, and distribution plans.
-- **Puzzle roadmap**: See `zero-page-puzzle-roadmap.docx` for the original puzzle design roadmap (may be outdated — `DESIGN.md` is the current reference).
+- **Puzzle roadmap**: See `puzzle-roadmap.md` for the full puzzle roadmap including all 18 current puzzles and 6 proposed bridge puzzles.
 - **Cheat sheet**: `CHEATSHEET.md` (gitignored, local only) contains puzzle solutions and testing instructions. Not committed to the repo to protect hidden content.
 
 ## Current Status
@@ -38,8 +38,7 @@ Each puzzle introduces exactly one new concept, uses it meaningfully, and advanc
 - **Sandbox as contrast**: Sandbox mode is the player's own space — no framing, no unease, just freedom to code.
 
 ## Known Improvement Areas
-1. **Updated roadmap**: The roadmap document needs updating to reflect the current full puzzle set including all 18 puzzles.
-2. **Instruction gating**: The tech reference panel should ideally hide/grey out instructions that haven't been introduced yet.
+1. **Instruction gating**: The tech reference panel should ideally hide/grey out instructions that haven't been introduced yet.
 
 ## Future Plans
 - **Itch.io release** first (pay-what-you-want or free) to gather feedback
