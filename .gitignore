@@ -5,4 +5,10 @@ build/
 .DS_Store
 Thumbs.db
 .vscode/
+.claude/
 CHEATSHEET.md
+
+# Design brief + generated Electron/React scaffold are private (see ZERO-PAGE-private repo)
+ZeroPage.zip
+claude-design-brief.md
+claude-design-output/
